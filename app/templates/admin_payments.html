@@ -1,0 +1,29 @@
+<!-- admin_payments.html -->
+<html>
+<head>
+    <title>Администрирование платежей</title>
+</head>
+<body>
+    <h1>Платежи</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Платёж ID</th>
+                <th>Статус</th>
+                <th>Сумма</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for payment in payments %}
+            <tr>
+                <td>{{ payment.id }}</td>
+                <td>{{ payment.status }}</td>
+                <td>{{ payment.amount }} руб.</td>
+                <td><a href="/admin/payment/{{ payment.id }}">Подробнее</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

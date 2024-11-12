@@ -1,0 +1,8 @@
+# .env file should be ignored
+.env
+
+# Другие файлы, которые нужно игнорировать
+__pycache__
+*.pyc
+*.pyo
+*.db

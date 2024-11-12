@@ -1,0 +1,18 @@
+<!-- profile_edit.html -->
+<html>
+<head>
+    <title>Редактирование профиля</title>
+</head>
+<body>
+    <h1>Редактировать профиль</h1>
+    <form method="post" enctype="multipart/form-data">
+        <label for="username">Имя пользователя:</label>
+        <input type="text" id="username" name="username" value="{{ user.username }}">
+        <br>
+        <label for="profile_pic">Фото профиля:</label>
+        <input type="file" id="profile_pic" name="profile_pic">
+        <br>
+        <button type="submit">Сохранить изменения</button>
+    </form>
+</body>
+</html>
