@@ -39,3 +39,21 @@ def create_payment(amount: float, description: str, order_id: str):
     except requests.exceptions.RequestException as e:
         # Логирование ошибки
         return {"error": "Request failed", "details": str(e)}
+
+async def handle_unitpay_webhook(payload: dict) -> dict:
+    """
+    Обработка webhook уведомления от YooKassa.
+
+    :param payload: Данные уведомления от YooKassa
+    :return: Результат обработки уведомления
+    """
+    # Здесь должна быть логика для обработки уведомлений
+    # Например, проверка данных в payload и обновление статуса заказа в базе данных
+    # Пример:
+    if payload.get("event") == "payment.succeeded":
+        # Выполните необходимые действия, такие как обновление базы данных
+        return {"status": "processed", "message": "Payment successful"}
+    elif payload.get("event") == "payment.canceled":
+        return {"status": "processed", "message": "Payment canceled"}
+    else:
+        return {"status": "ignored", "message": "Event not recognized"}
