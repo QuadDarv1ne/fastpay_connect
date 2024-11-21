@@ -47,6 +47,8 @@ fastpay_connect/
 └── run.py                        # Точка входа для запуска приложения
 ```
 
+---
+
 ### Описание изменений
 
 1. `fastpay_connect` — это теперь основная папка проекта.
@@ -64,6 +66,8 @@ fastpay_connect/
 pip install -r requirements.txt
 ```
 
+---
+
 ### Настройка проекта
 
 **Создание файла `.env`:**
@@ -76,6 +80,8 @@ UNITPAY_API_KEY=your_unitpay_api_key
 ROBKASSA_API_KEY=your_robokassa_api_key
 ```
 
+---
+
 ### Запуск приложения
 
 **Для запуска приложения используйте команду:**
@@ -86,27 +92,199 @@ uvicorn app.main:app --reload
 
 После этого вы сможете получить доступ к API, например, по адресу `http://127.0.0.1:8000`
 
+---
+
 ### API Маршруты
 
-**Создание платежа:**
+### 1. Создание платежа
 
-- `POST /payments/yookassa`
-- `POST /payments/tinkoff`
-- `POST /payments/cloudpayments`
-- `POST /payments/unitpay`
-- `POST /payments/robokassa`
+Каждый платёжный шлюз имеет свой собственный маршрут для создания платежа. Для создания платежа необходимо отправить POST-запрос с необходимыми параметрами.
 
-Каждый из этих маршрутов позволяет создать платёж с указанием суммы и описания.
+#### Создание платежа через ЮKassa
 
-**Обработка Webhook уведомлений:**
+- **URL:** `/payments/yookassa`
+- **Метод:** `POST`
+- **Тело запроса (JSON):**
+    ```json
+    {
+      "amount": 1000,
+      "currency": "RUB",
+      "description": "Оплата за курс по Python"
+    }
+    ```
 
-- `POST /webhooks/yookassa`
-- `POST /webhooks/tinkoff`
-- `POST /webhooks/cloudpayments`
-- `POST /webhooks/unitpay`
-- `POST /webhooks/robokassa`
+#### Создание платежа через Tinkoff
 
-### Описание переменных
+- **URL:** `/payments/tinkoff`
+- **Метод:** `POST`
+- **Тело запроса (JSON):**
+    ```json
+    {
+      "amount": 2000,
+      "currency": "RUB",
+      "description": "Оплата за курс по C++"
+    }
+    ```
+
+#### Создание платежа через CloudPayments
+
+- **URL:** `/payments/cloudpayments`
+- **Метод:** `POST`
+- **Тело запроса (JSON):**
+    ```json
+    {
+      "amount": 1500,
+      "currency": "RUB",
+      "description": "Оплата за курс по JavaScript"
+    }
+    ```
+
+#### Создание платежа через UnitPay
+
+- **URL:** `/payments/unitpay`
+- **Метод:** `POST`
+- **Тело запроса (JSON):**
+    ```json
+    {
+      "amount": 500,
+      "currency": "RUB",
+      "description": "Оплата за курс по PHP"
+    }
+    ```
+
+#### Создание платежа через Робокасса
+
+- **URL:** `/payments/robokassa`
+- **Метод:** `POST`
+- **Тело запроса (JSON):**
+    ```json
+    {
+      "amount": 1200,
+      "currency": "RUB",
+      "description": "Оплата за курс по Go"
+    }
+    ```
+
+---
+
+### 2. Обработка Webhook уведомлений
+
+Для каждой платёжной системы предусмотрены маршруты для обработки уведомлений о статусе транзакций (webhook).
+
+#### Обработка webhook уведомлений от ЮKassa
+
+- **URL:** `/webhooks/yookassa`
+- **Метод:** `POST`
+- **Тело запроса (JSON):**
+    ```json
+    {
+      "payment_id": "123456789",
+      "status": "success",
+      "amount": 1000,
+      "currency": "RUB",
+      "transaction_id": "TX123456789"
+    }
+    ```
+
+#### Обработка webhook уведомлений от Tinkoff
+
+- **URL:** `/webhooks/tinkoff`
+- **Метод:** `POST`
+- **Тело запроса (JSON):**
+    ```json
+    {
+      "order_id": "123456789",
+      "status": "success",
+      "amount": 2000,
+      "currency": "RUB",
+      "transaction_id": "TX987654321"
+    }
+    ```
+
+#### Обработка webhook уведомлений от CloudPayments
+
+- **URL:** `/webhooks/cloudpayments`
+- **Метод:** `POST`
+- **Тело запроса (JSON):**
+    ```json
+    {
+      "payment_id": "123456789",
+      "status": "success",
+      "amount": 1500,
+      "currency": "RUB",
+      "transaction_id": "TX543210987"
+    }
+    ```
+
+#### Обработка webhook уведомлений от UnitPay
+
+- **URL:** `/webhooks/unitpay`
+- **Метод:** `POST`
+- **Тело запроса (JSON):**
+    ```json
+    {
+      "payment_id": "987654321",
+      "status": "success",
+      "amount": 500,
+      "currency": "RUB",
+      "transaction_id": "TX135792468"
+    }
+    ```
+
+#### Обработка webhook уведомлений от Робокасса
+
+- **URL:** `/webhooks/robokassa`
+- **Метод:** `POST`
+- **Тело запроса (JSON):**
+    ```json
+    {
+      "order_id": "987654321",
+      "status": "success",
+      "amount": 1200,
+      "currency": "RUB",
+      "transaction_id": "TX246813579"
+    }
+    ```
+
+---
+
+### Ответы на запросы
+
+Каждый из маршрутов возвратит стандартный ответ в формате JSON:
+
+- **Успех (200 OK)**:
+    ```json
+    {
+      "status": "success",
+      "message": "Платёж успешно создан"
+    }
+    ```
+
+- **Ошибка (400 Bad Request)**:
+    ```json
+    {
+      "status": "error",
+      "message": "Неверные данные в запросе"
+    }
+    ```
+
+- **Ошибка (500 Internal Server Error)**:
+    ```json
+    {
+      "status": "error",
+      "message": "Ошибка сервера"
+    }
+    ```
+
+---
+
+### Примечание
+
+Для выполнения запросов к API необходимо настроить и указать API-ключи для каждой платёжной системы в файле `.env`, как указано в [секции настройки проекта](настройка-проекта).
+
+---
+
+### ⚙️ Конфигурация
 
 `YOOKASSA_API_KEY`, `TINKOFF_API_KEY`, `CLOUDPAYMENTS_API_KEY`, `UNITPAY_API_KEY`, `ROBOKASSA_API_KEY` — ключи для авторизации и взаимодействия с платёжными системами. Замените эти значения на реальные ключи, полученные при регистрации в платёжных системах.
 
