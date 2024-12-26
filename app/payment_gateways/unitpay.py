@@ -7,6 +7,7 @@ import hmac
 import requests
 from app.config import UNITPAY_API_KEY, UNITPAY_SECRET_KEY
 
+# Функция для генерации подписи
 def generate_signature(params: dict) -> str:
     """
     Генерация подписи для запроса в UnitPay.
@@ -21,6 +22,8 @@ def generate_signature(params: dict) -> str:
     # Генерация HMAC подписи с использованием SHA-256
     return hmac.new(UNITPAY_SECRET_KEY.encode(), signature_str.encode(), hashlib.sha256).hexdigest()
 
+
+# Функция для создания платежа
 def create_payment(amount: float, description: str, order_id: str):
     """
     Создание платежа через UnitPay API.
@@ -58,6 +61,8 @@ def create_payment(amount: float, description: str, order_id: str):
     except requests.exceptions.RequestException as e:
         return {"error": "Request failed", "details": str(e)}
 
+
+# Функция для проверки подписи
 def verify_signature(params: dict, provided_signature: str) -> bool:
     """
     Проверка подписи при обработке webhook уведомления.
@@ -69,6 +74,8 @@ def verify_signature(params: dict, provided_signature: str) -> bool:
     expected_signature = generate_signature(params)
     return hmac.compare_digest(expected_signature, provided_signature)
 
+
+# Функция для обработки webhook уведомления
 async def handle_unitpay_webhook(payload: dict, signature: str) -> dict:
     """
     Обработка webhook уведомления с проверкой подписи.

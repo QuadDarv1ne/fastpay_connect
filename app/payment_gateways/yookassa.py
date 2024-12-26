@@ -7,6 +7,7 @@ import hmac
 import requests
 from app.config import YOOKASSA_API_KEY, YOOKASSA_SECRET_KEY
 
+# Функция для генерации подписи
 def generate_signature(params: dict) -> str:
     """
     Генерация подписи для запроса в YooKassa.
@@ -18,6 +19,8 @@ def generate_signature(params: dict) -> str:
     signature_str += f"&secret={YOOKASSA_SECRET_KEY}"
     return hmac.new(YOOKASSA_SECRET_KEY.encode(), signature_str.encode(), hashlib.sha256).hexdigest()
 
+
+# Функция для создания платежа
 def create_payment(amount: float, description: str):
     """
     Создание платежа через API YooKassa с подписью.
@@ -58,6 +61,8 @@ def create_payment(amount: float, description: str):
     except requests.exceptions.RequestException as e:
         return {"error": "Request failed", "details": str(e)}
 
+
+# Функция для проверки подписи
 def verify_signature(params: dict, provided_signature: str) -> bool:
     """
     Проверка подписи при обработке webhook уведомления.
@@ -69,6 +74,8 @@ def verify_signature(params: dict, provided_signature: str) -> bool:
     expected_signature = generate_signature(params)
     return hmac.compare_digest(expected_signature, provided_signature)
 
+
+# Функция для обработки webhook уведомления
 async def handle_yookassa_webhook(payload: dict, signature: str) -> dict:
     """
     Обработка webhook уведомления от YooKassa с проверкой подписи.

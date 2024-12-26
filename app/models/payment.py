@@ -4,6 +4,7 @@ from datetime import datetime
 
 Base = declarative_base()
 
+# Модель для хранения информации о платежах.
 class Payment(Base):
     """
     Модель для хранения информации о платежах.

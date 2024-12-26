@@ -8,6 +8,7 @@ import asyncio
 
 router = APIRouter()
 
+# Создание платежа через платёжную систему
 async def create_payment_gateway(payment_function, amount: float, description: str) -> dict:
     """
     Асинхронно создает платеж через переданную платёжную систему.
@@ -29,6 +30,8 @@ async def create_payment_gateway(payment_function, amount: float, description: s
         # Если произошла ошибка, возвращаем HTTPException с детальным сообщением
         raise HTTPException(status_code=400, detail=f"Error in payment gateway: {str(e)}")
 
+
+# Создание платежей через разные платёжные системы
 @router.post("/yookassa")
 async def create_yookassa_payment(amount: float, description: str) -> dict:
     """
@@ -41,6 +44,8 @@ async def create_yookassa_payment(amount: float, description: str) -> dict:
     """
     return await create_payment_gateway(yookassa_create, amount, description)
 
+
+# Создание платежей через разные платёжные системы
 @router.post("/tinkoff")
 async def create_tinkoff_payment(amount: float, description: str) -> dict:
     """
@@ -53,6 +58,8 @@ async def create_tinkoff_payment(amount: float, description: str) -> dict:
     """
     return await create_payment_gateway(tinkoff_create, amount, description)
 
+
+# Создание платежей через разные платёжные системы
 @router.post("/cloudpayments")
 async def create_cloudpayments_payment(amount: float, description: str) -> dict:
     """
@@ -65,6 +72,8 @@ async def create_cloudpayments_payment(amount: float, description: str) -> dict:
     """
     return await create_payment_gateway(cloudpayments_create, amount, description)
 
+
+# Создание платежей через разные платёжные системы
 @router.post("/unitpay")
 async def create_unitpay_payment(amount: float, description: str) -> dict:
     """
@@ -77,6 +86,8 @@ async def create_unitpay_payment(amount: float, description: str) -> dict:
     """
     return await create_payment_gateway(unitpay_create, amount, description)
 
+
+# Создание платежей через разные платёжные системы
 @router.post("/robokassa")
 async def create_robokassa_payment(amount: float, description: str) -> dict:
     """

@@ -7,8 +7,11 @@ import hashlib
 import base64
 import os
 
+from fastapi import requests
+
 SECRET_KEY = os.getenv("SECRET_KEY")  # Используйте секретный ключ для подписи
 
+# Функция для генерации токена
 def generate_token(order_id: str) -> str:
     """
     Генерация уникального токена для защиты платежа.
@@ -21,6 +24,8 @@ def generate_token(order_id: str) -> str:
     token = hmac.new(SECRET_KEY.encode(), message.encode(), hashlib.sha256).hexdigest()
     return token
 
+
+# Функция для создания платежа
 def create_payment(amount: float, description: str, order_id: str):
     """
     Создание платежа через API CloudPayments с добавлением уникального токена.
@@ -59,6 +64,8 @@ def create_payment(amount: float, description: str, order_id: str):
     except requests.exceptions.RequestException as e:
         return {"error": "Request failed", "details": str(e)}
 
+
+# Функция для проверки токена
 def verify_token(order_id: str, token: str) -> bool:
     """
     Проверка токена при возврате с платежа.
@@ -70,6 +77,8 @@ def verify_token(order_id: str, token: str) -> bool:
     expected_token = generate_token(order_id)
     return hmac.compare_digest(expected_token, token)
 
+
+# Функция для обработки webhook уведомления
 async def handle_cloudpayments_webhook(payload: dict, token: str) -> dict:
     """
     Обработка webhook уведомления с проверкой токена.

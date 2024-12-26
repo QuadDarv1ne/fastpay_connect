@@ -7,6 +7,7 @@ from app.payment_gateways.robokassa import handle_robokassa_webhook
 
 router = APIRouter()
 
+# Общая функция для обработки webhook уведомлений от различных платёжных систем
 async def process_webhook(payment_system: str, payload: dict) -> dict:
     """
     Общая функция для обработки webhook уведомлений от различных платёжных систем.
@@ -32,6 +33,8 @@ async def process_webhook(payment_system: str, payload: dict) -> dict:
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error processing webhook: {str(e)}")
 
+
+# Обработка webhook уведомлений от различных платёжных систем
 @router.post("/yookassa")
 async def yookassa_webhook(request: Request):
     """
@@ -45,6 +48,8 @@ async def yookassa_webhook(request: Request):
     result = await process_webhook("yookassa", payload)
     return {"status": "success", "message": result}
 
+
+# Обработка webhook уведомлений от различных платёжных систем
 @router.post("/tinkoff")
 async def tinkoff_webhook(request: Request):
     """
@@ -58,6 +63,8 @@ async def tinkoff_webhook(request: Request):
     result = await process_webhook("tinkoff", payload)
     return {"status": "success", "message": result}
 
+
+# Обработка webhook уведомлений от различных платёжных систем
 @router.post("/cloudpayments")
 async def cloudpayments_webhook(request: Request):
     """
@@ -71,6 +78,8 @@ async def cloudpayments_webhook(request: Request):
     result = await process_webhook("cloudpayments", payload)
     return {"status": "success", "message": result}
 
+
+# Обработка webhook уведомлений от различных платёжных систем
 @router.post("/unitpay")
 async def unitpay_webhook(request: Request):
     """
@@ -84,6 +93,8 @@ async def unitpay_webhook(request: Request):
     result = await process_webhook("unitpay", payload)
     return {"status": "success", "message": result}
 
+
+# Обработка webhook уведомлений от различных платёжных систем
 @router.post("/robokassa")
 async def robokassa_webhook(request: Request):
     """
