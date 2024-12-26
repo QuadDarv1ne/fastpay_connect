@@ -1,8 +1,20 @@
+import os
 import uvicorn
+import logging
 
-if __name__ == "__main__":
+def run_app():
+    host = os.getenv("HOST", "127.0.0.1")
+    port = int(os.getenv("PORT", 8080))
+
+    logging.basicConfig(level=logging.INFO)
+    logging.info(f"Starting server at {host}:{port}")
+    
     uvicorn.run(
         "app.main:app",
-        host="127.0.0.8",
-        port=8080,
-        reload=True)
+        host=host,
+        port=port,
+        reload=True if os.getenv("ENV") == "development" else False
+    )
+
+if __name__ == "__main__":
+    run_app()
