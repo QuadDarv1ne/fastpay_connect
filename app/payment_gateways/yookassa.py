@@ -2,13 +2,26 @@
 Код с подключением YooKassa
 '''
 
+import hashlib
+import hmac
 import requests
-from app.config import YOOKASSA_API_KEY
+from app.config import YOOKASSA_API_KEY, YOOKASSA_SECRET_KEY
+
+def generate_signature(params: dict) -> str:
+    """
+    Генерация подписи для запроса в YooKassa.
+    
+    :param params: Параметры запроса.
+    :return: Подпись для запроса.
+    """
+    signature_str = '&'.join(f"{key}={value}" for key, value in sorted(params.items()))
+    signature_str += f"&secret={YOOKASSA_SECRET_KEY}"
+    return hmac.new(YOOKASSA_SECRET_KEY.encode(), signature_str.encode(), hashlib.sha256).hexdigest()
 
 def create_payment(amount: float, description: str):
     """
-    Создание платежа через API YooKassa.
-
+    Создание платежа через API YooKassa с подписью.
+    
     :param amount: Сумма платежа в рублях.
     :param description: Описание платежа.
     :return: Ответ от YooKassa (JSON).
@@ -30,32 +43,45 @@ def create_payment(amount: float, description: str):
         },
         "description": description
     }
-    
+
+    # Генерация подписи для безопасности
+    payload["signature"] = generate_signature(payload)
+
     try:
         response = requests.post(url, json=payload, headers=headers)
-        response.raise_for_status() # Проверка на успешный статус ответа (HTTP 2xx)
-        
-        # Проверка ответа
+        response.raise_for_status()  # Проверка на успешный статус ответа (HTTP 2xx)
+
         if response.status_code == 200:
             return response.json()
         else:
             return {"error": "Failed to create payment", "details": response.json()}
     except requests.exceptions.RequestException as e:
-        # Логирование ошибки
         return {"error": "Request failed", "details": str(e)}
 
-async def handle_yookassa_webhook(payload: dict) -> dict:
+def verify_signature(params: dict, provided_signature: str) -> bool:
     """
-    Обработка webhook уведомления от YooKassa.
+    Проверка подписи при обработке webhook уведомления.
+    
+    :param params: Параметры уведомления.
+    :param provided_signature: Подпись, переданная с уведомлением.
+    :return: True, если подписи совпадают, False — если нет.
+    """
+    expected_signature = generate_signature(params)
+    return hmac.compare_digest(expected_signature, provided_signature)
 
-    :param payload: Данные уведомления от YooKassa
-    :return: Результат обработки уведомления
+async def handle_yookassa_webhook(payload: dict, signature: str) -> dict:
     """
-    # Здесь должна быть логика для обработки уведомлений
-    # Например, проверка данных в payload и обновление статуса заказа в базе данных
-    # Пример:
+    Обработка webhook уведомления от YooKassa с проверкой подписи.
+    
+    :param payload: Данные уведомления от YooKassa.
+    :param signature: Подпись, полученная с уведомлением.
+    :return: Результат обработки уведомления.
+    """
+    # Проверка подписи
+    if not verify_signature(payload, signature):
+        return {"status": "failed", "message": "Invalid signature"}
+
     if payload.get("event") == "payment.succeeded":
-        # Выполните необходимые действия, такие как обновление базы данных
         return {"status": "processed", "message": "Payment successful"}
     elif payload.get("event") == "payment.canceled":
         return {"status": "processed", "message": "Payment canceled"}
