@@ -1,0 +1,87 @@
+name: FastPay CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.9
+
+  install_dependencies:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install -r requirements.txt
+
+  lint:
+    runs-on: ubuntu-latest
+    needs: install_dependencies
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Run linters (flake8, black)
+      run: |
+        source venv/bin/activate
+        pip install flake8 black
+        flake8 .
+        black --check .
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Run tests
+      run: |
+        source venv/bin/activate
+        pip install pytest
+        pytest --maxfail=3 --disable-warnings -q
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Build the project (dockerize or package)
+      run: |
+        # Example of Dockerizing the FastAPI app
+        docker build -t fastpay_connect .
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: success()
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Deploy to server (SSH or Docker)
+      run: |
+        # Use your preferred deployment method here (e.g., Docker, Kubernetes, SSH)
+        # Example: Deploy via SSH
+        ssh user@your-server "cd /path/to/project && git pull && docker-compose up -d"
