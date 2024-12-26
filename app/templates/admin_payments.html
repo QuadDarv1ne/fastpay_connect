@@ -1,10 +1,37 @@
-<!-- admin_payments.html -->
 <html>
 <head>
     <title>Администрирование платежей</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .button {
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
 <body>
     <h1>Платежи</h1>
+    <form method="GET" action="/admin/payments/search">
+        <input type="text" name="search" placeholder="Поиск по ID или статусу">
+        <button type="submit">Поиск</button>
+    </form>
     <table>
         <thead>
             <tr>
@@ -20,10 +47,11 @@
                 <td>{{ payment.id }}</td>
                 <td>{{ payment.status }}</td>
                 <td>{{ payment.amount }} руб.</td>
-                <td><a href="/admin/payment/{{ payment.id }}">Подробнее</a></td>
+                <td><a href="/admin/payment/{{ payment.id }}" class="button">Подробнее</a></td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    <!-- Add pagination controls if needed -->
 </body>
 </html>
