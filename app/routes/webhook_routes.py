@@ -6,9 +6,20 @@ from app.payment_gateways.unitpay import handle_unitpay_webhook
 from app.payment_gateways.robokassa import handle_robokassa_webhook
 from app.database import get_db
 from app.services.payment_service import update_payment_status
+from app.utils.ip_validator import verify_webhook_ip
+from app.config import YOOKASSA_IPS, TINKOFF_IPS, CLOUDPAYMENTS_IPS, UNITPAY_IPS, ROBOKASSA_IPS
 from sqlalchemy.orm import Session
 
 router = APIRouter()
+
+
+IP_WHITELISTS = {
+    "yookassa": YOOKASSA_IPS,
+    "tinkoff": TINKOFF_IPS,
+    "cloudpayments": CLOUDPAYMENTS_IPS,
+    "unitpay": UNITPAY_IPS,
+    "robokassa": ROBOKASSA_IPS,
+}
 
 
 async def process_webhook(payment_system: str, payload: dict, signature: str, db: Session) -> dict:
@@ -55,6 +66,7 @@ async def process_webhook(payment_system: str, payload: dict, signature: str, db
 @router.post("/yookassa")
 async def yookassa_webhook(request: Request, db: Session = Depends(get_db)):
     """Обрабатывает webhook уведомления от YooKassa."""
+    await verify_webhook_ip(request, IP_WHITELISTS["yookassa"])
     payload = await request.json()
     signature = request.headers.get("X-Signature", "")
     result = await process_webhook("yookassa", payload, signature, db)
@@ -64,6 +76,7 @@ async def yookassa_webhook(request: Request, db: Session = Depends(get_db)):
 @router.post("/tinkoff")
 async def tinkoff_webhook(request: Request, db: Session = Depends(get_db)):
     """Обрабатывает webhook уведомления от Tinkoff."""
+    await verify_webhook_ip(request, IP_WHITELISTS["tinkoff"])
     payload = await request.json()
     signature = request.headers.get("X-Signature", "")
     result = await process_webhook("tinkoff", payload, signature, db)
@@ -73,6 +86,7 @@ async def tinkoff_webhook(request: Request, db: Session = Depends(get_db)):
 @router.post("/cloudpayments")
 async def cloudpayments_webhook(request: Request, db: Session = Depends(get_db)):
     """Обрабатывает webhook уведомления от CloudPayments."""
+    await verify_webhook_ip(request, IP_WHITELISTS["cloudpayments"])
     payload = await request.json()
     token = payload.get("token", request.headers.get("X-Signature", ""))
     result = await process_webhook("cloudpayments", payload, token, db)
@@ -82,6 +96,7 @@ async def cloudpayments_webhook(request: Request, db: Session = Depends(get_db))
 @router.post("/unitpay")
 async def unitpay_webhook(request: Request, db: Session = Depends(get_db)):
     """Обрабатывает webhook уведомления от UnitPay."""
+    await verify_webhook_ip(request, IP_WHITELISTS["unitpay"])
     payload = await request.json()
     signature = request.headers.get("X-Signature", "")
     result = await process_webhook("unitpay", payload, signature, db)
@@ -91,6 +106,7 @@ async def unitpay_webhook(request: Request, db: Session = Depends(get_db)):
 @router.post("/robokassa")
 async def robokassa_webhook(request: Request, db: Session = Depends(get_db)):
     """Обрабатывает webhook уведомления от Робокасса."""
+    await verify_webhook_ip(request, IP_WHITELISTS["robokassa"])
     payload = await request.json()
     signature = request.headers.get("X-Signature", "")
     result = await process_webhook("robokassa", payload, signature, db)
