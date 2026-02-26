@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse
 from app.payment_gateways.yookassa import create_payment as yookassa_create
 from app.payment_gateways.tinkoff import create_payment as tinkoff_create
@@ -8,6 +8,7 @@ from app.payment_gateways.robokassa import create_payment as robokassa_create
 from app.schemas import PaymentRequest, PaymentResponse
 from app.database import get_db
 from app.services.payment_service import create_payment_record, update_payment_status
+from app.middleware.rate_limiter import limiter
 from sqlalchemy.orm import Session
 import asyncio
 import uuid
@@ -32,20 +33,21 @@ async def create_payment_gateway(payment_function, amount: float, description: s
 
 
 @router.post("/yookassa", response_model=PaymentResponse)
-async def create_yookassa_payment(request: PaymentRequest, db: Session = Depends(get_db)) -> PaymentResponse:
+@limiter.limit("10/minute")
+async def create_yookassa_payment(request: Request, payment_request: PaymentRequest, db: Session = Depends(get_db)) -> PaymentResponse:
     """Создает платеж через YooKassa."""
-    order_id = request.order_id or generate_order_id()
+    order_id = payment_request.order_id or generate_order_id()
     
     # Создаём запись в БД
     db_payment = create_payment_record(
         db=db,
         order_id=order_id,
         payment_gateway="yookassa",
-        amount=request.amount,
-        description=request.description,
+        amount=payment_request.amount,
+        description=payment_request.description,
     )
     
-    result = await create_payment_gateway(yookassa_create, request.amount, request.description, order_id)
+    result = await create_payment_gateway(yookassa_create, payment_request.amount, payment_request.description, order_id)
     
     if "error" in result:
         db_payment.status = "failed"
@@ -64,25 +66,26 @@ async def create_yookassa_payment(request: PaymentRequest, db: Session = Depends
         payment_id=db_payment.payment_id,
         payment_url=db_payment.payment_url,
         order_id=order_id,
-        amount=request.amount,
+        amount=payment_request.amount,
         message="Платёж успешно создан"
     )
 
 
 @router.post("/tinkoff", response_model=PaymentResponse)
-async def create_tinkoff_payment(request: PaymentRequest, db: Session = Depends(get_db)) -> PaymentResponse:
+@limiter.limit("10/minute")
+async def create_tinkoff_payment(request: Request, payment_request: PaymentRequest, db: Session = Depends(get_db)) -> PaymentResponse:
     """Создает платеж через Tinkoff."""
-    order_id = request.order_id or generate_order_id()
+    order_id = payment_request.order_id or generate_order_id()
     
     db_payment = create_payment_record(
         db=db,
         order_id=order_id,
         payment_gateway="tinkoff",
-        amount=request.amount,
-        description=request.description,
+        amount=payment_request.amount,
+        description=payment_request.description,
     )
     
-    result = await create_payment_gateway(tinkoff_create, request.amount, request.description, order_id)
+    result = await create_payment_gateway(tinkoff_create, payment_request.amount, payment_request.description, order_id)
     
     if "error" in result:
         db_payment.status = "failed"
@@ -100,25 +103,26 @@ async def create_tinkoff_payment(request: PaymentRequest, db: Session = Depends(
         payment_id=db_payment.payment_id,
         payment_url=db_payment.payment_url,
         order_id=order_id,
-        amount=request.amount,
+        amount=payment_request.amount,
         message="Платёж успешно создан"
     )
 
 
 @router.post("/cloudpayments", response_model=PaymentResponse)
-async def create_cloudpayments_payment(request: PaymentRequest, db: Session = Depends(get_db)) -> PaymentResponse:
+@limiter.limit("10/minute")
+async def create_cloudpayments_payment(request: Request, payment_request: PaymentRequest, db: Session = Depends(get_db)) -> PaymentResponse:
     """Создает платеж через CloudPayments."""
-    order_id = request.order_id or generate_order_id()
+    order_id = payment_request.order_id or generate_order_id()
     
     db_payment = create_payment_record(
         db=db,
         order_id=order_id,
         payment_gateway="cloudpayments",
-        amount=request.amount,
-        description=request.description,
+        amount=payment_request.amount,
+        description=payment_request.description,
     )
     
-    result = await create_payment_gateway(cloudpayments_create, request.amount, request.description, order_id)
+    result = await create_payment_gateway(cloudpayments_create, payment_request.amount, payment_request.description, order_id)
     
     if "error" in result:
         db_payment.status = "failed"
@@ -134,25 +138,26 @@ async def create_cloudpayments_payment(request: PaymentRequest, db: Session = De
         success=True,
         payment_id=db_payment.payment_id,
         order_id=order_id,
-        amount=request.amount,
+        amount=payment_request.amount,
         message="Платёж успешно создан"
     )
 
 
 @router.post("/unitpay", response_model=PaymentResponse)
-async def create_unitpay_payment(request: PaymentRequest, db: Session = Depends(get_db)) -> PaymentResponse:
+@limiter.limit("10/minute")
+async def create_unitpay_payment(request: Request, payment_request: PaymentRequest, db: Session = Depends(get_db)) -> PaymentResponse:
     """Создает платеж через UnitPay."""
-    order_id = request.order_id or generate_order_id()
+    order_id = payment_request.order_id or generate_order_id()
     
     db_payment = create_payment_record(
         db=db,
         order_id=order_id,
         payment_gateway="unitpay",
-        amount=request.amount,
-        description=request.description,
+        amount=payment_request.amount,
+        description=payment_request.description,
     )
     
-    result = await create_payment_gateway(unitpay_create, request.amount, request.description, order_id)
+    result = await create_payment_gateway(unitpay_create, payment_request.amount, payment_request.description, order_id)
     
     if "error" in result:
         db_payment.status = "failed"
@@ -168,25 +173,26 @@ async def create_unitpay_payment(request: PaymentRequest, db: Session = Depends(
         success=True,
         payment_id=db_payment.payment_id,
         order_id=order_id,
-        amount=request.amount,
+        amount=payment_request.amount,
         message="Платёж успешно создан"
     )
 
 
 @router.post("/robokassa", response_model=PaymentResponse)
-async def create_robokassa_payment(request: PaymentRequest, db: Session = Depends(get_db)) -> PaymentResponse:
+@limiter.limit("10/minute")
+async def create_robokassa_payment(request: Request, payment_request: PaymentRequest, db: Session = Depends(get_db)) -> PaymentResponse:
     """Создает платеж через Робокассу."""
-    order_id = request.order_id or generate_order_id()
+    order_id = payment_request.order_id or generate_order_id()
     
     db_payment = create_payment_record(
         db=db,
         order_id=order_id,
         payment_gateway="robokassa",
-        amount=request.amount,
-        description=request.description,
+        amount=payment_request.amount,
+        description=payment_request.description,
     )
     
-    result = await create_payment_gateway(robokassa_create, request.amount, request.description, order_id)
+    result = await create_payment_gateway(robokassa_create, payment_request.amount, payment_request.description, order_id)
     
     if "error" in result:
         db_payment.status = "failed"
@@ -202,6 +208,6 @@ async def create_robokassa_payment(request: PaymentRequest, db: Session = Depend
         success=True,
         payment_id=db_payment.payment_id,
         order_id=order_id,
-        amount=request.amount,
+        amount=payment_request.amount,
         message="Платёж успешно создан"
     )
