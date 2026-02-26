@@ -19,7 +19,7 @@ UNITPAY_SECRET_KEY = os.getenv("UNITPAY_SECRET_KEY")
 ROBOKASSA_SECRET_KEY = os.getenv("ROBOKASSA_SECRET_KEY")
 
 # Для базы данных и секретного ключа
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./fastpay_connect.db")
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")  # Если несколько хостов
 

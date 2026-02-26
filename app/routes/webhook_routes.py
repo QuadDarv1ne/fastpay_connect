@@ -1,120 +1,97 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from app.payment_gateways.yookassa import handle_yookassa_webhook
 from app.payment_gateways.tinkoff import handle_tinkoff_webhook
 from app.payment_gateways.cloudpayments import handle_cloudpayments_webhook
 from app.payment_gateways.unitpay import handle_unitpay_webhook
 from app.payment_gateways.robokassa import handle_robokassa_webhook
+from app.database import get_db
+from app.services.payment_service import update_payment_status
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 
-# Общая функция для обработки webhook уведомлений от различных платёжных систем
-async def process_webhook(payment_system: str, payload: dict, signature: str) -> dict:
-    """
-    Общая функция для обработки webhook уведомлений от различных платёжных систем.
 
-    :param payment_system: Название платёжной системы (например, "yookassa", "tinkoff")
-    :param payload: Данные уведомления от платёжной системы
-    :param signature: Подпись от платёжной системы
-    :return: Результат обработки уведомления
-    :raises HTTPException: В случае ошибки при обработке уведомления
+async def process_webhook(payment_system: str, payload: dict, signature: str, db: Session) -> dict:
+    """
+    Общая функция для обработки webhook уведомлений.
     """
     try:
+        result = None
         if payment_system == "yookassa":
-            return await handle_yookassa_webhook(payload, signature)
+            result = await handle_yookassa_webhook(payload, signature)
         elif payment_system == "tinkoff":
-            return await handle_tinkoff_webhook(payload, signature)
+            result = await handle_tinkoff_webhook(payload, signature)
         elif payment_system == "cloudpayments":
-            return await handle_cloudpayments_webhook(payload, signature)
+            result = await handle_cloudpayments_webhook(payload, signature)
         elif payment_system == "unitpay":
-            return await handle_unitpay_webhook(payload, signature)
+            result = await handle_unitpay_webhook(payload, signature)
         elif payment_system == "robokassa":
-            return await handle_robokassa_webhook(payload, signature)
+            result = await handle_robokassa_webhook(payload, signature)
         else:
             raise HTTPException(status_code=400, detail="Unknown payment system")
+        
+        # Обновляем статус в БД
+        order_id = payload.get("order_id") or payload.get("payment_id")
+        status_map = {
+            "payment successful": "completed",
+            "payment canceled": "cancelled",
+            "payment failed": "failed",
+        }
+        db_status = status_map.get(result.get("message", "").lower(), "pending")
+        
+        if order_id and result.get("status") == "processed":
+            update_payment_status(
+                db=db,
+                order_id=order_id,
+                status=db_status,
+                metadata=payload
+            )
+        
+        return result
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error processing webhook: {str(e)}")
 
 
-# Обработка webhook уведомлений от различных платёжных систем
 @router.post("/yookassa")
-async def yookassa_webhook(request: Request):
-    """
-    Обрабатывает webhook уведомления от YooKassa (бывшая Яндекс.Касса).
-
-    :param request: Запрос от YooKassa с данными уведомления
-    :return: Статус и сообщение о результате обработки
-    :raises HTTPException: В случае ошибки обработки
-    """
+async def yookassa_webhook(request: Request, db: Session = Depends(get_db)):
+    """Обрабатывает webhook уведомления от YooKassa."""
     payload = await request.json()
-    # Извлекаем подпись из заголовка
     signature = request.headers.get("X-Signature", "")
-    result = await process_webhook("yookassa", payload, signature)
+    result = await process_webhook("yookassa", payload, signature, db)
     return {"status": "success", "message": result}
 
 
-# Обработка webhook уведомлений от различных платёжных систем
 @router.post("/tinkoff")
-async def tinkoff_webhook(request: Request):
-    """
-    Обрабатывает webhook уведомления от Tinkoff.
-
-    :param request: Запрос от Tinkoff с данными уведомления
-    :return: Статус и сообщение о результате обработки
-    :raises HTTPException: В случае ошибки обработки
-    """
+async def tinkoff_webhook(request: Request, db: Session = Depends(get_db)):
+    """Обрабатывает webhook уведомления от Tinkoff."""
     payload = await request.json()
-    # Извлекаем подпись из заголовка
     signature = request.headers.get("X-Signature", "")
-    result = await process_webhook("tinkoff", payload, signature)
+    result = await process_webhook("tinkoff", payload, signature, db)
     return {"status": "success", "message": result}
 
 
-# Обработка webhook уведомлений от различных платёжных систем
 @router.post("/cloudpayments")
-async def cloudpayments_webhook(request: Request):
-    """
-    Обрабатывает webhook уведомления от CloudPayments.
-
-    :param request: Запрос от CloudPayments с данными уведомления
-    :return: Статус и сообщение о результате обработки
-    :raises HTTPException: В случае ошибки обработки
-    """
+async def cloudpayments_webhook(request: Request, db: Session = Depends(get_db)):
+    """Обрабатывает webhook уведомления от CloudPayments."""
     payload = await request.json()
-    # CloudPayments использует токен вместо подписи, извлекаем из payload
     token = payload.get("token", request.headers.get("X-Signature", ""))
-    result = await process_webhook("cloudpayments", payload, token)
+    result = await process_webhook("cloudpayments", payload, token, db)
     return {"status": "success", "message": result}
 
 
-# Обработка webhook уведомлений от различных платёжных систем
 @router.post("/unitpay")
-async def unitpay_webhook(request: Request):
-    """
-    Обрабатывает webhook уведомления от UnitPay.
-
-    :param request: Запрос от UnitPay с данными уведомления
-    :return: Статус и сообщение о результате обработки
-    :raises HTTPException: В случае ошибки обработки
-    """
+async def unitpay_webhook(request: Request, db: Session = Depends(get_db)):
+    """Обрабатывает webhook уведомления от UnitPay."""
     payload = await request.json()
-    # Извлекаем подпись из заголовка
     signature = request.headers.get("X-Signature", "")
-    result = await process_webhook("unitpay", payload, signature)
+    result = await process_webhook("unitpay", payload, signature, db)
     return {"status": "success", "message": result}
 
 
-# Обработка webhook уведомлений от различных платёжных систем
 @router.post("/robokassa")
-async def robokassa_webhook(request: Request):
-    """
-    Обрабатывает webhook уведомления от Робокасса.
-
-    :param request: Запрос от Робокасса с данными уведомления
-    :return: Статус и сообщение о результате обработки
-    :raises HTTPException: В случае ошибки обработки
-    """
+async def robokassa_webhook(request: Request, db: Session = Depends(get_db)):
+    """Обрабатывает webhook уведомления от Робокасса."""
     payload = await request.json()
-    # Извлекаем подпись из заголовка
     signature = request.headers.get("X-Signature", "")
-    result = await process_webhook("robokassa", payload, signature)
+    result = await process_webhook("robokassa", payload, signature, db)
     return {"status": "success", "message": result}

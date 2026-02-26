@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 from app.routes.payment_routes import router as payment_router
 from app.routes.webhook_routes import router as webhook_router
+from app.database import init_db
 
 # Инициализация логгера
 logging.basicConfig(level=logging.INFO)
@@ -17,10 +18,10 @@ app = FastAPI()
 origins = ["http://localhost", "https://yourfrontend.com"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Укажите разрешенные источники
-    allow_credentials=True,  # Разрешение на использование cookies
-    allow_methods=["*"],  # Разрешенные HTTP методы
-    allow_headers=["*"],  # Разрешенные заголовки
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Указываем путь к шаблонам
@@ -32,6 +33,13 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 # Подключаем маршруты
 app.include_router(payment_router, prefix="/payments", tags=["payments"])
 app.include_router(webhook_router, prefix="/webhooks", tags=["webhooks"])
+
+# Инициализация БД при старте
+@app.on_event("startup")
+async def startup_event():
+    """Инициализация базы данных при запуске."""
+    init_db()
+    logger.info("Database initialized")
 
 # Главная страница с шаблоном
 @app.get("/", response_class=HTMLResponse)
