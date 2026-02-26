@@ -23,6 +23,13 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./fastpay_connect.db")
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")  # Если несколько хостов
 
+# IP-адреса платёжных систем для webhook (белый список)
+YOOKASSA_IPS = os.getenv("YOOKASSA_IPS", "77.75.153.0/24,77.75.156.0/24,77.75.157.0/24,77.75.158.0/24").split(",")
+TINKOFF_IPS = os.getenv("TINKOFF_IPS", "185.215.82.0/24").split(",")
+CLOUDPAYMENTS_IPS = os.getenv("CLOUDPAYMENTS_IPS", "95.163.0.0/16").split(",")
+UNITPAY_IPS = os.getenv("UNITPAY_IPS", "109.207.0.0/16").split(",")
+ROBOKASSA_IPS = os.getenv("ROBOKASSA_IPS", "31.131.248.0/24").split(",")
+
 # Для отладки
 DEBUG = os.getenv("DEBUG", "True") == "True"  # Преобразуем строку в булево значение
 
