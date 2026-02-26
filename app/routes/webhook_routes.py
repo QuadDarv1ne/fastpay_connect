@@ -8,26 +8,27 @@ from app.payment_gateways.robokassa import handle_robokassa_webhook
 router = APIRouter()
 
 # Общая функция для обработки webhook уведомлений от различных платёжных систем
-async def process_webhook(payment_system: str, payload: dict) -> dict:
+async def process_webhook(payment_system: str, payload: dict, signature: str) -> dict:
     """
     Общая функция для обработки webhook уведомлений от различных платёжных систем.
 
     :param payment_system: Название платёжной системы (например, "yookassa", "tinkoff")
     :param payload: Данные уведомления от платёжной системы
+    :param signature: Подпись от платёжной системы
     :return: Результат обработки уведомления
     :raises HTTPException: В случае ошибки при обработке уведомления
     """
     try:
         if payment_system == "yookassa":
-            return await handle_yookassa_webhook(payload)
+            return await handle_yookassa_webhook(payload, signature)
         elif payment_system == "tinkoff":
-            return await handle_tinkoff_webhook(payload)
+            return await handle_tinkoff_webhook(payload, signature)
         elif payment_system == "cloudpayments":
-            return await handle_cloudpayments_webhook(payload)
+            return await handle_cloudpayments_webhook(payload, signature)
         elif payment_system == "unitpay":
-            return await handle_unitpay_webhook(payload)
+            return await handle_unitpay_webhook(payload, signature)
         elif payment_system == "robokassa":
-            return await handle_robokassa_webhook(payload)
+            return await handle_robokassa_webhook(payload, signature)
         else:
             raise HTTPException(status_code=400, detail="Unknown payment system")
     except Exception as e:
@@ -45,7 +46,9 @@ async def yookassa_webhook(request: Request):
     :raises HTTPException: В случае ошибки обработки
     """
     payload = await request.json()
-    result = await process_webhook("yookassa", payload)
+    # Извлекаем подпись из заголовка
+    signature = request.headers.get("X-Signature", "")
+    result = await process_webhook("yookassa", payload, signature)
     return {"status": "success", "message": result}
 
 
@@ -60,7 +63,9 @@ async def tinkoff_webhook(request: Request):
     :raises HTTPException: В случае ошибки обработки
     """
     payload = await request.json()
-    result = await process_webhook("tinkoff", payload)
+    # Извлекаем подпись из заголовка
+    signature = request.headers.get("X-Signature", "")
+    result = await process_webhook("tinkoff", payload, signature)
     return {"status": "success", "message": result}
 
 
@@ -75,7 +80,9 @@ async def cloudpayments_webhook(request: Request):
     :raises HTTPException: В случае ошибки обработки
     """
     payload = await request.json()
-    result = await process_webhook("cloudpayments", payload)
+    # CloudPayments использует токен вместо подписи, извлекаем из payload
+    token = payload.get("token", request.headers.get("X-Signature", ""))
+    result = await process_webhook("cloudpayments", payload, token)
     return {"status": "success", "message": result}
 
 
@@ -90,7 +97,9 @@ async def unitpay_webhook(request: Request):
     :raises HTTPException: В случае ошибки обработки
     """
     payload = await request.json()
-    result = await process_webhook("unitpay", payload)
+    # Извлекаем подпись из заголовка
+    signature = request.headers.get("X-Signature", "")
+    result = await process_webhook("unitpay", payload, signature)
     return {"status": "success", "message": result}
 
 
@@ -105,5 +114,7 @@ async def robokassa_webhook(request: Request):
     :raises HTTPException: В случае ошибки обработки
     """
     payload = await request.json()
-    result = await process_webhook("robokassa", payload)
+    # Извлекаем подпись из заголовка
+    signature = request.headers.get("X-Signature", "")
+    result = await process_webhook("robokassa", payload, signature)
     return {"status": "success", "message": result}

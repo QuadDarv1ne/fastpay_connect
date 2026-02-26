@@ -3,3 +3,6 @@ uvicorn
 requests
 pydantic
 python-dotenv
+sqlalchemy
+jinja2
+python-multipart

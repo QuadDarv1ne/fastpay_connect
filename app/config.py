@@ -21,7 +21,7 @@ ROBOKASSA_SECRET_KEY = os.getenv("ROBOKASSA_SECRET_KEY")
 # Для базы данных и секретного ключа
 DATABASE_URL = os.getenv("DATABASE_URL")
 SECRET_KEY = os.getenv("SECRET_KEY")
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS").split(",")  # Если несколько хостов
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")  # Если несколько хостов
 
 # Для отладки
 DEBUG = os.getenv("DEBUG", "True") == "True"  # Преобразуем строку в булево значение

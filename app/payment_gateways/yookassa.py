@@ -21,12 +21,13 @@ def generate_signature(params: dict) -> str:
 
 
 # Функция для создания платежа
-def create_payment(amount: float, description: str):
+def create_payment(amount: float, description: str, order_id: str = None):
     """
     Создание платежа через API YooKassa с подписью.
-    
+
     :param amount: Сумма платежа в рублях.
     :param description: Описание платежа.
+    :param order_id: Уникальный идентификатор заказа (опционально).
     :return: Ответ от YooKassa (JSON).
     """
     url = "https://api.yookassa.ru/v3/payment"
@@ -46,6 +47,10 @@ def create_payment(amount: float, description: str):
         },
         "description": description
     }
+    
+    # Добавляем order_id если предоставлен
+    if order_id:
+        payload["order_id"] = order_id
 
     # Генерация подписи для безопасности
     payload["signature"] = generate_signature(payload)

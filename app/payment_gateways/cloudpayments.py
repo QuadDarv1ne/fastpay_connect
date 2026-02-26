@@ -4,10 +4,9 @@
 
 import hmac
 import hashlib
-import base64
 import os
-
-from fastapi import requests
+import requests
+from app.config import CLOUDPAYMENTS_API_KEY
 
 SECRET_KEY = os.getenv("SECRET_KEY")  # Используйте секретный ключ для подписи
 
