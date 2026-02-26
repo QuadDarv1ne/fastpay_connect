@@ -7,3 +7,4 @@ sqlalchemy
 jinja2
 python-multipart
 slowapi
+alembic
