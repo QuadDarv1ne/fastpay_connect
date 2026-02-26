@@ -13,3 +13,6 @@ logs/
 
 # OS
 .DS_Store
+
+# Alembic
+alembic/alembic.ini

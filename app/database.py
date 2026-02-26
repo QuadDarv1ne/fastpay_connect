@@ -28,3 +28,8 @@ def init_db():
     """Инициализация базы данных (создание таблиц)."""
     from app.models.payment import Payment
     Base.metadata.create_all(bind=engine)
+
+
+def get_engine_url():
+    """Возвращает URL для alembic."""
+    return DATABASE_URL
