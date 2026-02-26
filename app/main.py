@@ -1,12 +1,15 @@
 from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
 import logging
 from app.routes.payment_routes import router as payment_router
 from app.routes.webhook_routes import router as webhook_router
 from app.database import init_db
+from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler
 
 # Инициализация логгера
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +26,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Добавление rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 # Указываем путь к шаблонам
 templates = Jinja2Templates(directory="app/templates")
