@@ -5,14 +5,16 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
+import os
 import logging
 from app.routes.payment_routes import router as payment_router
 from app.routes.webhook_routes import router as webhook_router
 from app.database import init_db
 from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler
+from app.utils.logger import setup_logging
 
-# Инициализация логгера
-logging.basicConfig(level=logging.INFO)
+setup_logging(level=os.getenv("LOG_LEVEL", "INFO"))
+
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
