@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - ENV=production
+      - DATABASE_URL=sqlite:///./fastpay_connect.db
+      - SECRET_KEY=${SECRET_KEY:-change_me_in_production}
+      - YOOKASSA_API_KEY=${YOOKASSA_API_KEY}
+      - YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}
+      - TINKOFF_API_KEY=${TINKOFF_API_KEY}
+      - TINKOFF_SECRET_KEY=${TINKOFF_SECRET_KEY}
+      - CLOUDPAYMENTS_API_KEY=${CLOUDPAYMENTS_API_KEY}
+      - CLOUDPAYMENTS_SECRET_KEY=${CLOUDPAYMENTS_SECRET_KEY}
+      - UNITPAY_API_KEY=${UNITPAY_API_KEY}
+      - UNITPAY_SECRET_KEY=${UNITPAY_SECRET_KEY}
+      - ROBOKASSA_API_KEY=${ROBOKASSA_API_KEY}
+      - ROBOKASSA_SECRET_KEY=${ROBOKASSA_SECRET_KEY}
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
