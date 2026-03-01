@@ -14,3 +14,8 @@ class TestHealthCheck:
         response = client.get("/health")
         assert response.status_code == 200
         assert response.json() == {"status": "healthy"}
+
+    def test_ready_endpoint(self, client):
+        response = client.get("/ready")
+        assert response.status_code in (200, 503)
+        assert "status" in response.json()

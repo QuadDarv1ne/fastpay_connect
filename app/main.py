@@ -1,36 +1,65 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
-import os
 import logging
 from app.routes.payment_routes import router as payment_router
 from app.routes.webhook_routes import router as webhook_router
 from app.database import init_db
 from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler
 from app.utils.logger import setup_logging
+from app.utils.settings_validator import settings_validator
+from app.config import (
+    YOOKASSA_API_KEY,
+    YOOKASSA_SECRET_KEY,
+    TINKOFF_API_KEY,
+    TINKOFF_SECRET_KEY,
+    CLOUDPAYMENTS_API_KEY,
+    CLOUDPAYMENTS_SECRET_KEY,
+    UNITPAY_API_KEY,
+    UNITPAY_SECRET_KEY,
+    ROBOKASSA_API_KEY,
+    ROBOKASSA_SECRET_KEY,
+    SECRET_KEY,
+    DATABASE_URL,
+    ALLOWED_ORIGINS,
+    DEBUG,
+)
 
-setup_logging(level=os.getenv("LOG_LEVEL", "INFO"))
+setup_logging(level="INFO")
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager."""
+    settings_validator.validate_all(
+        yookassa_key=YOOKASSA_API_KEY,
+        yookassa_secret=YOOKASSA_SECRET_KEY,
+        tinkoff_key=TINKOFF_API_KEY,
+        tinkoff_secret=TINKOFF_SECRET_KEY,
+        cloudpayments_key=CLOUDPAYMENTS_API_KEY,
+        cloudpayments_secret=CLOUDPAYMENTS_SECRET_KEY,
+        unitpay_key=UNITPAY_API_KEY,
+        unitpay_secret=UNITPAY_SECRET_KEY,
+        robokassa_key=ROBOKASSA_API_KEY,
+        robokassa_secret=ROBOKASSA_SECRET_KEY,
+        secret_key=SECRET_KEY,
+        database_url=DATABASE_URL,
+    )
     init_db()
-    logger.info("Database initialized")
+    logger.info("Application started")
     yield
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, debug=DEBUG)
 
-origins = os.getenv("ALLOWED_ORIGINS", "http://localhost,https://localhost").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,6 +89,31 @@ async def root(request: Request):
 async def health_check():
     """Проверка здоровья приложения."""
     return {"status": "healthy"}
+
+
+@app.get("/ready")
+async def readiness_check():
+    """Проверка готовности приложения."""
+    is_valid = settings_validator.validate_all(
+        yookassa_key=YOOKASSA_API_KEY,
+        yookassa_secret=YOOKASSA_SECRET_KEY,
+        tinkoff_key=TINKOFF_API_KEY,
+        tinkoff_secret=TINKOFF_SECRET_KEY,
+        cloudpayments_key=CLOUDPAYMENTS_API_KEY,
+        cloudpayments_secret=CLOUDPAYMENTS_SECRET_KEY,
+        unitpay_key=UNITPAY_API_KEY,
+        unitpay_secret=UNITPAY_SECRET_KEY,
+        robokassa_key=ROBOKASSA_API_KEY,
+        robokassa_secret=ROBOKASSA_SECRET_KEY,
+        secret_key=SECRET_KEY,
+        database_url=DATABASE_URL,
+    )
+    if is_valid:
+        return {"status": "ready"}
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={"status": "not_ready"},
+    )
 
 
 @app.exception_handler(Exception)
