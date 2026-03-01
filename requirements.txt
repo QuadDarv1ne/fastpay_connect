@@ -8,3 +8,7 @@ jinja2
 python-multipart
 slowapi
 alembic
+pytest
+pytest-cov
+pytest-asyncio
+httpx
