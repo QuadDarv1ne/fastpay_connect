@@ -8,6 +8,7 @@ from slowapi.errors import RateLimitExceeded
 import logging
 from app.routes.payment_routes import router as payment_router
 from app.routes.webhook_routes import router as webhook_router
+from app.routes.admin_routes import router as admin_router
 from app.database import init_db
 from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler
 from app.utils.logger import setup_logging
@@ -73,6 +74,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(payment_router, prefix="/payments", tags=["payments"])
 app.include_router(webhook_router, prefix="/webhooks", tags=["webhooks"])
+app.include_router(admin_router, prefix="/admin/payments", tags=["admin"])
 
 
 @app.get("/", response_class=HTMLResponse)
