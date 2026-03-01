@@ -18,6 +18,13 @@ CLOUDPAYMENTS_SECRET_KEY = os.getenv("CLOUDPAYMENTS_SECRET_KEY")
 UNITPAY_SECRET_KEY = os.getenv("UNITPAY_SECRET_KEY")
 ROBOKASSA_SECRET_KEY = os.getenv("ROBOKASSA_SECRET_KEY")
 
+# URL возврата после оплаты
+YOOKASSA_RETURN_URL = os.getenv("YOOKASSA_RETURN_URL", "https://localhost:8080/payment/return")
+TINKOFF_RETURN_URL = os.getenv("TINKOFF_RETURN_URL", "https://localhost:8080/payment/return")
+CLOUDPAYMENTS_RETURN_URL = os.getenv("CLOUDPAYMENTS_RETURN_URL", "https://localhost:8080/payment/return")
+UNITPAY_RETURN_URL = os.getenv("UNITPAY_RETURN_URL", "https://localhost:8080/payment/return")
+ROBOKASSA_RETURN_URL = os.getenv("ROBOKASSA_RETURN_URL", "https://localhost:8080/payment/return")
+
 # Для базы данных и секретного ключа
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./fastpay_connect.db")
 SECRET_KEY = os.getenv("SECRET_KEY")

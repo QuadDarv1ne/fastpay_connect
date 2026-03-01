@@ -1,0 +1,17 @@
+__pycache__
+*.pyc
+*.pyo
+*.db
+.env
+.env.local
+logs/
+*.log
+.DS_Store
+.git
+.gitignore
+*.md
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+alembic/alembic.ini
