@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.payment import Payment, PaymentStatus
-from typing import Optional
+from typing import Optional, Dict, Any
 import json
 
 
@@ -36,22 +36,22 @@ def update_payment_status(
     order_id: Optional[str] = None,
     payment_id: Optional[str] = None,
     status: str = PaymentStatus.COMPLETED.value,
-    metadata: Optional[dict] = None,
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> Optional[Payment]:
     """Обновляет статус платежа."""
-    payment = None
+    payment: Optional[Payment] = None
     if order_id:
         payment = db.query(Payment).filter(Payment.order_id == order_id).first()
     elif payment_id:
         payment = db.query(Payment).filter(Payment.payment_id == payment_id).first()
-    
+
     if not payment:
         return None
-    
+
     payment.status = status
     if metadata:
         payment.metadata_json = json.dumps(metadata)
-    
+
     db.commit()
     db.refresh(payment)
     return payment
