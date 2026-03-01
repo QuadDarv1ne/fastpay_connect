@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 from fastapi import APIRouter, HTTPException, Request, Depends, status
 from app.payment_gateways.yookassa import handle_yookassa_webhook
 from app.payment_gateways.tinkoff import handle_tinkoff_webhook
@@ -8,20 +8,60 @@ from app.payment_gateways.robokassa import handle_robokassa_webhook
 from app.database import get_db
 from app.services.payment_service import update_payment_status
 from app.utils.ip_validator import verify_webhook_ip
-from app.config import YOOKASSA_IPS, TINKOFF_IPS, CLOUDPAYMENTS_IPS, UNITPAY_IPS, ROBOKASSA_IPS
+from app.config import (
+    YOOKASSA_IPS,
+    TINKOFF_IPS,
+    CLOUDPAYMENTS_IPS,
+    UNITPAY_IPS,
+    ROBOKASSA_IPS,
+)
 from sqlalchemy.orm import Session
 import logging
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-IP_WHITELISTS: Dict[str, List[str]] = {
-    "yookassa": YOOKASSA_IPS,
-    "tinkoff": TINKOFF_IPS,
-    "cloudpayments": CLOUDPAYMENTS_IPS,
-    "unitpay": UNITPAY_IPS,
-    "robokassa": ROBOKASSA_IPS,
+
+@dataclass
+class WebhookConfig:
+    """Конфигурация webhook."""
+
+    name: str
+    handler: Callable
+    ip_whitelist: List[str]
+    signature_header: str = "X-Signature"
+    token_field: Optional[str] = None
+
+
+WEBHOOKS: Dict[str, WebhookConfig] = {
+    "yookassa": WebhookConfig(
+        name="yookassa",
+        handler=handle_yookassa_webhook,
+        ip_whitelist=YOOKASSA_IPS,
+    ),
+    "tinkoff": WebhookConfig(
+        name="tinkoff",
+        handler=handle_tinkoff_webhook,
+        ip_whitelist=TINKOFF_IPS,
+    ),
+    "cloudpayments": WebhookConfig(
+        name="cloudpayments",
+        handler=handle_cloudpayments_webhook,
+        ip_whitelist=CLOUDPAYMENTS_IPS,
+        token_field="token",
+    ),
+    "unitpay": WebhookConfig(
+        name="unitpay",
+        handler=handle_unitpay_webhook,
+        ip_whitelist=UNITPAY_IPS,
+    ),
+    "robokassa": WebhookConfig(
+        name="robokassa",
+        handler=handle_robokassa_webhook,
+        ip_whitelist=ROBOKASSA_IPS,
+    ),
 }
 
 STATUS_MAP: Dict[str, str] = {
@@ -33,87 +73,59 @@ STATUS_MAP: Dict[str, str] = {
 
 
 async def process_webhook(
-    payment_system: str,
+    config: WebhookConfig,
     payload: Dict[str, Any],
-    signature: str,
-    db: Session
-) -> Dict[str, str]:
+    auth_value: str,
+    db: Session,
+) -> Tuple[Dict[str, str], Optional[str]]:
     """Обработка webhook уведомления."""
-    handlers = {
-        "yookassa": handle_yookassa_webhook,
-        "tinkoff": handle_tinkoff_webhook,
-        "cloudpayments": handle_cloudpayments_webhook,
-        "unitpay": handle_unitpay_webhook,
-        "robokassa": handle_robokassa_webhook,
-    }
-
-    handler = handlers.get(payment_system)
-    if not handler:
-        logger.error(f"Unknown payment system: {payment_system}")
-        raise HTTPException(status_code=400, detail="Unknown payment system")
-
     try:
-        result = await handler(payload, signature)
+        result = await config.handler(payload, auth_value)
     except Exception as e:
         logger.error(f"Webhook handler error: {e}")
-        raise HTTPException(status_code=400, detail=f"Webhook processing failed: {e}")
+        raise HTTPException(
+            status_code=400, detail=f"Webhook processing failed: {e}"
+        ) from e
 
+    order_id: Optional[str] = None
     if result.get("status") == "processed":
-        order_id: Optional[str] = payload.get("order_id") or payload.get("payment_id")
+        order_id = payload.get("order_id") or payload.get("payment_id")
         if order_id:
             message = result.get("message", "").lower()
             db_status = STATUS_MAP.get(message, "pending")
-            update_payment_status(db=db, order_id=order_id, status=db_status, metadata=payload)
+            update_payment_status(
+                db=db, order_id=order_id, status=db_status, metadata=payload
+            )
             logger.info(f"Payment {order_id} status updated to {db_status}")
 
-    return result
+    return result, order_id
 
 
-@router.post("/yookassa")
-async def yookassa_webhook(request: Request, db: Session = Depends(get_db)) -> Dict[str, Any]:
-    """Webhook от YooKassa."""
-    await verify_webhook_ip(request, IP_WHITELISTS["yookassa"])
-    payload = await request.json()
-    signature = request.headers.get("X-Signature", "")
-    result = await process_webhook("yookassa", payload, signature, db)
-    return {"status": "success", "message": result.get("message", "")}
+def create_webhook_endpoint(webhook_key: str):
+    """Создание endpoint для webhook."""
+    config = WEBHOOKS[webhook_key]
+
+    async def handler(
+        request: Request, db: Session = Depends(get_db)
+    ) -> Dict[str, Any]:
+        await verify_webhook_ip(request, config.ip_whitelist)
+        payload = await request.json()
+
+        if config.token_field:
+            auth_value = payload.get(
+                config.token_field, request.headers.get(config.signature_header, "")
+            )
+        else:
+            auth_value = request.headers.get(config.signature_header, "")
+
+        result, _ = await process_webhook(config, payload, auth_value, db)
+        return {"status": "success", "message": result.get("message", "")}
+
+    return handler
 
 
-@router.post("/tinkoff")
-async def tinkoff_webhook(request: Request, db: Session = Depends(get_db)) -> Dict[str, Any]:
-    """Webhook от Tinkoff."""
-    await verify_webhook_ip(request, IP_WHITELISTS["tinkoff"])
-    payload = await request.json()
-    signature = request.headers.get("X-Signature", "")
-    result = await process_webhook("tinkoff", payload, signature, db)
-    return {"status": "success", "message": result.get("message", "")}
-
-
-@router.post("/cloudpayments")
-async def cloudpayments_webhook(request: Request, db: Session = Depends(get_db)) -> Dict[str, Any]:
-    """Webhook от CloudPayments."""
-    await verify_webhook_ip(request, IP_WHITELISTS["cloudpayments"])
-    payload = await request.json()
-    token = payload.get("token", request.headers.get("X-Signature", ""))
-    result = await process_webhook("cloudpayments", payload, token, db)
-    return {"status": "success", "message": result.get("message", "")}
-
-
-@router.post("/unitpay")
-async def unitpay_webhook(request: Request, db: Session = Depends(get_db)) -> Dict[str, Any]:
-    """Webhook от UnitPay."""
-    await verify_webhook_ip(request, IP_WHITELISTS["unitpay"])
-    payload = await request.json()
-    signature = request.headers.get("X-Signature", "")
-    result = await process_webhook("unitpay", payload, signature, db)
-    return {"status": "success", "message": result.get("message", "")}
-
-
-@router.post("/robokassa")
-async def robokassa_webhook(request: Request, db: Session = Depends(get_db)) -> Dict[str, Any]:
-    """Webhook от Robokassa."""
-    await verify_webhook_ip(request, IP_WHITELISTS["robokassa"])
-    payload = await request.json()
-    signature = request.headers.get("X-Signature", "")
-    result = await process_webhook("robokassa", payload, signature, db)
-    return {"status": "success", "message": result.get("message", "")}
+router.post("/yookassa")(create_webhook_endpoint("yookassa"))
+router.post("/tinkoff")(create_webhook_endpoint("tinkoff"))
+router.post("/cloudpayments")(create_webhook_endpoint("cloudpayments"))
+router.post("/unitpay")(create_webhook_endpoint("unitpay"))
+router.post("/robokassa")(create_webhook_endpoint("robokassa"))
