@@ -3,13 +3,14 @@
 import hashlib
 import hmac
 import logging
-import requests
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
+import httpx
+
 logger = logging.getLogger(__name__)
 
-REQUEST_TIMEOUT = 30
+REQUEST_TIMEOUT = 30.0
 
 
 class BasePaymentGateway(ABC):
@@ -21,11 +22,12 @@ class BasePaymentGateway(ABC):
         secret_key: Optional[str],
         return_url: str,
         base_url: str,
-    ):
+    ) -> None:
         self.api_key = api_key
         self.secret_key = secret_key
         self.return_url = return_url
         self.base_url = base_url
+        self._client = httpx.Client(timeout=REQUEST_TIMEOUT)
 
     def generate_signature(self, params: Dict[str, Any]) -> str:
         """Генерация HMAC-SHA256 подписи."""
@@ -66,29 +68,28 @@ class BasePaymentGateway(ABC):
     ) -> Dict[str, Any]:
         """Выполнение HTTP запроса."""
         try:
-            response = requests.request(
+            response = self._client.request(
                 method,
                 url,
                 headers=headers,
                 json=json_data,
-                timeout=REQUEST_TIMEOUT,
             )
             response.raise_for_status()
             return response.json()
 
-        except requests.exceptions.HTTPError as e:
+        except httpx.HTTPStatusError as e:
             logger.error(f"{self.__class__.__name__} HTTP error: {e}")
             try:
                 error_detail = e.response.json()
             except Exception:
-                error_detail = e.response.text if hasattr(e.response, "text") else str(e)
+                error_detail = e.response.text if e.response.text else str(e)
             return {"error": "Payment request failed", "details": error_detail}
 
-        except requests.exceptions.Timeout:
+        except httpx.TimeoutException:
             logger.error(f"{self.__class__.__name__} request timeout")
             return {"error": "Payment gateway timeout"}
 
-        except requests.exceptions.RequestException as e:
+        except httpx.RequestError as e:
             logger.error(f"{self.__class__.__name__} request failed: {e}")
             return {"error": "Payment request failed", "details": str(e)}
 
@@ -114,3 +115,7 @@ class BasePaymentGateway(ABC):
         if not self.secret_key:
             logger.warning(f"{self.__class__.__name__}: secret key not configured")
         return True
+
+    def close(self) -> None:
+        """Закрытие HTTP клиента."""
+        self._client.close()
