@@ -43,6 +43,33 @@ class Payment(Base):
     def __repr__(self):
         return f"<Payment(order_id={self.order_id}, amount={self.amount}, status={self.status})>"
 
+    def is_webhook_processed(self, event_id: str) -> bool:
+        """Проверка, был ли уже обработан webhook с данным event_id.
+
+        Args:
+            event_id: ID события webhook.
+
+        Returns:
+            True если событие уже обработано.
+        """
+        if not self.webhook_processed:
+            return False
+        processed_events = self.webhook_processed.split(",")
+        return event_id in processed_events
+
+    def mark_webhook_processed(self, event_id: str) -> None:
+        """Отметить webhook событие как обработанное.
+
+        Args:
+            event_id: ID события webhook.
+        """
+        if not self.webhook_processed:
+            self.webhook_processed = event_id
+        else:
+            processed_events = self.webhook_processed.split(",")
+            if event_id not in processed_events:
+                self.webhook_processed = f"{self.webhook_processed},{event_id}"
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert payment to dictionary."""
         return {

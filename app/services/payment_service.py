@@ -46,7 +46,20 @@ def update_payment_status(
     metadata: Optional[Dict[str, Any]] = None,
     webhook_event_id: Optional[str] = None,
 ) -> Optional[Payment]:
-    """Обновляет статус платежа."""
+    """Обновляет статус платежа.
+
+    Args:
+        db: Сессия БД.
+        order_id: ID заказа.
+        payment_id: ID платежа.
+        transaction_id: ID транзакции от платёжной системы.
+        status: Новый статус.
+        metadata: Метаданные для сохранения.
+        webhook_event_id: ID webhook события для идемпотентности.
+
+    Returns:
+        Обновлённый платёж или None.
+    """
     payment: Optional[Payment] = _get_payment(db, order_id, payment_id)
 
     if not payment:
@@ -54,12 +67,10 @@ def update_payment_status(
 
     # Проверка на дубликат webhook
     if webhook_event_id:
-        processed = payment.webhook_processed.split(",") if payment.webhook_processed else []
-        if webhook_event_id in processed:
+        if payment.is_webhook_processed(webhook_event_id):
             logger.info(f"Webhook already processed: {webhook_event_id} for order {payment.order_id}")
             return payment
-        processed.append(webhook_event_id)
-        payment.webhook_processed = ",".join(processed)
+        payment.mark_webhook_processed(webhook_event_id)
 
     # Обновляем transaction_id если передан
     if transaction_id and not payment.transaction_id:
@@ -226,3 +237,48 @@ def get_payment_statistics(db: Session) -> Dict[str, Any]:
         "by_gateway": dict(by_gateway),
         "total_completed_amount": float(total_amount),
     }
+
+
+def check_webhook_idempotency(
+    db: Session,
+    order_id: str,
+    webhook_event_id: str,
+) -> bool:
+    """Проверка, был ли уже обработан webhook с данным event_id.
+
+    Args:
+        db: Сессия БД.
+        order_id: ID заказа.
+        webhook_event_id: ID webhook события.
+
+    Returns:
+        True если webhook уже обработан.
+    """
+    payment = get_payment_by_order_id(db, order_id)
+    if not payment:
+        return False
+    return payment.is_webhook_processed(webhook_event_id)
+
+
+def mark_webhook_processed(
+    db: Session,
+    order_id: str,
+    webhook_event_id: str,
+) -> Optional[Payment]:
+    """Отметить webhook событие как обработанное.
+
+    Args:
+        db: Сессия БД.
+        order_id: ID заказа.
+        webhook_event_id: ID webhook события.
+
+    Returns:
+        Платёж с обновлённым списком обработанных webhook'ов.
+    """
+    payment = get_payment_by_order_id(db, order_id)
+    if not payment:
+        return None
+    payment.mark_webhook_processed(webhook_event_id)
+    db.commit()
+    db.refresh(payment)
+    return payment
