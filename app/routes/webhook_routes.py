@@ -5,17 +5,10 @@ from app.payment_gateways.tinkoff import handle_tinkoff_webhook
 from app.payment_gateways.cloudpayments import handle_cloudpayments_webhook
 from app.payment_gateways.unitpay import handle_unitpay_webhook
 from app.payment_gateways.robokassa import handle_robokassa_webhook
-from app.database import get_db
-from app.services.payment_service import update_payment_status
+from app.dependencies import get_payment_repository
+from app.repositories.payment_repository import PaymentRepository
 from app.utils.ip_validator import verify_webhook_ip
-from app.config import (
-    YOOKASSA_IPS,
-    TINKOFF_IPS,
-    CLOUDPAYMENTS_IPS,
-    UNITPAY_IPS,
-    ROBOKASSA_IPS,
-)
-from sqlalchemy.orm import Session
+from app.settings import settings
 import logging
 from dataclasses import dataclass
 
@@ -39,28 +32,28 @@ WEBHOOKS: Dict[str, WebhookConfig] = {
     "yookassa": WebhookConfig(
         name="yookassa",
         handler=handle_yookassa_webhook,
-        ip_whitelist=YOOKASSA_IPS,
+        ip_whitelist=settings.yookassa_ips,
     ),
     "tinkoff": WebhookConfig(
         name="tinkoff",
         handler=handle_tinkoff_webhook,
-        ip_whitelist=TINKOFF_IPS,
+        ip_whitelist=settings.tinkoff_ips,
     ),
     "cloudpayments": WebhookConfig(
         name="cloudpayments",
         handler=handle_cloudpayments_webhook,
-        ip_whitelist=CLOUDPAYMENTS_IPS,
+        ip_whitelist=settings.cloudpayments_ips,
         token_field="token",
     ),
     "unitpay": WebhookConfig(
         name="unitpay",
         handler=handle_unitpay_webhook,
-        ip_whitelist=UNITPAY_IPS,
+        ip_whitelist=settings.unitpay_ips,
     ),
     "robokassa": WebhookConfig(
         name="robokassa",
         handler=handle_robokassa_webhook,
-        ip_whitelist=ROBOKASSA_IPS,
+        ip_whitelist=settings.robokassa_ips,
     ),
 }
 
@@ -93,8 +86,18 @@ async def process_webhook(
         if order_id:
             message = result.get("message", "").lower()
             db_status = STATUS_MAP.get(message, "pending")
+            
+            # Извлекаем transaction_id и event_id из payload
+            transaction_id = payload.get("transaction_id")
+            webhook_event_id = payload.get("event") or payload.get("payment_id") or payload.get("order_id")
+            
             update_payment_status(
-                db=db, order_id=order_id, status=db_status, metadata=payload
+                db=db, 
+                order_id=order_id, 
+                transaction_id=transaction_id,
+                status=db_status, 
+                metadata=payload,
+                webhook_event_id=webhook_event_id,
             )
             logger.info(f"Payment {order_id} status updated to {db_status}")
 

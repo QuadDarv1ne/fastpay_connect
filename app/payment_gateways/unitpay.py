@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict
 from app.payment_gateways.base import BasePaymentGateway
-from app.config import UNITPAY_API_KEY, UNITPAY_SECRET_KEY, UNITPAY_RETURN_URL
+from app.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -13,13 +13,13 @@ class UnitPayGateway(BasePaymentGateway):
 
     def __init__(self):
         super().__init__(
-            api_key=UNITPAY_API_KEY,
-            secret_key=UNITPAY_SECRET_KEY,
-            return_url=UNITPAY_RETURN_URL,
+            api_key=settings.unitpay_api_key,
+            secret_key=settings.unitpay_secret_key,
+            return_url=settings.unitpay_return_url,
             base_url="https://unitpay.ru/api",
         )
 
-    def create_payment(
+    async def create_payment(
         self, amount: float, description: str, order_id: str
     ) -> Dict[str, Any]:
         """Создание платежа через UnitPay."""
@@ -42,7 +42,7 @@ class UnitPayGateway(BasePaymentGateway):
             "return_url": self.return_url,
         }
 
-        return self._request(
+        return await self._request(
             "POST", f"{self.base_url}/payment", headers=headers, json_data=payload
         )
 
@@ -69,6 +69,18 @@ class UnitPayGateway(BasePaymentGateway):
 
 
 gateway = UnitPayGateway()
-create_payment = gateway.create_payment
-verify_signature = gateway.verify_signature
-handle_unitpay_webhook = gateway.handle_webhook
+
+
+async def create_payment(amount: float, description: str, order_id: str) -> Dict[str, Any]:
+    """Создание платежа через UnitPay."""
+    return await gateway.create_payment(amount, description, order_id)
+
+
+def verify_signature(params: Dict[str, Any], signature: str) -> bool:
+    """Проверка подписи."""
+    return gateway.verify_signature(params, signature)
+
+
+async def handle_unitpay_webhook(payload: Dict[str, Any], signature: str) -> Dict[str, str]:
+    """Обработка webhook от UnitPay."""
+    return await gateway.handle_webhook(payload, signature)

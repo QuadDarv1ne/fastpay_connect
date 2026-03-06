@@ -1,0 +1,66 @@
+# Fly.io Configuration
+# Документация: https://fly.io/docs/reference/configuration/
+
+app = "fastpay-connect"
+primary_region = "iad"
+kill_signal = "SIGINT"
+kill_timeout = "30s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  ENV = "production"
+  LOG_LEVEL = "INFO"
+
+[experimental]
+  auto_rollback = true
+
+# HTTP Service
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+  max_machines_running = 4
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 250
+    soft_limit = 200
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/ready"
+
+# Volume для постоянных данных (SQLite)
+[mounts]
+  source = "fastpay_data"
+  destination = "/app"
+  initial_size = "1gb"
+
+# PostgreSQL (опционально, если не используется внешний)
+[[services]]
+  protocol = "tcp"
+  internal_port = 5432
+
+  [[services.ports]]
+    port = 5432
+    handlers = ["pg_tls"]
+
+  [[services.checks]]
+    interval = "10s"
+    timeout = "2s"
+    path = "/health"

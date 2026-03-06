@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict
 from app.payment_gateways.base import BasePaymentGateway
-from app.config import ROBOKASSA_API_KEY, ROBOKASSA_SECRET_KEY, ROBOKASSA_RETURN_URL
+from app.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -13,13 +13,13 @@ class RobokassaGateway(BasePaymentGateway):
 
     def __init__(self):
         super().__init__(
-            api_key=ROBOKASSA_API_KEY,
-            secret_key=ROBOKASSA_SECRET_KEY,
-            return_url=ROBOKASSA_RETURN_URL,
+            api_key=settings.robokassa_api_key,
+            secret_key=settings.robokassa_secret_key,
+            return_url=settings.robokassa_return_url,
             base_url="https://api.robokassa.ru",
         )
 
-    def create_payment(
+    async def create_payment(
         self, amount: float, description: str, order_id: str
     ) -> Dict[str, Any]:
         """Создание платежа через Robokassa."""
@@ -44,7 +44,7 @@ class RobokassaGateway(BasePaymentGateway):
             "payment_type": "BANK_CARD",
         }
 
-        return self._request(
+        return await self._request(
             "POST", f"{self.base_url}/payment", headers=headers, json_data=payload
         )
 
@@ -71,6 +71,18 @@ class RobokassaGateway(BasePaymentGateway):
 
 
 gateway = RobokassaGateway()
-create_payment = gateway.create_payment
-verify_signature = gateway.verify_signature
-handle_robokassa_webhook = gateway.handle_webhook
+
+
+async def create_payment(amount: float, description: str, order_id: str) -> Dict[str, Any]:
+    """Создание платежа через Robokassa."""
+    return await gateway.create_payment(amount, description, order_id)
+
+
+def verify_signature(params: Dict[str, Any], signature: str) -> bool:
+    """Проверка подписи."""
+    return gateway.verify_signature(params, signature)
+
+
+async def handle_robokassa_webhook(payload: Dict[str, Any], signature: str) -> Dict[str, str]:
+    """Обработка webhook от Robokassa."""
+    return await gateway.handle_webhook(payload, signature)

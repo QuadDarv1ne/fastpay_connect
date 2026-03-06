@@ -1,0 +1,57 @@
+# Render Configuration for FastPay Connect
+# Документация: https://render.com/docs/blueprint-spec
+
+services:
+  # Web Service
+  - type: web
+    name: fastpay-connect
+    env: python
+    region: oregon
+    plan: starter
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fastpay-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: LOG_LEVEL
+        value: INFO
+      - key: ENV
+        value: production
+    healthCheckPath: /health
+    disk:
+      name: logs-data
+      mountPath: /app/logs
+      sizeGB: 1
+
+  # Background Worker (опционально, для асинхронных задач)
+  - type: worker
+    name: fastpay-worker
+    env: python
+    region: oregon
+    plan: starter
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fastpay-db
+          property: connectionString
+      - key: WORKER_MODE
+        value: "true"
+
+databases:
+  - name: fastpay-db
+    databaseName: fastpay_connect
+    user: fastpay_user
+    plan: starter
+    region: oregon

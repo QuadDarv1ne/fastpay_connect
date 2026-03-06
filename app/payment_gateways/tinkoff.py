@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict
 from app.payment_gateways.base import BasePaymentGateway
-from app.config import TINKOFF_API_KEY, TINKOFF_SECRET_KEY, TINKOFF_RETURN_URL
+from app.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -13,13 +13,13 @@ class TinkoffGateway(BasePaymentGateway):
 
     def __init__(self):
         super().__init__(
-            api_key=TINKOFF_API_KEY,
-            secret_key=TINKOFF_SECRET_KEY,
-            return_url=TINKOFF_RETURN_URL,
+            api_key=settings.tinkoff_api_key,
+            secret_key=settings.tinkoff_secret_key,
+            return_url=settings.tinkoff_return_url,
             base_url="https://api.tinkoff.ru/v2",
         )
 
-    def create_payment(
+    async def create_payment(
         self, amount: float, description: str, order_id: str
     ) -> Dict[str, Any]:
         """Создание платежа через Tinkoff."""
@@ -43,7 +43,7 @@ class TinkoffGateway(BasePaymentGateway):
             "payment_type": "BANK_CARD",
         }
 
-        return self._request(
+        return await self._request(
             "POST", f"{self.base_url}/payments", headers=headers, json_data=payload
         )
 
@@ -70,6 +70,18 @@ class TinkoffGateway(BasePaymentGateway):
 
 
 gateway = TinkoffGateway()
-create_payment = gateway.create_payment
-verify_signature = gateway.verify_signature
-handle_tinkoff_webhook = gateway.handle_webhook
+
+
+async def create_payment(amount: float, description: str, order_id: str) -> Dict[str, Any]:
+    """Создание платежа через Tinkoff."""
+    return await gateway.create_payment(amount, description, order_id)
+
+
+def verify_signature(params: Dict[str, Any], signature: str) -> bool:
+    """Проверка подписи."""
+    return gateway.verify_signature(params, signature)
+
+
+async def handle_tinkoff_webhook(payload: Dict[str, Any], signature: str) -> Dict[str, str]:
+    """Обработка webhook от Tinkoff."""
+    return await gateway.handle_webhook(payload, signature)

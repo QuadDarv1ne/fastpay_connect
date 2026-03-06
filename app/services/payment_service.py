@@ -41,14 +41,29 @@ def update_payment_status(
     db: Session,
     order_id: Optional[str] = None,
     payment_id: Optional[str] = None,
+    transaction_id: Optional[str] = None,
     status: str = PaymentStatus.COMPLETED.value,
     metadata: Optional[Dict[str, Any]] = None,
+    webhook_event_id: Optional[str] = None,
 ) -> Optional[Payment]:
     """Обновляет статус платежа."""
     payment: Optional[Payment] = _get_payment(db, order_id, payment_id)
 
     if not payment:
         return None
+
+    # Проверка на дубликат webhook
+    if webhook_event_id:
+        processed = payment.webhook_processed.split(",") if payment.webhook_processed else []
+        if webhook_event_id in processed:
+            logger.info(f"Webhook already processed: {webhook_event_id} for order {payment.order_id}")
+            return payment
+        processed.append(webhook_event_id)
+        payment.webhook_processed = ",".join(processed)
+
+    # Обновляем transaction_id если передан
+    if transaction_id and not payment.transaction_id:
+        payment.transaction_id = transaction_id
 
     payment.status = status
     if metadata:

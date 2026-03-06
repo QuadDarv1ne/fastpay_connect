@@ -1,0 +1,23 @@
+# Netlify Configuration for FastPay Connect
+# Примечание: Netlify не поддерживает Python напрямую
+# Этот файл для совместимости с Netlify Functions
+
+[build]
+  publish = "app/static"
+  command = "echo 'Netlify не поддерживает Python приложения напрямую. Используйте Render, Railway или Heroku.'"
+
+# Для Python-проектов на Netlify требуется использование Netlify Functions
+# или деплой через Docker (Netlify Container Deployment)
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
