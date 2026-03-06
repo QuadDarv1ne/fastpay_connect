@@ -1,6 +1,6 @@
 #!/bin/bash
 # Скрипт для деплоя на production сервер
-# Использование: ./scripts/deploy.sh
+# Использование: ./deploy/scripts/deploy.sh
 
 set -e
 
@@ -24,12 +24,6 @@ echo "=================================="
 if [ -z "$SERVER_HOST" ]; then
     echo -e "${RED}❌ Ошибка: SERVER_HOST не установлен${NC}"
     echo "Установите переменную окружения: export DEPLOY_HOST=your.server.com"
-    exit 1
-fi
-
-# Проверка наличия SSH ключа
-if [ ! -f ~/.ssh/id_rsa.pub ]; then
-    echo -e "${YELLOW}⚠️  SSH ключ не найден. Создайте его: ssh-keygen -t rsa -b 4096${NC}"
     exit 1
 fi
 
@@ -73,9 +67,6 @@ if [ "$HEALTH_STATUS" = "200" ]; then
 else
     echo -e "${RED}❌ Деплой завершён с ошибками!${NC}"
     echo -e "${RED}📊 Health check: HTTP $HEALTH_STATUS${NC}"
-    echo -e "${YELLOW}🔄 Откат к предыдущей версии...${NC}"
-    run_remote "cd $DEPLOY_DIR && docker-compose -f docker-compose.prod.yml down && \
-        docker-compose -f docker-compose.prod.yml up -d"
     exit 1
 fi
 

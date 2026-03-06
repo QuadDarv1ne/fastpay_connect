@@ -71,7 +71,7 @@ class BasePaymentGateway(ABC):
         """
         key = secret_key if secret_key is not None else self.secret_key
         if not key:
-            logger.debug(f"{self.__class__.__name__}: secret key not configured")
+            logger.warning(f"{self.__class__.__name__}: secret key not configured")
             return ""
 
         filtered_params = {

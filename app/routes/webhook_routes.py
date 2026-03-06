@@ -69,7 +69,7 @@ async def process_webhook(
     config: WebhookConfig,
     payload: Dict[str, Any],
     auth_value: str,
-    db: Session,
+    repository: PaymentRepository,
 ) -> Tuple[Dict[str, str], Optional[str]]:
     """Обработка webhook уведомления."""
     try:
@@ -91,8 +91,7 @@ async def process_webhook(
             transaction_id = payload.get("transaction_id")
             webhook_event_id = payload.get("event") or payload.get("payment_id") or payload.get("order_id")
             
-            update_payment_status(
-                db=db, 
+            repository.update_status(
                 order_id=order_id, 
                 transaction_id=transaction_id,
                 status=db_status, 
@@ -109,7 +108,7 @@ def create_webhook_endpoint(webhook_key: str):
     config = WEBHOOKS[webhook_key]
 
     async def handler(
-        request: Request, db: Session = Depends(get_db)
+        request: Request, repository: PaymentRepository = Depends(get_payment_repository)
     ) -> Dict[str, Any]:
         await verify_webhook_ip(request, config.ip_whitelist)
         payload = await request.json()
@@ -121,7 +120,7 @@ def create_webhook_endpoint(webhook_key: str):
         else:
             auth_value = request.headers.get(config.signature_header, "")
 
-        result, _ = await process_webhook(config, payload, auth_value, db)
+        result, _ = await process_webhook(config, payload, auth_value, repository)
         return {"status": "success", "message": result.get("message", "")}
 
     return handler

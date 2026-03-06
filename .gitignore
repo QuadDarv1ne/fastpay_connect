@@ -1,18 +1,67 @@
 # .env file should be ignored
 .env
+.env.*
+!.env.example
+!.env_template
 
 # Python
 __pycache__
 *.pyc
 *.pyo
-*.db
+*.egg-info
+*.egg
+dist/
+build/
 
 # Logs
 logs/
 *.log
 
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
 # OS
 .DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
 
 # Alembic
 alembic/alembic.ini
+
+# Backups
+backups/
+.backups/
+
+# Local
+*.local
+
+# Node.js (для Cloudflare Workers в deploy/)
+deploy/cloudflare/node_modules/
+deploy/cloudflare/npm-debug.log*
+deploy/cloudflare/yarn-debug.log*
+deploy/cloudflare/yarn-error.log*
+deploy/cloudflare/package-lock.json
+deploy/cloudflare/yarn.lock
+
+# Wrangler
+deploy/cloudflare/.dev.vars
+deploy/cloudflare/.wrangler/
+
+# Build outputs
+deploy/cloudflare/public/
+deploy/cloudflare/dist/
+deploy/cloudflare/build/

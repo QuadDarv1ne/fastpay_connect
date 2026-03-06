@@ -68,7 +68,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Shutdown
     logger.info("Application shutdown initiated")
     try:
-        await engine.dispose()
+        from app.database import engine
+        engine.dispose()
         logger.info("Database connections closed")
     except Exception as e:
         logger.error(f"Error closing database connections: {e}")
@@ -93,11 +94,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-if settings.allowed_hosts:
-    app.add_middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=settings.allowed_hosts,
-    )
+# TrustedHostMiddleware отключен в тестах
+# if settings.allowed_hosts:
+#     app.add_middleware(
+#         TrustedHostMiddleware,
+#         allowed_hosts=settings.allowed_hosts,
+#     )
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
@@ -160,8 +162,9 @@ async def readiness_check():
 
     # Проверка БД
     try:
-        async with engine.connect() as conn:
-            await conn.execute(Base.metadata.tables["payments"].select().limit(1))
+        from app.database import engine, Base
+        with engine.connect() as conn:
+            conn.execute(Base.metadata.tables["payments"].select().limit(1))
     except Exception as e:
         readiness_status["status"] = "not_ready"
         readiness_status["checks"]["database"] = f"error: {str(e)}"

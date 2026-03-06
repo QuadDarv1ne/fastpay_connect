@@ -8,12 +8,14 @@ os.environ["YOOKASSA_SECRET_KEY"] = "test_secret_key"
 os.environ["YOOKASSA_API_KEY"] = "test_api_key"
 os.environ["TINKOFF_SECRET_KEY"] = "test_secret_key"
 os.environ["TINKOFF_API_KEY"] = "test_api_key"
+os.environ["CLOUDPAYMENTS_SECRET_KEY"] = "test_secret_key"
 os.environ["CLOUDPAYMENTS_API_KEY"] = "test_api_key"
 os.environ["UNITPAY_SECRET_KEY"] = "test_secret_key"
 os.environ["UNITPAY_API_KEY"] = "test_api_key"
 os.environ["ROBOKASSA_SECRET_KEY"] = "test_secret_key"
 os.environ["ROBOKASSA_API_KEY"] = "test_api_key"
 os.environ["SECRET_KEY"] = "test_secret_key"
+os.environ["DATABASE_URL"] = "sqlite:///./test.db"
 
 from app.database import Base, get_db
 from app.main import app

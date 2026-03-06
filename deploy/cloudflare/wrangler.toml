@@ -1,0 +1,61 @@
+# Cloudflare Workers Configuration
+# Документация: https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "fastpay-connect"
+main = "worker.ts"
+compatibility_date = "2024-01-01"
+workers_dev = true
+
+# Переменные окружения
+[vars]
+API_URL = "https://fastpay-connect.example.com"
+ALLOWED_ORIGINS = "*"
+RATE_LIMIT = "100"
+
+# KV Storage для rate limiting
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "your-kv-namespace-id"
+preview_id = "your-preview-kv-namespace-id"
+
+# D1 Database (опционально, для хранения данных)
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "fastpay-db"
+# database_id = "your-d1-database-id"
+
+# R2 Storage (опционально, для файлов)
+# [[r2_buckets]]
+# binding = "BUCKET"
+# bucket_name = "fastpay-files"
+
+# Durable Objects (для состояния)
+# [durable_objects]
+# bindings = [
+#   { name = "COUNTER", class_name = "Counter" }
+# ]
+
+# Cron Triggers (для периодических задач)
+# [triggers]
+# crons = ["0 0 * * *"]
+
+# Environment-specific настройки
+[env.production]
+name = "fastpay-connect-prod"
+route = { pattern = "api.fastpay.example.com/*", zone_name = "fastpay.example.com" }
+
+[env.production.vars]
+API_URL = "https://fastpay-connect.production.example.com"
+RATE_LIMIT = "1000"
+
+[env.staging]
+name = "fastpay-connect-staging"
+
+[env.staging.vars]
+API_URL = "https://fastpay-connect.staging.example.com"
+RATE_LIMIT = "500"
+
+# Observability
+[observability]
+enabled = true
+head_sampling_rate = 1.0

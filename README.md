@@ -14,6 +14,23 @@
 - **UnitPay**
 - **Робокасса**
 
+## 🚀 Быстрый старт
+
+```bash
+# Клонирование репозитория
+git clone https://github.com/yourusername/fastpay_connect.git
+cd fastpay_connect
+
+# Установка зависимостей
+pip install -r requirements.txt
+
+# Копирование .env.example
+cp .env.example .env
+
+# Запуск приложения
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
+```
+
 ### 📚 О проекте
 
 FastPay Connect служит учебным материалом и демонстрационным примером того, как подключить и настроить различные платёжные системы для обработки онлайн-платежей.
@@ -38,12 +55,33 @@ fastpay_connect/
 │   │   ├── payment_routes.py     # Работа с платёжными системами
 │   │   └── webhook_routes.py     # Обработка webhook-уведомлений
 │   ├── utils/                    # Вспомогательные функции
-│   ├── config.py                 # Конфигурации платёжных систем
+│   ├── config.py                 # Конфигурации платёжных систем (legacy)
+│   ├── settings.py               # Настройки на основе Pydantic
 │   └── database.py               # Подключение к базе данных
 │
+├── k8s/                          # Kubernetes манифесты → deploy/k8s/
+├── nginx/                        # Nginx конфигурация → deploy/nginx/
+├── scripts/                      # Скрипты деплоя → deploy/scripts/
+├── tests/                        # Тесты
 ├── .env                          # Конфиденциальные данные
+├── .env.example                  # Пример .env
 ├── requirements.txt              # Зависимости проекта
 ├── README.md                     # Описание проекта
+├── DEPLOYMENT.md                 # 📦 Руководство по деплою
+├── docker-compose.yml            # Docker Compose (development)
+├── docker-compose.prod.yml       # Docker Compose (production)
+├── Dockerfile                    # Docker образ
+├── deploy/                       # 📁 Файлы для деплоя
+│   ├── Makefile                  # Автоматизация задач
+│   ├── Procfile                  # Heroku/Railway команды
+│   ├── render.yaml               # Render конфигурация
+│   ├── railway.json              # Railway конфигурация
+│   ├── fly.toml                  # Fly.io конфигурация
+│   ├── cloudflare/               # Cloudflare Workers/Pages
+│   ├── k8s/                      # Kubernetes манифесты
+│   ├── aws/                      # AWS Elastic Beanstalk
+│   ├── gcp/                      # Google Cloud Platform
+│   └── nginx/                    # Nginx конфигурация
 └── run.py                        # Точка входа для запуска приложения
 ```
 
@@ -315,6 +353,40 @@ uvicorn app.main:app --reload
 ### Советы по безопасности 🔐
 - Храните ключи в безопасном месте, например, в переменных окружения или секретных хранилищах.
 - Никогда не размещайте ключи в публичных репозиториях 🚫.
+
+---
+
+## 📦 Деплой
+
+Проект поддерживает развёртывание на различных платформах:
+
+### 🐳 Docker
+
+```bash
+# Development
+docker-compose up -d
+
+# Production
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### ☁️ Cloud платформы
+
+| Платформа | Команда | Документация |
+|-----------|---------|--------------|
+| **Render** | `renderctl deploy` | [deploy/render.yaml](deploy/render.yaml) |
+| **Railway** | `railway up` | [deploy/railway.json](deploy/railway.json) |
+| **Fly.io** | `fly deploy` | [deploy/fly.toml](deploy/fly.toml) |
+| **Heroku** | `git push heroku main` | [deploy/Procfile](deploy/Procfile) |
+| **Google Cloud Run** | `gcloud run deploy` | [deploy/gcp/cloudbuild.yaml](deploy/gcp/cloudbuild.yaml) |
+| **AWS Elastic Beanstalk** | `eb deploy` | [deploy/aws/](deploy/aws/) |
+| **Kubernetes** | `kubectl apply -f deploy/k8s/` | [deploy/k8s/deployment.yaml](deploy/k8s/deployment.yaml) |
+| **Cloudflare Workers** | `wrangler deploy` | [deploy/cloudflare/wrangler.toml](deploy/cloudflare/wrangler.toml) |
+| **Cloudflare Pages** | `wrangler pages deploy` | [DEPLOYMENT.md](DEPLOYMENT.md#cloudflare-pages) |
+
+### 📖 Подробное руководство
+
+Смотрите [**DEPLOYMENT.md**](DEPLOYMENT.md) для полной документации по деплою.
 
 ---
 
