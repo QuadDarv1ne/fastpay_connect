@@ -2,14 +2,20 @@
 
 import logging
 from typing import Any, Dict
-from app.payment_gateways.base import BasePaymentGateway
+
 from app.settings import settings
+
+from .base import BasePaymentGateway
+from .exceptions import PaymentGatewayError
 
 logger = logging.getLogger(__name__)
 
 
 class TinkoffGateway(BasePaymentGateway):
-    """Tinkoff платёжный шлюз."""
+    """Tinkoff платёжный шлюз.
+
+    Документация: https://www.tinkoff.ru/kassa/develop/
+    """
 
     def __init__(self):
         super().__init__(
@@ -22,41 +28,58 @@ class TinkoffGateway(BasePaymentGateway):
     async def create_payment(
         self, amount: float, description: str, order_id: str
     ) -> Dict[str, Any]:
-        """Создание платежа через Tinkoff."""
-        if not self.validate_config():
-            return {"error": "Payment gateway not configured"}
+        """Создание платежа через Tinkoff.
 
-        if amount <= 0:
-            return {"error": "Invalid amount", "details": "Amount must be positive"}
+        Args:
+            amount: Сумма платежа.
+            description: Описание платежа.
+            order_id: ID заказа.
+
+        Returns:
+            Ответ API с данными платежа.
+
+        Raises:
+            PaymentGatewayError: Ошибка создания платежа.
+        """
+        payload = self._prepare_payment_payload(
+            amount=amount,
+            description=description,
+            order_id=order_id,
+            extra_fields={
+                "payment_type": "BANK_CARD",
+            },
+        )
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
 
-        payload = {
-            "amount": amount,
-            "currency": "RUB",
-            "description": description[:250],
-            "order_id": order_id,
-            "return_url": self.return_url,
-            "payment_type": "BANK_CARD",
-        }
-
         return await self._request(
-            "POST", f"{self.base_url}/payments", headers=headers, json_data=payload
+            method="POST",
+            url=f"{self.base_url}/payments",
+            headers=headers,
+            json_data=payload,
         )
 
     async def handle_webhook(
         self, payload: Dict[str, Any], signature: str
     ) -> Dict[str, str]:
-        """Обработка webhook от Tinkoff."""
+        """Обработка webhook уведомления от Tinkoff.
+
+        Args:
+            payload: Тело webhook.
+            signature: Подпись webhook.
+
+        Returns:
+            Статус обработки webhook.
+        """
         if not self.verify_signature(payload, signature):
-            logger.warning("Invalid Tinkoff webhook signature")
+            logger.warning(f"{self.__class__.__name__}: invalid webhook signature")
             return {"status": "failed", "message": "Invalid signature"}
 
         event = payload.get("event", "")
-        logger.info(f"Processing Tinkoff webhook event: {event}")
+        logger.info(f"{self.__class__.__name__} webhook event: {event}")
 
         if event == "payment.succeeded":
             return {"status": "processed", "message": "Payment successful"}
@@ -65,23 +88,52 @@ class TinkoffGateway(BasePaymentGateway):
         elif event == "payment.refunded":
             return {"status": "processed", "message": "Payment refunded"}
         else:
-            logger.info(f"Ignored Tinkoff event: {event}")
+            logger.debug(f"{self.__class__.__name__}: ignored event: {event}")
             return {"status": "ignored", "message": "Event not recognized"}
 
 
 gateway = TinkoffGateway()
 
 
-async def create_payment(amount: float, description: str, order_id: str) -> Dict[str, Any]:
-    """Создание платежа через Tinkoff."""
+async def create_payment(
+    amount: float, description: str, order_id: str
+) -> Dict[str, Any]:
+    """Создание платежа через Tinkoff.
+
+    Args:
+        amount: Сумма платежа.
+        description: Описание платежа.
+        order_id: ID заказа.
+
+    Returns:
+        Ответ API с данными платежа.
+    """
     return await gateway.create_payment(amount, description, order_id)
 
 
 def verify_signature(params: Dict[str, Any], signature: str) -> bool:
-    """Проверка подписи."""
+    """Проверка подписи webhook.
+
+    Args:
+        params: Параметры запроса.
+        signature: Подпись.
+
+    Returns:
+        True если подпись валидна.
+    """
     return gateway.verify_signature(params, signature)
 
 
-async def handle_tinkoff_webhook(payload: Dict[str, Any], signature: str) -> Dict[str, str]:
-    """Обработка webhook от Tinkoff."""
+async def handle_tinkoff_webhook(
+    payload: Dict[str, Any], signature: str
+) -> Dict[str, str]:
+    """Обработка webhook уведомления от Tinkoff.
+
+    Args:
+        payload: Тело webhook.
+        signature: Подпись webhook.
+
+    Returns:
+        Статус обработки webhook.
+    """
     return await gateway.handle_webhook(payload, signature)
