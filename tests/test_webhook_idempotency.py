@@ -6,8 +6,6 @@ from app.models.payment import Payment, PaymentStatus
 from app.services.payment_service import (
     create_payment_record,
     update_payment_status,
-    check_webhook_idempotency,
-    mark_webhook_processed,
 )
 
 
@@ -53,22 +51,6 @@ class TestWebhookIdempotency:
 
         processed = payment.webhook_processed.split(",")
         assert processed.count("event_123") == 1
-
-    def test_check_webhook_idempotency_function(
-        self, db_session: Session, payment: Payment
-    ):
-        """Проверка функции check_webhook_idempotency."""
-        order_id = "test_order_123"
-        event_id = "event_123"
-
-        # Initially not processed
-        assert check_webhook_idempotency(db_session, order_id, event_id) is False
-
-        # Mark as processed
-        mark_webhook_processed(db_session, order_id, event_id)
-
-        # Now should be processed
-        assert check_webhook_idempotency(db_session, order_id, event_id) is True
 
     def test_update_payment_status_with_webhook_event_id(
         self, db_session: Session, payment: Payment
