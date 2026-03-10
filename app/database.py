@@ -32,6 +32,6 @@ def init_db():
     Base.metadata.create_all(bind=engine)
 
 
-def get_engine_url():
+def get_engine_url() -> str:
     """URL для alembic."""
-    return DATABASE_URL
+    return settings.database_url
