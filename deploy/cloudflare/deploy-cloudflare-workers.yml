@@ -1,0 +1,40 @@
+# Cloudflare Workers Deployment Workflow
+# Использование: скопируйте в .github/workflows/deploy-cloudflare-workers.yml
+
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Cloudflare Workers
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          environment: production
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Send deployment notification
+        if: success()
+        run: |
+          echo "✅ Deployment to Cloudflare Workers successful!"
+          echo "Worker URL: https://fastpay-connect.${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.workers.dev"

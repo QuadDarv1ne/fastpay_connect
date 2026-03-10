@@ -1,3 +1,5 @@
+"""Роуты для работы с платежами."""
+
 from typing import Any, Callable, Dict, Optional, Tuple
 from fastapi import APIRouter, HTTPException, Depends, Request
 from app.payment_gateways.yookassa import create_payment as yookassa_create
@@ -6,11 +8,9 @@ from app.payment_gateways.cloudpayments import create_payment as cloudpayments_c
 from app.payment_gateways.unitpay import create_payment as unitpay_create
 from app.payment_gateways.robokassa import create_payment as robokassa_create
 from app.schemas import PaymentRequest, PaymentResponse
-from app.database import get_db
-from app.services.payment_service import create_payment_record
+from app.dependencies import get_payment_repository
+from app.repositories.payment_repository import PaymentRepository
 from app.middleware.rate_limiter import limiter
-from sqlalchemy.orm import Session
-import asyncio
 import uuid
 import json
 import logging
@@ -81,7 +81,7 @@ def extract_nested_value(data: Dict[str, Any], path: str) -> Optional[Any]:
 
 async def process_payment(
     gateway: GatewayConfig,
-    db: Session,
+    repository: PaymentRepository,
     amount: float,
     description: str,
     order_id: Optional[str] = None,
@@ -89,8 +89,7 @@ async def process_payment(
     """Обработка создания платежа."""
     order_id = order_id or generate_order_id()
 
-    db_payment = create_payment_record(
-        db=db,
+    db_payment = repository.create(
         order_id=order_id,
         payment_gateway=gateway.name,
         amount=amount,
@@ -98,20 +97,18 @@ async def process_payment(
     )
 
     try:
-        result = await asyncio.to_thread(
-            gateway.create_func, amount, description, order_id
-        )
+        result = await gateway.create_func(amount, description, order_id)
     except Exception as e:
         logger.error(f"Payment gateway error: {e}")
         db_payment.status = "failed"
         db_payment.metadata_json = json.dumps({"error": str(e)})
-        db.commit()
+        repository._db.commit()
         raise HTTPException(status_code=400, detail=f"Payment gateway error: {e}")
 
     if "error" in result:
         db_payment.status = "failed"
         db_payment.metadata_json = json.dumps({"error": result["error"]})
-        db.commit()
+        repository._db.commit()
         raise HTTPException(status_code=400, detail=result["error"])
 
     payment_id = result.get(gateway.payment_id_field)
@@ -122,7 +119,7 @@ async def process_payment(
     db_payment.payment_id = payment_id
     db_payment.payment_url = payment_url
     db_payment.status = "processing"
-    db.commit()
+    repository._db.commit()
 
     return result, db_payment
 
@@ -134,11 +131,11 @@ def create_payment_endpoint(gateway_key: str):
     async def handler(
         request: Request,
         payment_request: PaymentRequest,
-        db: Session = Depends(get_db),
+        repository: PaymentRepository = Depends(get_payment_repository),
     ) -> PaymentResponse:
         _, db_payment = await process_payment(
             gateway=gateway,
-            db=db,
+            repository=repository,
             amount=payment_request.amount,
             description=payment_request.description,
             order_id=payment_request.order_id,

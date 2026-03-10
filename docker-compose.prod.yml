@@ -1,0 +1,137 @@
+# Docker Compose для production с PostgreSQL
+# Использование: docker-compose -f docker-compose.prod.yml up -d
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: fastpay-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fastpay_connect}
+      POSTGRES_USER: ${POSTGRES_USER:-fastpay_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_in_production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fastpay_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fastpay-network
+
+  # Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastpay-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-fastpay_user}:${POSTGRES_PASSWORD:-change_me_in_production}@db:5432/${POSTGRES_DB:-fastpay_connect}
+      - SECRET_KEY=${SECRET_KEY:-change_me_in_production}
+      - YOOKASSA_API_KEY=${YOOKASSA_API_KEY}
+      - YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}
+      - TINKOFF_API_KEY=${TINKOFF_API_KEY}
+      - TINKOFF_SECRET_KEY=${TINKOFF_SECRET_KEY}
+      - CLOUDPAYMENTS_API_KEY=${CLOUDPAYMENTS_API_KEY}
+      - CLOUDPAYMENTS_SECRET_KEY=${CLOUDPAYMENTS_SECRET_KEY}
+      - UNITPAY_API_KEY=${UNITPAY_API_KEY}
+      - UNITPAY_SECRET_KEY=${UNITPAY_SECRET_KEY}
+      - ROBOKASSA_API_KEY=${ROBOKASSA_API_KEY}
+      - ROBOKASSA_SECRET_KEY=${ROBOKASSA_SECRET_KEY}
+      - LOG_LEVEL=INFO
+      - PORT=8080
+      - HOST=0.0.0.0
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://localhost}
+    volumes:
+      - ./logs:/app/logs
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - fastpay-network
+    command: >
+      sh -c "python -c 'from app.database import Base, engine; Base.metadata.create_all(engine)' &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8080 --workers 2"
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: fastpay-nginx
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./app/static:/var/www/static:ro
+    networks:
+      - fastpay-network
+
+  # Redis для кэширования и rate limiting (опционально)
+  redis:
+    image: redis:7-alpine
+    container_name: fastpay-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fastpay-network
+
+  # Flower для мониторинга Celery (опционально)
+  flower:
+    build: .
+    container_name: fastpay-flower
+    restart: unless-stopped
+    depends_on:
+      - redis
+      - app
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    ports:
+      - "5555:5555"
+    command: celery -A app.tasks.celery flower --port=5555
+    networks:
+      - fastpay-network
+    profiles:
+      - monitoring
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  fastpay-network:
+    driver: bridge
