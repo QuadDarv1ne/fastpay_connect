@@ -1,12 +1,26 @@
 """Репозиторий для работы с платежами."""
 
-from typing import List, Optional, Dict, Any
+import json
+from typing import List, Optional, Dict, Any, Union
 from datetime import datetime
 
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from app.models.payment import Payment, PaymentStatus
+
+
+class RepositoryError(Exception):
+    """Базовое исключение репозитория."""
+
+    pass
+
+
+class PaymentNotFoundError(RepositoryError):
+    """Платёж не найден."""
+
+    pass
 
 
 class PaymentRepository:
@@ -26,6 +40,9 @@ class PaymentRepository:
         payment_url: Optional[str] = None,
     ) -> Payment:
         """Создать платёж."""
+        if amount <= 0:
+            raise ValueError(f"Invalid amount: {amount}")
+
         payment = Payment(
             order_id=order_id,
             payment_gateway=payment_gateway,
@@ -34,7 +51,7 @@ class PaymentRepository:
             description=description,
             payment_id=payment_id,
             payment_url=payment_url,
-            status=PaymentStatus.PENDING.value,
+            status=PaymentStatus.PENDING,
         )
         self._db.add(payment)
         self._db.commit()
@@ -58,7 +75,7 @@ class PaymentRepository:
         order_id: Optional[str] = None,
         payment_id: Optional[str] = None,
         transaction_id: Optional[str] = None,
-        status: str = PaymentStatus.COMPLETED.value,
+        status: Union[str, PaymentStatus] = PaymentStatus.COMPLETED,
         metadata: Optional[Dict[str, Any]] = None,
         webhook_event_id: Optional[str] = None,
     ) -> Optional[Payment]:
@@ -67,31 +84,40 @@ class PaymentRepository:
         if not payment:
             return None
 
-        # Проверка на дубликат webhook
+        status_value = status.value if isinstance(status, PaymentStatus) else status
+
         if webhook_event_id:
-            processed = payment.webhook_processed.split(",") if payment.webhook_processed else []
-            if webhook_event_id in processed:
+            if payment.is_webhook_processed(webhook_event_id):
                 return payment
-            processed.append(webhook_event_id)
-            payment.webhook_processed = ",".join(processed)
+            payment.mark_webhook_processed(webhook_event_id)
 
         if transaction_id and not payment.transaction_id:
             payment.transaction_id = transaction_id
 
-        payment.status = status
+        payment.status = status_value
         if metadata:
-            import json
             payment.metadata_json = json.dumps(metadata)
 
-        self._db.commit()
-        self._db.refresh(payment)
+        try:
+            self._db.commit()
+            self._db.refresh(payment)
+        except IntegrityError as e:
+            self._db.rollback()
+            raise RepositoryError(f"Database integrity error: {e}") from e
+        except SQLAlchemyError as e:
+            self._db.rollback()
+            raise RepositoryError(f"Database error: {e}") from e
+
         return payment
 
-    def get_by_status(self, status: str, limit: int = 100) -> List[Payment]:
+    def get_by_status(
+        self, status: Union[str, PaymentStatus], limit: int = 100
+    ) -> List[Payment]:
         """Получить платежи по статусу."""
+        status_value = status.value if isinstance(status, PaymentStatus) else status
         return (
             self._db.query(Payment)
-            .filter(Payment.status == status)
+            .filter(Payment.status == status_value)
             .order_by(Payment.created_at.desc())
             .limit(limit)
             .all()
@@ -111,7 +137,7 @@ class PaymentRepository:
         self,
         start_date: datetime,
         end_date: datetime,
-        status: Optional[str] = None,
+        status: Optional[Union[str, PaymentStatus]] = None,
     ) -> List[Payment]:
         """Получить платежи за период."""
         query = self._db.query(Payment).filter(
@@ -119,7 +145,8 @@ class PaymentRepository:
             Payment.created_at <= end_date,
         )
         if status:
-            query = query.filter(Payment.status == status)
+            status_value = status.value if isinstance(status, PaymentStatus) else status
+            query = query.filter(Payment.status == status_value)
         return query.order_by(Payment.created_at.desc()).all()
 
     def get_statistics(self) -> Dict[str, Any]:
@@ -135,9 +162,12 @@ class PaymentRepository:
             .group_by(Payment.payment_gateway)
             .all()
         )
-        total_amount = self._db.query(func.sum(Payment.amount)).filter(
-            Payment.status == PaymentStatus.COMPLETED.value
-        ).scalar() or 0
+        total_amount = (
+            self._db.query(func.sum(Payment.amount))
+            .filter(Payment.status == PaymentStatus.COMPLETED)
+            .scalar()
+            or 0
+        )
 
         return {
             "total_payments": total,
