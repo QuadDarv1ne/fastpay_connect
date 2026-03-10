@@ -1,13 +1,31 @@
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func
 from app.models.payment import Payment, PaymentStatus
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 from datetime import datetime, timezone
 import json
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class PaymentServiceError(Exception):
+    """Базовое исключение сервиса платежей."""
+
+    pass
+
+
+class PaymentNotFoundError(PaymentServiceError):
+    """Платёж не найден."""
+
+    pass
+
+
+class PaymentInvalidAmountError(PaymentServiceError):
+    """Некорректная сумма платежа."""
+
+    pass
 
 
 def create_payment_record(
@@ -21,6 +39,9 @@ def create_payment_record(
     payment_url: Optional[str] = None,
 ) -> Payment:
     """Создаёт запись о платеже в БД."""
+    if amount <= 0:
+        raise PaymentInvalidAmountError(f"Invalid amount: {amount}")
+
     payment = Payment(
         order_id=order_id,
         payment_gateway=payment_gateway,
@@ -41,47 +62,40 @@ def update_payment_status(
     db: Session,
     order_id: Optional[str] = None,
     payment_id: Optional[str] = None,
-    transaction_id: Optional[str] = None,
     status: str = PaymentStatus.COMPLETED.value,
     metadata: Optional[Dict[str, Any]] = None,
     webhook_event_id: Optional[str] = None,
 ) -> Optional[Payment]:
-    """Обновляет статус платежа.
-
-    Args:
-        db: Сессия БД.
-        order_id: ID заказа.
-        payment_id: ID платежа.
-        transaction_id: ID транзакции от платёжной системы.
-        status: Новый статус.
-        metadata: Метаданные для сохранения.
-        webhook_event_id: ID webhook события для идемпотентности.
-
-    Returns:
-        Обновлённый платёж или None.
-    """
+    """Обновляет статус платежа."""
     payment: Optional[Payment] = _get_payment(db, order_id, payment_id)
 
     if not payment:
         return None
 
-    # Проверка на дубликат webhook
-    if webhook_event_id:
-        if payment.is_webhook_processed(webhook_event_id):
-            logger.info(f"Webhook already processed: {webhook_event_id} for order {payment.order_id}")
-            return payment
-        payment.mark_webhook_processed(webhook_event_id)
-
-    # Обновляем transaction_id если передан
-    if transaction_id and not payment.transaction_id:
-        payment.transaction_id = transaction_id
+    # Idempotency check for webhooks
+    if webhook_event_id and payment.is_webhook_processed(webhook_event_id):
+        logger.info(f"Webhook event {webhook_event_id} already processed for {payment.order_id}")
+        return payment
 
     payment.status = status
     if metadata:
         payment.metadata_json = json.dumps(metadata)
 
-    db.commit()
-    db.refresh(payment)
+    if webhook_event_id:
+        payment.mark_webhook_processed(webhook_event_id)
+
+    try:
+        db.commit()
+        db.refresh(payment)
+    except IntegrityError as e:
+        db.rollback()
+        logger.error(f"Database integrity error updating payment: {e}")
+        raise
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error updating payment: {e}")
+        raise
+
     return payment
 
 
@@ -107,12 +121,13 @@ def _get_payment(
 
 
 def get_payments_by_status(
-    db: Session, status: str, limit: int = 100
+    db: Session, status: Union[str, PaymentStatus], limit: int = 100
 ) -> List[Payment]:
     """Получает платежи по статусу."""
+    status_value = status.value if isinstance(status, PaymentStatus) else status
     return (
         db.query(Payment)
-        .filter(Payment.status == status)
+        .filter(Payment.status == status_value)
         .order_by(Payment.created_at.desc())
         .limit(limit)
         .all()
@@ -167,6 +182,10 @@ def refund_payment(
         logger.warning(f"Payment already refunded: {payment.order_id}")
         return payment
 
+    if payment.status not in (PaymentStatus.COMPLETED, PaymentStatus.PROCESSING):
+        logger.warning(f"Cannot refund payment in status {payment.status.value}: {payment.order_id}")
+        return None
+
     payment.status = PaymentStatus.REFUNDED
     metadata = {"refund_reason": reason, "refunded_at": datetime.now(timezone.utc).isoformat()}
     if payment.metadata_json:
@@ -196,7 +215,11 @@ def cancel_payment(
         return None
 
     if payment.status in (PaymentStatus.COMPLETED, PaymentStatus.REFUNDED):
-        logger.warning(f"Cannot cancel payment in status {payment.status}: {payment.order_id}")
+        logger.warning(f"Cannot cancel payment in status {payment.status.value}: {payment.order_id}")
+        return payment
+
+    if payment.status == PaymentStatus.CANCELLED:
+        logger.warning(f"Payment already cancelled: {payment.order_id}")
         return payment
 
     payment.status = PaymentStatus.CANCELLED
@@ -237,48 +260,3 @@ def get_payment_statistics(db: Session) -> Dict[str, Any]:
         "by_gateway": dict(by_gateway),
         "total_completed_amount": float(total_amount),
     }
-
-
-def check_webhook_idempotency(
-    db: Session,
-    order_id: str,
-    webhook_event_id: str,
-) -> bool:
-    """Проверка, был ли уже обработан webhook с данным event_id.
-
-    Args:
-        db: Сессия БД.
-        order_id: ID заказа.
-        webhook_event_id: ID webhook события.
-
-    Returns:
-        True если webhook уже обработан.
-    """
-    payment = get_payment_by_order_id(db, order_id)
-    if not payment:
-        return False
-    return payment.is_webhook_processed(webhook_event_id)
-
-
-def mark_webhook_processed(
-    db: Session,
-    order_id: str,
-    webhook_event_id: str,
-) -> Optional[Payment]:
-    """Отметить webhook событие как обработанное.
-
-    Args:
-        db: Сессия БД.
-        order_id: ID заказа.
-        webhook_event_id: ID webhook события.
-
-    Returns:
-        Платёж с обновлённым списком обработанных webhook'ов.
-    """
-    payment = get_payment_by_order_id(db, order_id)
-    if not payment:
-        return None
-    payment.mark_webhook_processed(webhook_event_id)
-    db.commit()
-    db.refresh(payment)
-    return payment

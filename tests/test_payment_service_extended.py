@@ -58,6 +58,8 @@ class TestPaymentService:
         assert len(tinkoff_payments) >= 1
 
     def test_refund_payment(self, db_session):
+        from app.services.payment_service import update_payment_status
+
         payment = create_payment_record(
             db=db_session,
             order_id="order_refund",
@@ -65,6 +67,9 @@ class TestPaymentService:
             amount=1000.0,
             description="Test refund",
         )
+
+        # Сначала завершим платёж
+        update_payment_status(db=db_session, order_id="order_refund", status="completed")
 
         refunded = refund_payment(
             db_session, order_id="order_refund", reason="Customer request"
@@ -74,6 +79,8 @@ class TestPaymentService:
         assert refunded.status == PaymentStatus.REFUNDED
 
     def test_refund_already_refunded(self, db_session):
+        from app.services.payment_service import update_payment_status
+
         payment = create_payment_record(
             db=db_session,
             order_id="order_refund_2",
@@ -81,6 +88,8 @@ class TestPaymentService:
             amount=1000.0,
             description="Test",
         )
+        # Сначала завершим платёж
+        update_payment_status(db=db_session, order_id="order_refund_2", status="completed")
         refund_payment(db_session, order_id="order_refund_2")
 
         result = refund_payment(db_session, order_id="order_refund_2")
