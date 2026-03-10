@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -14,15 +14,12 @@ def test_client():
 class TestPaymentRoutes:
     @patch("app.routes.payment_routes.process_payment")
     def test_create_yookassa_payment(self, mock_process, test_client):
-        mock_payment = MagicMock()
-        mock_payment.payment_id = "yookassa_123"
-        mock_payment.payment_url = "https://yookassa.ru/pay/123"
-        mock_payment.order_id = "order_123"
-        mock_payment.amount = 1000.0
-        mock_process.return_value = (
-            {"id": "yookassa_123", "confirmation": {"confirmation_url": "https://yookassa.ru/pay/123"}},
-            mock_payment,
-        )
+        mock_process.return_value = {
+            "payment_id": "yookassa_123",
+            "payment_url": "https://yookassa.ru/pay/123",
+            "order_id": "order_123",
+            "amount": 1000.0,
+        }
 
         response = test_client.post(
             "/payments/yookassa",
@@ -37,15 +34,12 @@ class TestPaymentRoutes:
 
     @patch("app.routes.payment_routes.process_payment")
     def test_create_tinkoff_payment(self, mock_process, test_client):
-        mock_payment = MagicMock()
-        mock_payment.payment_id = "tinkoff_456"
-        mock_payment.payment_url = "https://tinkoff.ru/pay/456"
-        mock_payment.order_id = "order_456"
-        mock_payment.amount = 2000.0
-        mock_process.return_value = (
-            {"payment_id": "tinkoff_456", "payment_url": "https://tinkoff.ru/pay/456"},
-            mock_payment,
-        )
+        mock_process.return_value = {
+            "payment_id": "tinkoff_456",
+            "payment_url": "https://tinkoff.ru/pay/456",
+            "order_id": "order_456",
+            "amount": 2000.0,
+        }
 
         response = test_client.post(
             "/payments/tinkoff",
@@ -59,15 +53,12 @@ class TestPaymentRoutes:
 
     @patch("app.routes.payment_routes.process_payment")
     def test_create_cloudpayments_payment(self, mock_process, test_client):
-        mock_payment = MagicMock()
-        mock_payment.payment_id = "cp_789"
-        mock_payment.payment_url = None
-        mock_payment.order_id = "order_789"
-        mock_payment.amount = 1500.0
-        mock_process.return_value = (
-            {"transaction_id": "cp_789"},
-            mock_payment,
-        )
+        mock_process.return_value = {
+            "payment_id": "cp_789",
+            "payment_url": None,
+            "order_id": "order_789",
+            "amount": 1500.0,
+        }
 
         response = test_client.post(
             "/payments/cloudpayments",
@@ -81,15 +72,12 @@ class TestPaymentRoutes:
 
     @patch("app.routes.payment_routes.process_payment")
     def test_create_unitpay_payment(self, mock_process, test_client):
-        mock_payment = MagicMock()
-        mock_payment.payment_id = "unitpay_abc"
-        mock_payment.payment_url = None
-        mock_payment.order_id = "order_abc"
-        mock_payment.amount = 500.0
-        mock_process.return_value = (
-            {"payment_id": "unitpay_abc"},
-            mock_payment,
-        )
+        mock_process.return_value = {
+            "payment_id": "unitpay_abc",
+            "payment_url": None,
+            "order_id": "order_abc",
+            "amount": 500.0,
+        }
 
         response = test_client.post(
             "/payments/unitpay",
@@ -102,15 +90,12 @@ class TestPaymentRoutes:
 
     @patch("app.routes.payment_routes.process_payment")
     def test_create_robokassa_payment(self, mock_process, test_client):
-        mock_payment = MagicMock()
-        mock_payment.payment_id = "robokassa_xyz"
-        mock_payment.payment_url = None
-        mock_payment.order_id = "order_xyz"
-        mock_payment.amount = 1200.0
-        mock_process.return_value = (
-            {"invoice_id": "robokassa_xyz"},
-            mock_payment,
-        )
+        mock_process.return_value = {
+            "payment_id": "robokassa_xyz",
+            "payment_url": None,
+            "order_id": "order_xyz",
+            "amount": 1200.0,
+        }
 
         response = test_client.post(
             "/payments/robokassa",
