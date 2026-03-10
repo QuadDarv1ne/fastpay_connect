@@ -6,10 +6,10 @@ from app.payment_gateways.cloudpayments import handle_cloudpayments_webhook
 from app.payment_gateways.unitpay import handle_unitpay_webhook
 from app.payment_gateways.robokassa import handle_robokassa_webhook
 from app.database import get_db
-from app.services.payment_service import update_payment_status
+from app.repositories.payment_repository import PaymentRepository
+from app.dependencies import get_payment_repository
 from app.utils.ip_validator import verify_webhook_ip
 from app.settings import settings
-from sqlalchemy.orm import Session
 import logging
 from dataclasses import dataclass
 
@@ -66,11 +66,16 @@ STATUS_MAP: Dict[str, str] = {
 }
 
 
+def _extract_webhook_event_id(payload: Dict[str, Any]) -> Optional[str]:
+    """Извлечь event_id из webhook payload для идемпотентности."""
+    return payload.get("event_id") or payload.get("id") or payload.get("transaction_id")
+
+
 async def process_webhook(
     config: WebhookConfig,
     payload: Dict[str, Any],
     auth_value: str,
-    db: Session,
+    repository: PaymentRepository,
 ) -> Tuple[Dict[str, str], Optional[str]]:
     """Обработка webhook уведомления."""
     try:
@@ -87,8 +92,12 @@ async def process_webhook(
         if order_id:
             message = result.get("message", "").lower()
             db_status = STATUS_MAP.get(message, "pending")
-            update_payment_status(
-                db=db, order_id=order_id, status=db_status, metadata=payload
+            webhook_event_id = _extract_webhook_event_id(payload)
+            repository.update_status(
+                order_id=order_id,
+                status=db_status,
+                metadata=payload,
+                webhook_event_id=webhook_event_id,
             )
             logger.info(f"Payment {order_id} status updated to {db_status}")
 
@@ -100,7 +109,8 @@ def create_webhook_endpoint(webhook_key: str):
     config = WEBHOOKS[webhook_key]
 
     async def handler(
-        request: Request, db: Session = Depends(get_db)
+        request: Request,
+        repository: PaymentRepository = Depends(get_payment_repository),
     ) -> Dict[str, Any]:
         await verify_webhook_ip(request, config.ip_whitelist)
         payload = await request.json()
@@ -112,7 +122,7 @@ def create_webhook_endpoint(webhook_key: str):
         else:
             auth_value = request.headers.get(config.signature_header, "")
 
-        result, _ = await process_webhook(config, payload, auth_value, db)
+        result, _ = await process_webhook(config, payload, auth_value, repository)
         return {"status": "success", "message": result.get("message", "")}
 
     return handler
