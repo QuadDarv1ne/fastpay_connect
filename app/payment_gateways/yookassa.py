@@ -2,20 +2,14 @@
 
 import logging
 from typing import Any, Dict, Optional
-
+from app.payment_gateways.base import BasePaymentGateway
 from app.settings import settings
-
-from .base import BasePaymentGateway
-from .exceptions import PaymentGatewayError
 
 logger = logging.getLogger(__name__)
 
 
 class YooKassaGateway(BasePaymentGateway):
-    """YooKassa платёжный шлюз.
-
-    Документация: https://yookassa.ru/developers/api
-    """
+    """YooKassa платёжный шлюз."""
 
     def __init__(self):
         super().__init__(
@@ -25,43 +19,15 @@ class YooKassaGateway(BasePaymentGateway):
             base_url="https://api.yookassa.ru/v3",
         )
 
-    async def create_payment(
+    def create_payment(
         self, amount: float, description: str, order_id: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Создание платежа через YooKassa.
+        """Создание платежа через YooKassa."""
+        if not self.validate_config():
+            return {"error": "Payment gateway not configured"}
 
-        Args:
-            amount: Сумма платежа.
-            description: Описание платежа.
-            order_id: ID заказа (опционально).
-
-        Returns:
-            Ответ API с данными платежа.
-
-        Raises:
-            PaymentGatewayError: Ошибка создания платежа.
-        """
-        payload = self._prepare_payment_payload(
-            amount=amount,
-            description=description,
-            order_id=order_id or "",
-            extra_fields={
-                "capture_mode": "AUTOMATIC",
-                "confirmation": {
-                    "type": "redirect",
-                    "return_url": self.return_url,
-                },
-            },
-        )
-
-        # YooKassa требует amount как объект
-        payload["amount"] = {
-            "value": str(payload.pop("amount")),
-            "currency": payload.pop("currency", "RUB"),
-        }
-
-        # Удаляем return_url из payload, т.к. он уже в confirmation
-        payload.pop("return_url", None)
+        if amount <= 0:
+            return {"error": "Invalid amount", "details": "Amount must be positive"}
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -69,31 +35,33 @@ class YooKassaGateway(BasePaymentGateway):
             "Idempotence-Key": order_id or f"req_{hash(f'{amount}{description}')}",
         }
 
-        return await self._request(
-            method="POST",
-            url=f"{self.base_url}/payment",
-            headers=headers,
-            json_data=payload,
+        payload = {
+            "amount": {"value": str(amount), "currency": "RUB"},
+            "capture_mode": "AUTOMATIC",
+            "confirmation": {
+                "type": "redirect",
+                "return_url": self.return_url,
+            },
+            "description": description[:250],
+        }
+
+        if order_id:
+            payload["order_id"] = order_id
+
+        return self._request(
+            "POST", f"{self.base_url}/payment", headers=headers, json_data=payload
         )
 
     async def handle_webhook(
         self, payload: Dict[str, Any], signature: str
     ) -> Dict[str, str]:
-        """Обработка webhook уведомления от YooKassa.
-
-        Args:
-            payload: Тело webhook.
-            signature: Подпись webhook.
-
-        Returns:
-            Статус обработки webhook.
-        """
+        """Обработка webhook от YooKassa."""
         if not self.verify_signature(payload, signature):
-            logger.warning(f"{self.__class__.__name__}: invalid webhook signature")
+            logger.warning("Invalid YooKassa webhook signature")
             return {"status": "failed", "message": "Invalid signature"}
 
         event = payload.get("event", "")
-        logger.info(f"{self.__class__.__name__} webhook event: {event}")
+        logger.info(f"Processing YooKassa webhook event: {event}")
 
         if event == "payment.succeeded":
             return {"status": "processed", "message": "Payment successful"}
@@ -102,52 +70,11 @@ class YooKassaGateway(BasePaymentGateway):
         elif event == "payment.waiting_for_capture":
             return {"status": "processed", "message": "Payment waiting for capture"}
         else:
-            logger.debug(f"{self.__class__.__name__}: ignored event: {event}")
+            logger.info(f"Ignored YooKassa event: {event}")
             return {"status": "ignored", "message": "Event not recognized"}
 
 
 gateway = YooKassaGateway()
-
-
-async def create_payment(
-    amount: float, description: str, order_id: Optional[str] = None
-) -> Dict[str, Any]:
-    """Создание платежа через YooKassa.
-
-    Args:
-        amount: Сумма платежа.
-        description: Описание платежа.
-        order_id: ID заказа (опционально).
-
-    Returns:
-        Ответ API с данными платежа.
-    """
-    return await gateway.create_payment(amount, description, order_id)
-
-
-def verify_signature(params: Dict[str, Any], signature: str) -> bool:
-    """Проверка подписи webhook.
-
-    Args:
-        params: Параметры запроса.
-        signature: Подпись.
-
-    Returns:
-        True если подпись валидна.
-    """
-    return gateway.verify_signature(params, signature)
-
-
-async def handle_yookassa_webhook(
-    payload: Dict[str, Any], signature: str
-) -> Dict[str, str]:
-    """Обработка webhook уведомления от YooKassa.
-
-    Args:
-        payload: Тело webhook.
-        signature: Подпись webhook.
-
-    Returns:
-        Статус обработки webhook.
-    """
-    return await gateway.handle_webhook(payload, signature)
+create_payment = gateway.create_payment
+verify_signature = gateway.verify_signature
+handle_yookassa_webhook = gateway.handle_webhook

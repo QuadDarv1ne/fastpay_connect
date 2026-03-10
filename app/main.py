@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncGenerator
+import os
 
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.responses import JSONResponse, HTMLResponse
@@ -25,7 +26,9 @@ from app.payment_gateways.exceptions import PaymentGatewayError
 setup_logging(level=settings.log_level)
 logger = logging.getLogger(__name__)
 
-# Пути к статике и шаблонам
+# Отключаем rate limiting и middleware для тестов
+DISABLE_RATE_LIMITING = os.getenv("DISABLE_RATE_LIMITING", "false").lower() == "true"
+
 BASE_DIR = Path(__file__).parent
 TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
@@ -34,10 +37,8 @@ STATIC_DIR = BASE_DIR / "static"
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Lifespan context manager с graceful shutdown."""
-    # Startup
     logger.info("Application startup initiated")
 
-    # Валидация настроек (только логирование, не блокируем запуск)
     settings_validator.validate_all(
         yookassa_key=settings.yookassa_api_key,
         yookassa_secret=settings.yookassa_secret_key,
@@ -53,7 +54,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         database_url=settings.database_url,
     )
 
-    # Инициализация БД
     try:
         init_db()
         logger.info("Database initialized successfully")
@@ -62,10 +62,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         raise
 
     logger.info(f"Application started in {'debug' if settings.debug else 'production'} mode")
-
     yield
 
-    # Shutdown
     logger.info("Application shutdown initiated")
     try:
         from app.database import engine
@@ -85,7 +83,6 @@ app = FastAPI(
     redoc_url="/redoc" if settings.debug else None,
 )
 
-# Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
@@ -95,16 +92,18 @@ app.add_middleware(
 )
 
 # TrustedHostMiddleware отключен в тестах
-# if settings.allowed_hosts:
-#     app.add_middleware(
-#         TrustedHostMiddleware,
-#         allowed_hosts=settings.allowed_hosts,
-#     )
+if not DISABLE_RATE_LIMITING and settings.allowed_hosts:
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=settings.allowed_hosts,
+    )
 
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
-# Шаблоны и статика (опционально)
+# Добавляем обработчик только для настоящего limiter
+if not os.getenv("DISABLE_RATE_LIMITING", "false").lower() == "true":
+    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+
 if TEMPLATES_DIR.exists():
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 else:
@@ -116,7 +115,6 @@ if STATIC_DIR.exists():
 else:
     logger.warning(f"Static directory not found: {STATIC_DIR}")
 
-# Роутеры
 app.include_router(payment_router, prefix="/payments", tags=["Payments"])
 app.include_router(webhook_router, prefix="/webhooks", tags=["Webhooks"])
 app.include_router(admin_router, prefix="/admin/payments", tags=["Admin"])
@@ -139,19 +137,13 @@ async def root(request: Request):
 
 @app.get("/health", tags=["Health"])
 async def health_check():
-    """Проверка здоровья приложения.
-
-    Возвращает статус приложения без проверки зависимостей.
-    """
+    """Проверка здоровья приложения."""
     return {"status": "healthy", "debug": settings.debug}
 
 
 @app.get("/ready", tags=["Health"])
 async def readiness_check():
-    """Проверка готовности приложения.
-
-    Проверяет доступность всех критических зависимостей (БД, платёжные шлюзы).
-    """
+    """Проверка готовности приложения."""
     readiness_status = {
         "status": "ready",
         "checks": {
@@ -160,7 +152,6 @@ async def readiness_check():
         },
     }
 
-    # Проверка БД
     try:
         from app.database import engine, Base
         with engine.connect() as conn:
@@ -170,7 +161,6 @@ async def readiness_check():
         readiness_status["checks"]["database"] = f"error: {str(e)}"
         logger.warning(f"Database readiness check failed: {e}")
 
-    # Проверка конфигурации
     if not settings_validator.validate_all(
         yookassa_key=settings.yookassa_api_key,
         yookassa_secret=settings.yookassa_secret_key,
@@ -209,13 +199,9 @@ async def payment_gateway_error_handler(request: Request, exc: PaymentGatewayErr
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
-    """Обработчик непредвиденных ошибок.
-
-    Возвращает JSON для API запросов и HTML для браузера.
-    """
+    """Обработчик непредвиденных ошибок."""
     logger.exception(f"Unhandled error: {exc}")
 
-    # Определяем тип запроса
     accept_header = request.headers.get("accept", "")
     is_api_request = (
         request.url.path.startswith("/api") or

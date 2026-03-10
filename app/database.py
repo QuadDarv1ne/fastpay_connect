@@ -1,12 +1,15 @@
-from typing import Generator, Optional
+from typing import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.settings import settings
 
-# Синхронный движок для SQLAlchemy
+# Для SQLite используем обычный драйвер
+database_url = settings.database_url
+if database_url.startswith("sqlite+aiosqlite"):
+    database_url = database_url.replace("sqlite+aiosqlite", "sqlite")
+
 engine = create_engine(
-    settings.database_url, 
-    connect_args={"check_same_thread": False} if "sqlite" in settings.database_url else {}
+    database_url, connect_args={"check_same_thread": False}
 )
 
 Base = declarative_base()
@@ -31,4 +34,4 @@ def init_db():
 
 def get_engine_url():
     """URL для alembic."""
-    return settings.database_url
+    return DATABASE_URL

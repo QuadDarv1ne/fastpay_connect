@@ -2,20 +2,14 @@
 
 import logging
 from typing import Any, Dict
-
+from app.payment_gateways.base import BasePaymentGateway
 from app.settings import settings
-
-from .base import BasePaymentGateway
-from .exceptions import PaymentGatewayError
 
 logger = logging.getLogger(__name__)
 
 
 class UnitPayGateway(BasePaymentGateway):
-    """UnitPay платёжный шлюз.
-
-    Документация: https://unitpay.ru/doc
-    """
+    """UnitPay платёжный шлюз."""
 
     def __init__(self):
         super().__init__(
@@ -25,58 +19,43 @@ class UnitPayGateway(BasePaymentGateway):
             base_url="https://unitpay.ru/api",
         )
 
-    async def create_payment(
+    def create_payment(
         self, amount: float, description: str, order_id: str
     ) -> Dict[str, Any]:
-        """Создание платежа через UnitPay.
+        """Создание платежа через UnitPay."""
+        if not self.validate_config():
+            return {"error": "Payment gateway not configured"}
 
-        Args:
-            amount: Сумма платежа.
-            description: Описание платежа.
-            order_id: ID заказа.
-
-        Returns:
-            Ответ API с данными платежа.
-
-        Raises:
-            PaymentGatewayError: Ошибка создания платежа.
-        """
-        payload = self._prepare_payment_payload(
-            amount=amount,
-            description=description,
-            order_id=order_id,
-        )
+        if amount <= 0:
+            return {"error": "Invalid amount", "details": "Amount must be positive"}
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
 
-        return await self._request(
-            method="POST",
-            url=f"{self.base_url}/payment",
-            headers=headers,
-            json_data=payload,
+        payload = {
+            "amount": amount,
+            "currency": "RUB",
+            "description": description[:250],
+            "order_id": order_id,
+            "return_url": self.return_url,
+        }
+
+        return self._request(
+            "POST", f"{self.base_url}/payment", headers=headers, json_data=payload
         )
 
     async def handle_webhook(
         self, payload: Dict[str, Any], signature: str
     ) -> Dict[str, str]:
-        """Обработка webhook уведомления от UnitPay.
-
-        Args:
-            payload: Тело webhook.
-            signature: Подпись webhook.
-
-        Returns:
-            Статус обработки webhook.
-        """
+        """Обработка webhook от UnitPay."""
         if not self.verify_signature(payload, signature):
-            logger.warning(f"{self.__class__.__name__}: invalid webhook signature")
+            logger.warning("Invalid UnitPay webhook signature")
             return {"status": "failed", "message": "Invalid signature"}
 
         event = payload.get("event", "")
-        logger.info(f"{self.__class__.__name__} webhook event: {event}")
+        logger.info(f"Processing UnitPay webhook event: {event}")
 
         if event == "payment.succeeded":
             return {"status": "processed", "message": "Payment successful"}
@@ -85,52 +64,11 @@ class UnitPayGateway(BasePaymentGateway):
         elif event == "payment.refunded":
             return {"status": "processed", "message": "Payment refunded"}
         else:
-            logger.debug(f"{self.__class__.__name__}: ignored event: {event}")
+            logger.info(f"Ignored UnitPay event: {event}")
             return {"status": "ignored", "message": "Event not recognized"}
 
 
 gateway = UnitPayGateway()
-
-
-async def create_payment(
-    amount: float, description: str, order_id: str
-) -> Dict[str, Any]:
-    """Создание платежа через UnitPay.
-
-    Args:
-        amount: Сумма платежа.
-        description: Описание платежа.
-        order_id: ID заказа.
-
-    Returns:
-        Ответ API с данными платежа.
-    """
-    return await gateway.create_payment(amount, description, order_id)
-
-
-def verify_signature(params: Dict[str, Any], signature: str) -> bool:
-    """Проверка подписи webhook.
-
-    Args:
-        params: Параметры запроса.
-        signature: Подпись.
-
-    Returns:
-        True если подпись валидна.
-    """
-    return gateway.verify_signature(params, signature)
-
-
-async def handle_unitpay_webhook(
-    payload: Dict[str, Any], signature: str
-) -> Dict[str, str]:
-    """Обработка webhook уведомления от UnitPay.
-
-    Args:
-        payload: Тело webhook.
-        signature: Подпись webhook.
-
-    Returns:
-        Статус обработки webhook.
-    """
-    return await gateway.handle_webhook(payload, signature)
+create_payment = gateway.create_payment
+verify_signature = gateway.verify_signature
+handle_unitpay_webhook = gateway.handle_webhook

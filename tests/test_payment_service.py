@@ -20,7 +20,7 @@ class TestCreatePaymentRecord:
         assert payment.order_id == "order_123"
         assert payment.payment_gateway == "yookassa"
         assert payment.amount == 1000.0
-        assert payment.status == PaymentStatus.PENDING.value
+        assert payment.status == PaymentStatus.PENDING
         assert payment.currency == "RUB"
 
     def test_create_payment_with_custom_currency(self, db_session):
@@ -48,11 +48,11 @@ class TestUpdatePaymentStatus:
         updated = update_payment_status(
             db=db_session,
             order_id="order_789",
-            status=PaymentStatus.COMPLETED.value
+            status="completed"
         )
 
         assert updated is not None
-        assert updated.status == PaymentStatus.COMPLETED.value
+        assert updated.status == PaymentStatus.COMPLETED
 
     def test_update_by_payment_id(self, db_session):
         payment = create_payment_record(
@@ -67,17 +67,17 @@ class TestUpdatePaymentStatus:
         updated = update_payment_status(
             db=db_session,
             payment_id="pay_abc",
-            status=PaymentStatus.FAILED.value
+            status="failed"
         )
 
         assert updated is not None
-        assert updated.status == PaymentStatus.FAILED.value
+        assert updated.status == PaymentStatus.FAILED
 
     def test_update_nonexistent_payment(self, db_session):
         updated = update_payment_status(
             db=db_session,
             order_id="nonexistent",
-            status=PaymentStatus.COMPLETED.value
+            status="completed",
         )
         assert updated is None
 

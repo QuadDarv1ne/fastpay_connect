@@ -51,13 +51,17 @@ class SettingsValidator:
         self.check_required(secret_key, "SECRET_KEY")
         self.check_required(database_url, "DATABASE_URL")
 
-        self.validate_payment_gateway("YooKassa", yookassa_key, yookassa_secret)
-        self.validate_payment_gateway("Tinkoff", tinkoff_key, tinkoff_secret)
-        self.validate_payment_gateway(
-            "CloudPayments", cloudpayments_key, cloudpayments_secret
-        )
-        self.validate_payment_gateway("UnitPay", unitpay_key, unitpay_secret)
-        self.validate_payment_gateway("Robokassa", robokassa_key, robokassa_secret)
+        # Логируем предупреждения для платёжных шлюзов (не блокируем запуск)
+        if not yookassa_key:
+            logger.warning("YooKassa: API key not configured")
+        if not tinkoff_key:
+            logger.warning("Tinkoff: API key not configured")
+        if not cloudpayments_key:
+            logger.warning("CloudPayments: API key not configured")
+        if not unitpay_key:
+            logger.warning("UnitPay: API key not configured")
+        if not robokassa_key:
+            logger.warning("Robokassa: API key not configured")
 
         if self.errors:
             for error in self.errors:
