@@ -29,7 +29,7 @@ def create_payment_record(
         description=description,
         payment_id=payment_id,
         payment_url=payment_url,
-        status=PaymentStatus.PENDING.value,
+        status=PaymentStatus.PENDING,
     )
     db.add(payment)
     db.commit()
@@ -137,11 +137,11 @@ def refund_payment(
         logger.warning(f"Payment not found for refund: order_id={order_id}, payment_id={payment_id}")
         return None
 
-    if payment.status == PaymentStatus.REFUNDED.value:
+    if payment.status == PaymentStatus.REFUNDED:
         logger.warning(f"Payment already refunded: {payment.order_id}")
         return payment
 
-    payment.status = PaymentStatus.REFUNDED.value
+    payment.status = PaymentStatus.REFUNDED
     metadata = {"refund_reason": reason, "refunded_at": datetime.now(timezone.utc).isoformat()}
     if payment.metadata_json:
         existing = json.loads(payment.metadata_json)
@@ -169,11 +169,11 @@ def cancel_payment(
         logger.warning(f"Payment not found for cancel: order_id={order_id}, payment_id={payment_id}")
         return None
 
-    if payment.status in (PaymentStatus.COMPLETED.value, PaymentStatus.REFUNDED.value):
+    if payment.status in (PaymentStatus.COMPLETED, PaymentStatus.REFUNDED):
         logger.warning(f"Cannot cancel payment in status {payment.status}: {payment.order_id}")
         return payment
 
-    payment.status = PaymentStatus.CANCELLED.value
+    payment.status = PaymentStatus.CANCELLED
     metadata = {"cancel_reason": reason, "cancelled_at": datetime.now(timezone.utc).isoformat()}
     if payment.metadata_json:
         existing = json.loads(payment.metadata_json)
@@ -202,7 +202,7 @@ def get_payment_statistics(db: Session) -> Dict[str, Any]:
         .all()
     )
     total_amount = db.query(func.sum(Payment.amount)).filter(
-        Payment.status == PaymentStatus.COMPLETED.value
+        Payment.status == PaymentStatus.COMPLETED
     ).scalar() or 0
 
     return {

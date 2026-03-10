@@ -36,7 +36,7 @@ class TestPaymentModel:
         assert result["payment_gateway"] == "yookassa"
         assert result["amount"] == 1000.0
         assert result["currency"] == "RUB"
-        assert result["status"] == PaymentStatus.PENDING.value
+        assert result["status"] == "pending"
         assert result["description"] == "Test dict"
         assert "created_at" in result
         assert "updated_at" in result
@@ -55,7 +55,7 @@ class TestPaymentModel:
         update_payment_status(
             db=db_session,
             order_id="order_meta",
-            status=PaymentStatus.COMPLETED.value,
+            status="completed",
             metadata={"transaction_id": "tx_123"},
         )
         

@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict
 from app.payment_gateways.base import BasePaymentGateway
-from app.config import TINKOFF_API_KEY, TINKOFF_SECRET_KEY, TINKOFF_RETURN_URL
+from app.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +13,9 @@ class TinkoffGateway(BasePaymentGateway):
 
     def __init__(self):
         super().__init__(
-            api_key=TINKOFF_API_KEY,
-            secret_key=TINKOFF_SECRET_KEY,
-            return_url=TINKOFF_RETURN_URL,
+            api_key=settings.tinkoff_api_key,
+            secret_key=settings.tinkoff_secret_key,
+            return_url=settings.tinkoff_return_url,
             base_url="https://api.tinkoff.ru/v2",
         )
 

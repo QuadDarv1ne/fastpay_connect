@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict
 from app.payment_gateways.base import BasePaymentGateway
-from app.config import UNITPAY_API_KEY, UNITPAY_SECRET_KEY, UNITPAY_RETURN_URL
+from app.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +13,9 @@ class UnitPayGateway(BasePaymentGateway):
 
     def __init__(self):
         super().__init__(
-            api_key=UNITPAY_API_KEY,
-            secret_key=UNITPAY_SECRET_KEY,
-            return_url=UNITPAY_RETURN_URL,
+            api_key=settings.unitpay_api_key,
+            secret_key=settings.unitpay_secret_key,
+            return_url=settings.unitpay_return_url,
             base_url="https://unitpay.ru/api",
         )
 

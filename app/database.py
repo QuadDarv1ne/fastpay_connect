@@ -1,9 +1,16 @@
 from typing import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from app.config import DATABASE_URL
+from app.settings import settings
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+# Для SQLite используем обычный драйвер
+database_url = settings.database_url
+if database_url.startswith("sqlite+aiosqlite"):
+    database_url = database_url.replace("sqlite+aiosqlite", "sqlite")
+
+engine = create_engine(
+    database_url, connect_args={"check_same_thread": False}
+)
 
 Base = declarative_base()
 

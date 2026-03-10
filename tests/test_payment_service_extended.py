@@ -32,7 +32,7 @@ class TestPaymentService:
             description="Test 2",
         )
 
-        payments = get_payments_by_status(db_session, PaymentStatus.PENDING.value)
+        payments = get_payments_by_status(db_session, "pending")
         assert len(payments) >= 2
 
     def test_get_payments_by_gateway(self, db_session):
@@ -71,7 +71,7 @@ class TestPaymentService:
         )
 
         assert refunded is not None
-        assert refunded.status == PaymentStatus.REFUNDED.value
+        assert refunded.status == PaymentStatus.REFUNDED
 
     def test_refund_already_refunded(self, db_session):
         payment = create_payment_record(
@@ -85,7 +85,7 @@ class TestPaymentService:
 
         result = refund_payment(db_session, order_id="order_refund_2")
         assert result is not None
-        assert result.status == PaymentStatus.REFUNDED.value
+        assert result.status == PaymentStatus.REFUNDED
 
     def test_refund_not_found(self, db_session):
         result = refund_payment(db_session, order_id="nonexistent")
@@ -105,7 +105,7 @@ class TestPaymentService:
         )
 
         assert cancelled is not None
-        assert cancelled.status == PaymentStatus.CANCELLED.value
+        assert cancelled.status == PaymentStatus.CANCELLED
 
     def test_cancel_completed_payment(self, db_session):
         payment = create_payment_record(
@@ -116,12 +116,12 @@ class TestPaymentService:
             description="Test",
         )
         update_payment_status(
-            db_session, order_id="order_cancel_2", status=PaymentStatus.COMPLETED.value
+            db_session, order_id="order_cancel_2", status="completed"
         )
 
         result = cancel_payment(db_session, order_id="order_cancel_2")
         assert result is not None
-        assert result.status == PaymentStatus.COMPLETED.value
+        assert result.status == PaymentStatus.COMPLETED
 
     def test_cancel_not_found(self, db_session):
         result = cancel_payment(db_session, order_id="nonexistent")
@@ -179,6 +179,6 @@ class TestPaymentService:
         end_date = datetime.now(timezone.utc) + timedelta(days=1)
 
         payments = get_payments_by_date_range(
-            db_session, start_date, end_date, status=PaymentStatus.PENDING.value
+            db_session, start_date, end_date, status="pending"
         )
         assert len(payments) >= 1

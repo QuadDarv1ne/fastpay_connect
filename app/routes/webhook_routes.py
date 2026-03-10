@@ -8,13 +8,7 @@ from app.payment_gateways.robokassa import handle_robokassa_webhook
 from app.database import get_db
 from app.services.payment_service import update_payment_status
 from app.utils.ip_validator import verify_webhook_ip
-from app.config import (
-    YOOKASSA_IPS,
-    TINKOFF_IPS,
-    CLOUDPAYMENTS_IPS,
-    UNITPAY_IPS,
-    ROBOKASSA_IPS,
-)
+from app.settings import settings
 from sqlalchemy.orm import Session
 import logging
 from dataclasses import dataclass
@@ -39,28 +33,28 @@ WEBHOOKS: Dict[str, WebhookConfig] = {
     "yookassa": WebhookConfig(
         name="yookassa",
         handler=handle_yookassa_webhook,
-        ip_whitelist=YOOKASSA_IPS,
+        ip_whitelist=settings.yookassa_ips,
     ),
     "tinkoff": WebhookConfig(
         name="tinkoff",
         handler=handle_tinkoff_webhook,
-        ip_whitelist=TINKOFF_IPS,
+        ip_whitelist=settings.tinkoff_ips,
     ),
     "cloudpayments": WebhookConfig(
         name="cloudpayments",
         handler=handle_cloudpayments_webhook,
-        ip_whitelist=CLOUDPAYMENTS_IPS,
+        ip_whitelist=settings.cloudpayments_ips,
         token_field="token",
     ),
     "unitpay": WebhookConfig(
         name="unitpay",
         handler=handle_unitpay_webhook,
-        ip_whitelist=UNITPAY_IPS,
+        ip_whitelist=settings.unitpay_ips,
     ),
     "robokassa": WebhookConfig(
         name="robokassa",
         handler=handle_robokassa_webhook,
-        ip_whitelist=ROBOKASSA_IPS,
+        ip_whitelist=settings.robokassa_ips,
     ),
 }
 

@@ -3,14 +3,11 @@
 import hashlib
 import hmac
 import logging
-import os
 from typing import Any, Dict
 from app.payment_gateways.base import BasePaymentGateway
-from app.config import CLOUDPAYMENTS_API_KEY, CLOUDPAYMENTS_RETURN_URL
+from app.settings import settings
 
 logger = logging.getLogger(__name__)
-
-SECRET_KEY = os.getenv("SECRET_KEY", "")
 
 
 class CloudPaymentsGateway(BasePaymentGateway):
@@ -18,26 +15,26 @@ class CloudPaymentsGateway(BasePaymentGateway):
 
     def __init__(self):
         super().__init__(
-            api_key=CLOUDPAYMENTS_API_KEY,
-            secret_key=SECRET_KEY,
-            return_url=CLOUDPAYMENTS_RETURN_URL,
+            api_key=settings.cloudpayments_api_key,
+            secret_key=settings.secret_key,
+            return_url=settings.cloudpayments_return_url,
             base_url="https://api.cloudpayments.ru",
         )
 
     def generate_token(self, order_id: str) -> str:
         """Генерация токена для платежа."""
-        if not SECRET_KEY:
+        if not settings.secret_key:
             logger.warning("SECRET_KEY not configured")
             return ""
 
-        message = f"{order_id}{SECRET_KEY}"
+        message = f"{order_id}{settings.secret_key}"
         return hmac.new(
-            SECRET_KEY.encode(), message.encode(), hashlib.sha256
+            settings.secret_key.encode(), message.encode(), hashlib.sha256
         ).hexdigest()
 
     def verify_token(self, order_id: str, token: str) -> bool:
         """Проверка токена."""
-        if not SECRET_KEY:
+        if not settings.secret_key:
             logger.warning("SECRET_KEY not configured, skipping token verification")
             return True
 

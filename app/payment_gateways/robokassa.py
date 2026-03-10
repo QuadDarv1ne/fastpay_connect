@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict
 from app.payment_gateways.base import BasePaymentGateway
-from app.config import ROBOKASSA_API_KEY, ROBOKASSA_SECRET_KEY, ROBOKASSA_RETURN_URL
+from app.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +13,9 @@ class RobokassaGateway(BasePaymentGateway):
 
     def __init__(self):
         super().__init__(
-            api_key=ROBOKASSA_API_KEY,
-            secret_key=ROBOKASSA_SECRET_KEY,
-            return_url=ROBOKASSA_RETURN_URL,
+            api_key=settings.robokassa_api_key,
+            secret_key=settings.robokassa_secret_key,
+            return_url=settings.robokassa_return_url,
             base_url="https://api.robokassa.ru",
         )
 

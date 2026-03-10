@@ -1,125 +1,226 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import AsyncGenerator
+import os
+
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from slowapi.errors import RateLimitExceeded
+
 import logging
+
 from app.routes.payment_routes import router as payment_router
 from app.routes.webhook_routes import router as webhook_router
 from app.routes.admin_routes import router as admin_router
-from app.database import init_db
+from app.database import init_db, engine, Base
 from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler
 from app.utils.logger import setup_logging
 from app.utils.settings_validator import settings_validator
-from app.config import (
-    YOOKASSA_API_KEY,
-    YOOKASSA_SECRET_KEY,
-    TINKOFF_API_KEY,
-    TINKOFF_SECRET_KEY,
-    CLOUDPAYMENTS_API_KEY,
-    CLOUDPAYMENTS_SECRET_KEY,
-    UNITPAY_API_KEY,
-    UNITPAY_SECRET_KEY,
-    ROBOKASSA_API_KEY,
-    ROBOKASSA_SECRET_KEY,
-    SECRET_KEY,
-    DATABASE_URL,
-    ALLOWED_ORIGINS,
-    DEBUG,
-)
+from app.settings import settings
+from app.payment_gateways.exceptions import PaymentGatewayError
 
-setup_logging(level="INFO")
+setup_logging(level=settings.log_level)
 logger = logging.getLogger(__name__)
+
+# Отключаем rate limiting и middleware для тестов
+DISABLE_RATE_LIMITING = os.getenv("DISABLE_RATE_LIMITING", "false").lower() == "true"
+
+BASE_DIR = Path(__file__).parent
+TEMPLATES_DIR = BASE_DIR / "templates"
+STATIC_DIR = BASE_DIR / "static"
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Lifespan context manager."""
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Lifespan context manager с graceful shutdown."""
+    logger.info("Application startup initiated")
+
     settings_validator.validate_all(
-        yookassa_key=YOOKASSA_API_KEY,
-        yookassa_secret=YOOKASSA_SECRET_KEY,
-        tinkoff_key=TINKOFF_API_KEY,
-        tinkoff_secret=TINKOFF_SECRET_KEY,
-        cloudpayments_key=CLOUDPAYMENTS_API_KEY,
-        cloudpayments_secret=CLOUDPAYMENTS_SECRET_KEY,
-        unitpay_key=UNITPAY_API_KEY,
-        unitpay_secret=UNITPAY_SECRET_KEY,
-        robokassa_key=ROBOKASSA_API_KEY,
-        robokassa_secret=ROBOKASSA_SECRET_KEY,
-        secret_key=SECRET_KEY,
-        database_url=DATABASE_URL,
+        yookassa_key=settings.yookassa_api_key,
+        yookassa_secret=settings.yookassa_secret_key,
+        tinkoff_key=settings.tinkoff_api_key,
+        tinkoff_secret=settings.tinkoff_secret_key,
+        cloudpayments_key=settings.cloudpayments_api_key,
+        cloudpayments_secret=settings.cloudpayments_secret_key,
+        unitpay_key=settings.unitpay_api_key,
+        unitpay_secret=settings.unitpay_secret_key,
+        robokassa_key=settings.robokassa_api_key,
+        robokassa_secret=settings.robokassa_secret_key,
+        secret_key=settings.secret_key,
+        database_url=settings.database_url,
     )
-    init_db()
-    logger.info("Application started")
+
+    try:
+        init_db()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.exception(f"Database initialization failed: {e}")
+        raise
+
+    logger.info(f"Application started in {'debug' if settings.debug else 'production'} mode")
     yield
 
+    logger.info("Application shutdown initiated")
+    try:
+        from app.database import engine
+        engine.dispose()
+        logger.info("Database connections closed")
+    except Exception as e:
+        logger.error(f"Error closing database connections: {e}")
 
-app = FastAPI(lifespan=lifespan, debug=DEBUG)
+
+app = FastAPI(
+    lifespan=lifespan,
+    debug=settings.debug,
+    title="FastPay Connect",
+    description="API для интеграции с платёжными системами",
+    version="1.0.0",
+    docs_url="/docs" if settings.debug else None,
+    redoc_url="/redoc" if settings.debug else None,
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# TrustedHostMiddleware отключен в тестах
+if not DISABLE_RATE_LIMITING and settings.allowed_hosts:
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=settings.allowed_hosts,
+    )
+
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
-templates = Jinja2Templates(directory="app/templates")
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+# Добавляем обработчик только для настоящего limiter
+if not os.getenv("DISABLE_RATE_LIMITING", "false").lower() == "true":
+    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
-app.include_router(payment_router, prefix="/payments", tags=["payments"])
-app.include_router(webhook_router, prefix="/webhooks", tags=["webhooks"])
-app.include_router(admin_router, prefix="/admin/payments", tags=["admin"])
+if TEMPLATES_DIR.exists():
+    templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+else:
+    templates = None
+    logger.warning(f"Templates directory not found: {TEMPLATES_DIR}")
+
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+else:
+    logger.warning(f"Static directory not found: {STATIC_DIR}")
+
+app.include_router(payment_router, prefix="/payments", tags=["Payments"])
+app.include_router(webhook_router, prefix="/webhooks", tags=["Webhooks"])
+app.include_router(admin_router, prefix="/admin/payments", tags=["Admin"])
 
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     """Главная страница."""
+    if not templates:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Templates not available",
+        )
     try:
         return templates.TemplateResponse("home.html", {"request": request})
     except Exception as e:
-        logger.error(f"Error rendering home page: {e}")
+        logger.exception(f"Error rendering home page: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@app.get("/health")
+@app.get("/health", tags=["Health"])
 async def health_check():
     """Проверка здоровья приложения."""
-    return {"status": "healthy"}
+    return {"status": "healthy", "debug": settings.debug}
 
 
-@app.get("/ready")
+@app.get("/ready", tags=["Health"])
 async def readiness_check():
     """Проверка готовности приложения."""
-    is_valid = settings_validator.validate_all(
-        yookassa_key=YOOKASSA_API_KEY,
-        yookassa_secret=YOOKASSA_SECRET_KEY,
-        tinkoff_key=TINKOFF_API_KEY,
-        tinkoff_secret=TINKOFF_SECRET_KEY,
-        cloudpayments_key=CLOUDPAYMENTS_API_KEY,
-        cloudpayments_secret=CLOUDPAYMENTS_SECRET_KEY,
-        unitpay_key=UNITPAY_API_KEY,
-        unitpay_secret=UNITPAY_SECRET_KEY,
-        robokassa_key=ROBOKASSA_API_KEY,
-        robokassa_secret=ROBOKASSA_SECRET_KEY,
-        secret_key=SECRET_KEY,
-        database_url=DATABASE_URL,
-    )
-    if is_valid:
-        return {"status": "ready"}
+    readiness_status = {
+        "status": "ready",
+        "checks": {
+            "database": "ok",
+            "configuration": "ok",
+        },
+    }
+
+    try:
+        from app.database import engine, Base
+        with engine.connect() as conn:
+            conn.execute(Base.metadata.tables["payments"].select().limit(1))
+    except Exception as e:
+        readiness_status["status"] = "not_ready"
+        readiness_status["checks"]["database"] = f"error: {str(e)}"
+        logger.warning(f"Database readiness check failed: {e}")
+
+    if not settings_validator.validate_all(
+        yookassa_key=settings.yookassa_api_key,
+        yookassa_secret=settings.yookassa_secret_key,
+        tinkoff_key=settings.tinkoff_api_key,
+        tinkoff_secret=settings.tinkoff_secret_key,
+        cloudpayments_key=settings.cloudpayments_api_key,
+        cloudpayments_secret=settings.cloudpayments_secret_key,
+        unitpay_key=settings.unitpay_api_key,
+        unitpay_secret=settings.unitpay_secret_key,
+        robokassa_key=settings.robokassa_api_key,
+        robokassa_secret=settings.robokassa_secret_key,
+        secret_key=settings.secret_key,
+        database_url=settings.database_url,
+    ):
+        readiness_status["status"] = "not_ready"
+        readiness_status["checks"]["configuration"] = "missing_required_settings"
+
+    if readiness_status["status"] == "ready":
+        return readiness_status
+
     return JSONResponse(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        content={"status": "not_ready"},
+        content=readiness_status,
+    )
+
+
+@app.exception_handler(PaymentGatewayError)
+async def payment_gateway_error_handler(request: Request, exc: PaymentGatewayError):
+    """Обработчик исключений платёжных шлюзов."""
+    logger.warning(f"Payment gateway error: {exc.message}")
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"error": exc.message, "details": exc.details},
     )
 
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
-    """Обработчик ошибок."""
-    logger.error(f"Unhandled error: {exc}")
-    return HTMLResponse(status_code=500, content="Something went wrong, please try again later.")
+    """Обработчик непредвиденных ошибок."""
+    logger.exception(f"Unhandled error: {exc}")
+
+    accept_header = request.headers.get("accept", "")
+    is_api_request = (
+        request.url.path.startswith("/api") or
+        request.url.path.startswith("/payments") or
+        request.url.path.startswith("/webhooks") or
+        request.url.path.startswith("/admin") or
+        "application/json" in accept_header
+    )
+
+    if is_api_request:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "error": "Internal Server Error",
+                "message": "Something went wrong, please try again later.",
+            },
+        )
+
+    return HTMLResponse(
+        status_code=500,
+        content="Something went wrong, please try again later.",
+    )

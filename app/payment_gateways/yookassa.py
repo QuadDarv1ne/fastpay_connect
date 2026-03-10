@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict, Optional
 from app.payment_gateways.base import BasePaymentGateway
-from app.config import YOOKASSA_API_KEY, YOOKASSA_SECRET_KEY, YOOKASSA_RETURN_URL
+from app.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +13,9 @@ class YooKassaGateway(BasePaymentGateway):
 
     def __init__(self):
         super().__init__(
-            api_key=YOOKASSA_API_KEY,
-            secret_key=YOOKASSA_SECRET_KEY,
-            return_url=YOOKASSA_RETURN_URL,
+            api_key=settings.yookassa_api_key,
+            secret_key=settings.yookassa_secret_key,
+            return_url=settings.yookassa_return_url,
             base_url="https://api.yookassa.ru/v3",
         )
 
