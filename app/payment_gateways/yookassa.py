@@ -19,15 +19,11 @@ class YooKassaGateway(BasePaymentGateway):
             base_url="https://api.yookassa.ru/v3",
         )
 
-    def create_payment(
+    async def create_payment(
         self, amount: float, description: str, order_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Создание платежа через YooKassa."""
-        if not self.validate_config():
-            return {"error": "Payment gateway not configured"}
-
-        if amount <= 0:
-            return {"error": "Invalid amount", "details": "Amount must be positive"}
+        payload = self._prepare_payment_payload(amount, description, order_id or "")
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -35,7 +31,7 @@ class YooKassaGateway(BasePaymentGateway):
             "Idempotence-Key": order_id or f"req_{hash(f'{amount}{description}')}",
         }
 
-        payload = {
+        yookassa_payload = {
             "amount": {"value": str(amount), "currency": "RUB"},
             "capture_mode": "AUTOMATIC",
             "confirmation": {
@@ -46,10 +42,13 @@ class YooKassaGateway(BasePaymentGateway):
         }
 
         if order_id:
-            payload["order_id"] = order_id
+            yookassa_payload["order_id"] = order_id
 
-        return self._request(
-            "POST", f"{self.base_url}/payment", headers=headers, json_data=payload
+        return await self._request(
+            "POST",
+            f"{self.base_url}/payments",
+            headers=headers,
+            json_data=yookassa_payload,
         )
 
     async def handle_webhook(

@@ -41,16 +41,11 @@ class CloudPaymentsGateway(BasePaymentGateway):
         expected_token = self.generate_token(order_id)
         return hmac.compare_digest(expected_token, token)
 
-    def create_payment(
+    async def create_payment(
         self, amount: float, description: str, order_id: str
     ) -> Dict[str, Any]:
         """Создание платежа через CloudPayments."""
-        if not self.api_key:
-            logger.error("CloudPayments API key not configured")
-            return {"error": "Payment gateway not configured"}
-
-        if amount <= 0:
-            return {"error": "Invalid amount", "details": "Amount must be positive"}
+        payload = self._prepare_payment_payload(amount, description, order_id)
 
         token = self.generate_token(order_id)
         headers = {
@@ -58,7 +53,7 @@ class CloudPaymentsGateway(BasePaymentGateway):
             "Content-Type": "application/json",
         }
 
-        payload = {
+        cloudpayments_payload = {
             "amount": amount,
             "currency": "RUB",
             "description": description[:250],
@@ -68,8 +63,8 @@ class CloudPaymentsGateway(BasePaymentGateway):
             "payment_type": "BANK_CARD",
         }
 
-        return self._request(
-            "POST", f"{self.base_url}/payments", headers=headers, json_data=payload
+        return await self._request(
+            "POST", f"{self.base_url}/payments", headers=headers, json_data=cloudpayments_payload
         )
 
     async def handle_webhook(

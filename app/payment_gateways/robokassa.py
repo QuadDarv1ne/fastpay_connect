@@ -19,32 +19,20 @@ class RobokassaGateway(BasePaymentGateway):
             base_url="https://api.robokassa.ru",
         )
 
-    def create_payment(
+    async def create_payment(
         self, amount: float, description: str, order_id: str
     ) -> Dict[str, Any]:
         """Создание платежа через Robokassa."""
-        if not self.validate_config():
-            return {"error": "Payment gateway not configured"}
-
-        if amount <= 0:
-            return {"error": "Invalid amount", "details": "Amount must be positive"}
+        payload = self._prepare_payment_payload(amount, description, order_id)
+        payload["invoice_id"] = f"inv_{order_id}"
+        payload["payment_type"] = "BANK_CARD"
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
 
-        payload = {
-            "amount": amount,
-            "currency": "RUB",
-            "description": description[:250],
-            "order_id": order_id,
-            "return_url": self.return_url,
-            "invoice_id": f"inv_{order_id}",
-            "payment_type": "BANK_CARD",
-        }
-
-        return self._request(
+        return await self._request(
             "POST", f"{self.base_url}/payment", headers=headers, json_data=payload
         )
 

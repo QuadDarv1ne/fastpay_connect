@@ -19,15 +19,11 @@ class UnitPayGateway(BasePaymentGateway):
             base_url="https://unitpay.ru/api",
         )
 
-    def create_payment(
+    async def create_payment(
         self, amount: float, description: str, order_id: str
     ) -> Dict[str, Any]:
         """Создание платежа через UnitPay."""
-        if not self.validate_config():
-            return {"error": "Payment gateway not configured"}
-
-        if amount <= 0:
-            return {"error": "Invalid amount", "details": "Amount must be positive"}
+        self._prepare_payment_payload(amount, description, order_id)
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -42,7 +38,7 @@ class UnitPayGateway(BasePaymentGateway):
             "return_url": self.return_url,
         }
 
-        return self._request(
+        return await self._request(
             "POST", f"{self.base_url}/payment", headers=headers, json_data=payload
         )
 
