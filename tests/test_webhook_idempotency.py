@@ -85,7 +85,7 @@ class TestWebhookIdempotency:
             webhook_event_id=event_id,
         )
         assert result is not None
-        assert result.status == "completed"
+        assert result.status == PaymentStatus.COMPLETED
         assert result.is_webhook_processed(event_id) is True
 
         # Second update with same event_id should return same payment without changes
@@ -96,7 +96,7 @@ class TestWebhookIdempotency:
             webhook_event_id=event_id,  # Same event_id
         )
         assert result2 is not None
-        assert result2.status == "completed"  # Status unchanged
+        assert result2.status == PaymentStatus.COMPLETED  # Status unchanged
         assert result2.is_webhook_processed(event_id) is True
 
     def test_update_payment_status_different_events(
@@ -112,7 +112,7 @@ class TestWebhookIdempotency:
             status="completed",
             webhook_event_id="event_123",
         )
-        assert result1.status == "completed"
+        assert result1.status == PaymentStatus.COMPLETED
 
         # Second event should update status
         result2 = update_payment_status(
@@ -121,7 +121,7 @@ class TestWebhookIdempotency:
             status="refunded",
             webhook_event_id="event_456",
         )
-        assert result2.status == "refunded"
+        assert result2.status == PaymentStatus.REFUNDED
 
     def test_webhook_processed_format(self, payment: Payment):
         """Проверка формата хранения webhook_processed."""
