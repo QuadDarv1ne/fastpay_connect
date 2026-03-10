@@ -1,18 +1,10 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
-from datetime import datetime, timezone
-from app.database import get_db
-from app.services.payment_service import (
-    get_payment_by_order_id,
-    get_payment_by_id,
-    get_payments_by_status,
-    get_payments_by_gateway,
-    refund_payment,
-    cancel_payment,
-    get_payment_statistics,
-)
-from pydantic import BaseModel
+from datetime import datetime
+from app.dependencies import get_payment_repository
+from app.repositories.payment_repository import PaymentRepository
+from app.models.payment import PaymentStatus
+from pydantic import BaseModel, ConfigDict
 import logging
 
 logger = logging.getLogger(__name__)
@@ -23,6 +15,8 @@ router = APIRouter()
 class RefundRequest(BaseModel):
     """Запрос на возврат платежа."""
 
+    model_config = ConfigDict(extra="forbid")
+
     order_id: Optional[str] = None
     payment_id: Optional[str] = None
     reason: Optional[str] = None
@@ -31,6 +25,8 @@ class RefundRequest(BaseModel):
 class CancelRequest(BaseModel):
     """Запрос на отмену платежа."""
 
+    model_config = ConfigDict(extra="forbid")
+
     order_id: Optional[str] = None
     payment_id: Optional[str] = None
     reason: Optional[str] = None
@@ -38,6 +34,8 @@ class CancelRequest(BaseModel):
 
 class PaymentInfo(BaseModel):
     """Информация о платеже."""
+
+    model_config = ConfigDict(from_attributes=True)
 
     order_id: str
     payment_id: Optional[str]
@@ -60,20 +58,22 @@ class PaymentStatistics(BaseModel):
 
 
 @router.get("/statistics", response_model=PaymentStatistics)
-async def statistics(db: Session = Depends(get_db)) -> Dict[str, Any]:
+async def get_statistics(
+    repository: PaymentRepository = Depends(get_payment_repository),
+) -> PaymentStatistics:
     """Получение статистики по платежам."""
-    stats = get_payment_statistics(db)
-    return stats
+    stats = repository.get_statistics()
+    return PaymentStatistics(**stats)
 
 
 @router.get("/status/{status}", response_model=List[PaymentInfo])
 async def get_payments_by_status_endpoint(
     status: str,
     limit: int = Query(default=100, ge=1, le=1000),
-    db: Session = Depends(get_db),
+    repository: PaymentRepository = Depends(get_payment_repository),
 ) -> List[PaymentInfo]:
     """Получение платежей по статусу."""
-    payments = get_payments_by_status(db, status, limit)
+    payments = repository.get_by_status(status, limit)
     return [
         PaymentInfo(
             order_id=p.order_id,
@@ -81,7 +81,7 @@ async def get_payments_by_status_endpoint(
             payment_gateway=p.payment_gateway,
             amount=p.amount,
             currency=p.currency,
-            status=p.status,
+            status=p.status.value if isinstance(p.status, PaymentStatus) else p.status,
             description=p.description,
             created_at=p.created_at,
             updated_at=p.updated_at,
@@ -94,10 +94,10 @@ async def get_payments_by_status_endpoint(
 async def get_payments_by_gateway_endpoint(
     gateway: str,
     limit: int = Query(default=100, ge=1, le=1000),
-    db: Session = Depends(get_db),
+    repository: PaymentRepository = Depends(get_payment_repository),
 ) -> List[PaymentInfo]:
     """Получение платежей по платёжному шлюзу."""
-    payments = get_payments_by_gateway(db, gateway, limit)
+    payments = repository.get_by_gateway(gateway, limit)
     return [
         PaymentInfo(
             order_id=p.order_id,
@@ -105,7 +105,7 @@ async def get_payments_by_gateway_endpoint(
             payment_gateway=p.payment_gateway,
             amount=p.amount,
             currency=p.currency,
-            status=p.status,
+            status=p.status.value if isinstance(p.status, PaymentStatus) else p.status,
             description=p.description,
             created_at=p.created_at,
             updated_at=p.updated_at,
@@ -115,9 +115,9 @@ async def get_payments_by_gateway_endpoint(
 
 
 @router.post("/refund")
-async def refund(
+async def refund_payment(
     request: RefundRequest,
-    db: Session = Depends(get_db),
+    repository: PaymentRepository = Depends(get_payment_repository),
 ) -> Dict[str, Any]:
     """Возврат платежа."""
     if not request.order_id and not request.payment_id:
@@ -125,11 +125,11 @@ async def refund(
             status_code=400, detail="order_id or payment_id is required"
         )
 
-    payment = refund_payment(
-        db,
+    payment = repository.update_status(
         order_id=request.order_id,
         payment_id=request.payment_id,
-        reason=request.reason,
+        status=PaymentStatus.REFUNDED,
+        metadata={"refund_reason": request.reason},
     )
 
     if not payment:
@@ -139,14 +139,14 @@ async def refund(
         "status": "success",
         "message": "Payment refunded",
         "order_id": payment.order_id,
-        "new_status": payment.status,
+        "new_status": payment.status.value if isinstance(payment.status, PaymentStatus) else payment.status,
     }
 
 
 @router.post("/cancel")
-async def cancel(
+async def cancel_payment(
     request: CancelRequest,
-    db: Session = Depends(get_db),
+    repository: PaymentRepository = Depends(get_payment_repository),
 ) -> Dict[str, Any]:
     """Отмена платежа."""
     if not request.order_id and not request.payment_id:
@@ -154,11 +154,11 @@ async def cancel(
             status_code=400, detail="order_id or payment_id is required"
         )
 
-    payment = cancel_payment(
-        db,
+    payment = repository.update_status(
         order_id=request.order_id,
         payment_id=request.payment_id,
-        reason=request.reason,
+        status=PaymentStatus.CANCELLED,
+        metadata={"cancel_reason": request.reason},
     )
 
     if not payment:
@@ -168,14 +168,17 @@ async def cancel(
         "status": "success",
         "message": "Payment cancelled",
         "order_id": payment.order_id,
-        "new_status": payment.status,
+        "new_status": payment.status.value if isinstance(payment.status, PaymentStatus) else payment.status,
     }
 
 
 @router.get("/{order_id}", response_model=PaymentInfo)
-async def get_payment(order_id: str, db: Session = Depends(get_db)) -> PaymentInfo:
+async def get_payment(
+    order_id: str,
+    repository: PaymentRepository = Depends(get_payment_repository),
+) -> PaymentInfo:
     """Получение информации о платеже по order_id."""
-    payment = get_payment_by_order_id(db, order_id)
+    payment = repository.get_by_order_id(order_id)
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
 
@@ -185,7 +188,7 @@ async def get_payment(order_id: str, db: Session = Depends(get_db)) -> PaymentIn
         payment_gateway=payment.payment_gateway,
         amount=payment.amount,
         currency=payment.currency,
-        status=payment.status,
+        status=payment.status.value if isinstance(payment.status, PaymentStatus) else payment.status,
         description=payment.description,
         created_at=payment.created_at,
         updated_at=payment.updated_at,
