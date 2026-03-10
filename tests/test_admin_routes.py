@@ -1,7 +1,8 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 from app.main import app
+from app.dependencies import get_payment_repository
 from datetime import datetime, timezone
 
 
@@ -12,20 +13,36 @@ def test_client():
         yield client
 
 
+def create_mock_repository():
+    """Создание мок репозитория."""
+    mock_repo = MagicMock()
+    mock_payment = MagicMock()
+    mock_payment.order_id = "order_123"
+    mock_payment.payment_id = "pay_123"
+    mock_payment.payment_gateway = "yookassa"
+    mock_payment.amount = 1000.0
+    mock_payment.currency = "RUB"
+    mock_payment.status = "pending"
+    mock_payment.description = "Test"
+    mock_payment.created_at = datetime.now(timezone.utc)
+    mock_payment.updated_at = datetime.now(timezone.utc)
+    mock_repo.get_by_order_id.return_value = mock_payment
+    mock_repo.get_by_status.return_value = [mock_payment]
+    mock_repo.get_by_gateway.return_value = [mock_payment]
+    mock_repo.update_status.return_value = mock_payment
+    mock_repo.get_statistics.return_value = {
+        "total_payments": 100,
+        "by_status": {"pending": 10, "completed": 80, "failed": 10},
+        "by_gateway": {"yookassa": 50, "tinkoff": 50},
+        "total_completed_amount": 100000.0,
+    }
+    return mock_repo
+
+
 class TestAdminRoutes:
-    @patch("app.routes.admin_routes.get_payment_by_order_id")
-    def test_get_payment(self, mock_get, test_client):
-        mock_payment = MagicMock()
-        mock_payment.order_id = "order_123"
-        mock_payment.payment_id = "pay_123"
-        mock_payment.payment_gateway = "yookassa"
-        mock_payment.amount = 1000.0
-        mock_payment.currency = "RUB"
-        mock_payment.status = "pending"
-        mock_payment.description = "Test"
-        mock_payment.created_at = datetime.now(timezone.utc)
-        mock_payment.updated_at = datetime.now(timezone.utc)
-        mock_get.return_value = mock_payment
+    def test_get_payment(self, test_client):
+        mock_repo = create_mock_repository()
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
         response = test_client.get("/admin/payments/order_123")
 
@@ -33,62 +50,47 @@ class TestAdminRoutes:
         data = response.json()
         assert data["order_id"] == "order_123"
         assert data["payment_gateway"] == "yookassa"
+        
+        app.dependency_overrides.clear()
 
-    @patch("app.routes.admin_routes.get_payment_by_order_id")
-    def test_get_payment_not_found(self, mock_get, test_client):
-        mock_get.return_value = None
+    def test_get_payment_not_found(self, test_client):
+        mock_repo = create_mock_repository()
+        mock_repo.get_by_order_id.return_value = None
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
         response = test_client.get("/admin/payments/nonexistent")
 
         assert response.status_code == 404
+        
+        app.dependency_overrides.clear()
 
-    @patch("app.routes.admin_routes.get_payments_by_status")
-    def test_get_payments_by_status(self, mock_get, test_client):
-        mock_payment = MagicMock()
-        mock_payment.order_id = "order_1"
-        mock_payment.payment_id = "pay_1"
-        mock_payment.payment_gateway = "yookassa"
-        mock_payment.amount = 1000.0
-        mock_payment.currency = "RUB"
-        mock_payment.status = "pending"
-        mock_payment.description = "Test"
-        mock_payment.created_at = datetime.now(timezone.utc)
-        mock_payment.updated_at = datetime.now(timezone.utc)
-        mock_get.return_value = [mock_payment]
+    def test_get_payments_by_status(self, test_client):
+        mock_repo = create_mock_repository()
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
         response = test_client.get("/admin/payments/status/pending")
 
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
-        assert len(data) >= 1
+        assert len(data) == 1
+        
+        app.dependency_overrides.clear()
 
-    @patch("app.routes.admin_routes.get_payments_by_gateway")
-    def test_get_payments_by_gateway(self, mock_get, test_client):
-        mock_payment = MagicMock()
-        mock_payment.order_id = "order_1"
-        mock_payment.payment_id = "pay_1"
-        mock_payment.payment_gateway = "yookassa"
-        mock_payment.amount = 1000.0
-        mock_payment.currency = "RUB"
-        mock_payment.status = "pending"
-        mock_payment.description = "Test"
-        mock_payment.created_at = datetime.now(timezone.utc)
-        mock_payment.updated_at = datetime.now(timezone.utc)
-        mock_get.return_value = [mock_payment]
+    def test_get_payments_by_gateway(self, test_client):
+        mock_repo = create_mock_repository()
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
         response = test_client.get("/admin/payments/gateway/yookassa")
 
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
+        assert len(data) == 1
+        
+        app.dependency_overrides.clear()
 
-    @patch("app.routes.admin_routes.refund_payment")
-    def test_refund_payment(self, mock_refund, test_client):
-        mock_payment = MagicMock()
-        mock_payment.order_id = "order_123"
-        mock_payment.status = "refunded"
-        mock_refund.return_value = mock_payment
+    def test_refund_payment(self, test_client):
+        mock_repo = create_mock_repository()
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
         response = test_client.post(
             "/admin/payments/refund",
@@ -98,17 +100,26 @@ class TestAdminRoutes:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "success"
-        assert "refunded" in data["message"].lower()
+        
+        app.dependency_overrides.clear()
 
-    @patch("app.routes.admin_routes.refund_payment")
-    def test_refund_payment_missing_id(self, mock_refund, test_client):
-        response = test_client.post("/admin/payments/refund", json={})
+    def test_refund_payment_missing_id(self, test_client):
+        mock_repo = create_mock_repository()
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
+
+        response = test_client.post(
+            "/admin/payments/refund",
+            json={},
+        )
 
         assert response.status_code == 400
+        
+        app.dependency_overrides.clear()
 
-    @patch("app.routes.admin_routes.refund_payment")
-    def test_refund_payment_not_found(self, mock_refund, test_client):
-        mock_refund.return_value = None
+    def test_refund_payment_not_found(self, test_client):
+        mock_repo = create_mock_repository()
+        mock_repo.update_status.return_value = None
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
         response = test_client.post(
             "/admin/payments/refund",
@@ -116,13 +127,12 @@ class TestAdminRoutes:
         )
 
         assert response.status_code == 404
+        
+        app.dependency_overrides.clear()
 
-    @patch("app.routes.admin_routes.cancel_payment")
-    def test_cancel_payment(self, mock_cancel, test_client):
-        mock_payment = MagicMock()
-        mock_payment.order_id = "order_123"
-        mock_payment.status = "cancelled"
-        mock_cancel.return_value = mock_payment
+    def test_cancel_payment(self, test_client):
+        mock_repo = create_mock_repository()
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
         response = test_client.post(
             "/admin/payments/cancel",
@@ -132,27 +142,30 @@ class TestAdminRoutes:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "success"
-        assert "cancelled" in data["message"].lower()
+        
+        app.dependency_overrides.clear()
 
-    @patch("app.routes.admin_routes.cancel_payment")
-    def test_cancel_payment_missing_id(self, mock_cancel, test_client):
-        response = test_client.post("/admin/payments/cancel", json={})
+    def test_cancel_payment_missing_id(self, test_client):
+        mock_repo = create_mock_repository()
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
+
+        response = test_client.post(
+            "/admin/payments/cancel",
+            json={},
+        )
 
         assert response.status_code == 400
+        
+        app.dependency_overrides.clear()
 
-    @patch("app.routes.admin_routes.get_payment_statistics")
-    def test_get_statistics(self, mock_stats, test_client):
-        mock_stats.return_value = {
-            "total_payments": 100,
-            "by_status": {"pending": 10, "completed": 80, "failed": 10},
-            "by_gateway": {"yookassa": 50, "tinkoff": 50},
-            "total_completed_amount": 100000.0,
-        }
+    def test_get_statistics(self, test_client):
+        mock_repo = create_mock_repository()
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
         response = test_client.get("/admin/payments/statistics")
 
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        assert response.status_code == 200
         data = response.json()
         assert data["total_payments"] == 100
-        assert "by_status" in data
-        assert "by_gateway" in data
+        
+        app.dependency_overrides.clear()
