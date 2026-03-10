@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 class SettingsValidator:
     """Валидация настроек приложения."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.errors: List[str] = []
 
     def check_required(self, value: Optional[str], name: str) -> bool:
@@ -32,18 +32,18 @@ class SettingsValidator:
 
     def validate_all(
         self,
-        yookassa_key: Optional[str],
-        yookassa_secret: Optional[str],
-        tinkoff_key: Optional[str],
-        tinkoff_secret: Optional[str],
-        cloudpayments_key: Optional[str],
-        cloudpayments_secret: Optional[str],
-        unitpay_key: Optional[str],
-        unitpay_secret: Optional[str],
-        robokassa_key: Optional[str],
-        robokassa_secret: Optional[str],
-        secret_key: Optional[str],
-        database_url: Optional[str],
+        yookassa_key: Optional[str] = None,
+        yookassa_secret: Optional[str] = None,
+        tinkoff_key: Optional[str] = None,
+        tinkoff_secret: Optional[str] = None,
+        cloudpayments_key: Optional[str] = None,
+        cloudpayments_secret: Optional[str] = None,
+        unitpay_key: Optional[str] = None,
+        unitpay_secret: Optional[str] = None,
+        robokassa_key: Optional[str] = None,
+        robokassa_secret: Optional[str] = None,
+        secret_key: Optional[str] = None,
+        database_url: Optional[str] = None,
     ) -> bool:
         """Полная валидация всех настроек."""
         self.errors = []
@@ -51,7 +51,6 @@ class SettingsValidator:
         self.check_required(secret_key, "SECRET_KEY")
         self.check_required(database_url, "DATABASE_URL")
 
-        # Логируем предупреждения для платёжных шлюзов (не блокируем запуск)
         if not yookassa_key:
             logger.warning("YooKassa: API key not configured")
         if not tinkoff_key:
