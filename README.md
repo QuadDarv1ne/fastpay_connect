@@ -1,4 +1,4 @@
-# 💳 fastpay_connect
+# 💳 FastPay Connect
 
 ![FastPay Connect](fastpay_connect.png)
 
