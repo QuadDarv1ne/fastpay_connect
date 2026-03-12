@@ -1,424 +1,307 @@
-# FastPay Connect
+# 💳 fastpay_connect
 
 ![FastPay Connect](fastpay_connect.png)
 
-**FastPay Connect** — это проект для демонстрации интеграции различных платёжных систем с использованием `FastAPI`.
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![License](https://img.shields.io/badge/License-Custom%20with%20Restrictions-orange)](./LICENSE)
+[![GitHub Stars](https://img.shields.io/github/stars/QuadDarv1ne/fastpay_connect?style=social)](https://github.com/QuadDarv1ne/fastpay_connect/stargazers)
 
-## 🔗 Интеграции
+**fastpay_connect** — это мощный и гибкий фреймворк для интеграции различных платёжных систем через FastAPI.
 
-Проект поддерживает следующие платёжные системы:
+Проект предоставляет унифицированный интерфейс для работы с популярными платёжными шлюзами, упрощая процесс приёма онлайн-платежей в ваших приложениях.
 
-- **ЮKassa** (бывшая Яндекс.Касса)
-- **Tinkoff Касса**
-- **CloudPayments**
-- **UnitPay**
-- **Робокасса**
+---
+
+## 📋 Содержание
+
+- [Особенности](#-особенности)
+- [Поддерживаемые платёжные системы](#-поддерживаемые-платёжные-системы)
+- [Установка](#-установка)
+- [Быстрый старт](#-быстрый-старт)
+- [Конфигурация](#-конфигурация)
+- [API Документация](#-api-документация)
+- [Примеры использования](#-примеры-использования)
+- [Структура проекта](#-структура-проекта)
+- [Вклад в проект](#-вклад-в-проект)
+- [Лицензия](#-лицензия)
+- [Контакты](#-контакты)
+
+---
+
+## ✨ Особенности
+
+- 🚀 **Высокая производительность** — построен на FastAPI с асинхронной обработкой запросов
+- 🔌 **Модульная архитектура** — легко добавлять новые платёжные системы
+- 🔐 **Безопасность** — встроенная валидация webhook-уведомлений и подписей
+- 📝 **Автодокументация** — интерактивная Swagger UI документация из коробки
+- 🧪 **Готов к тестированию** — поддержка тестовых режимов всех платёжных систем
+- ⚙️ **Гибкая конфигурация** — настройка через переменные окружения или конфиг-файлы
+
+---
+
+## 💳 Поддерживаемые платёжные системы
+
+| Платёжная система | Статус | Функционал |
+|-------------------|--------|------------|
+| **ЮKassa** (бывшая Яндекс.Касса) | ✅ Поддерживается | Оплата, возврат, webhook |
+| **Tinkoff Касса** | ✅ Поддерживается | Оплата, возврат, webhook |
+| **CloudPayments** | ✅ Поддерживается | Оплата, возврат, webhook |
+| **UnitPay** | ✅ Поддерживается | Оплата, возврат, webhook |
+| **Робокасса** | ✅ Поддерживается | Оплата, возврат, webhook |
+
+---
+
+## 📦 Установка
+
+### Требования
+
+- Python 3.10 или выше
+- pip или poetry
+
+### Клонирование репозитория
+
+```bash
+git clone https://github.com/QuadDarv1ne/fastpay_connect.git
+cd fastpay_connect
+```
+
+### Установка зависимостей
+
+С использованием pip:
+```bash
+pip install -r requirements.txt
+```
+
+С использованием poetry:
+```bash
+poetry install
+```
+
+---
 
 ## 🚀 Быстрый старт
 
-```bash
-# Клонирование репозитория
-git clone https://github.com/yourusername/fastpay_connect.git
-cd fastpay_connect
+### 1. Настройка переменных окружения
 
-# Установка зависимостей
-pip install -r requirements.txt
+Создайте файл `.env` в корне проекта:
 
-# Копирование .env.example
-cp .env.example .env
+```env
+# ЮKassa
+YOOKASSA_SHOP_ID=your_shop_id
+YOOKASSA_SECRET_KEY=your_secret_key
 
-# Запуск приложения
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
+# Tinkoff
+TINKOFF_TERMINAL_KEY=your_terminal_key
+TINKOFF_SECRET_KEY=your_secret_key
+
+# CloudPayments
+CLOUDPAYMENTS_PUBLIC_ID=your_public_id
+CLOUDPAYMENTS_API_SECRET=your_api_secret
+
+# UnitPay
+UNITPAY_SECRET_KEY=your_secret_key
+
+# Робокасса
+ROBOKASSA_MERCHANT_LOGIN=your_login
+ROBOKASSA_PASSWORD1=your_password1
+ROBOKASSA_PASSWORD2=your_password2
 ```
 
-### 📚 О проекте
+### 2. Запуск сервера
 
-FastPay Connect служит учебным материалом и демонстрационным примером того, как подключить и настроить различные платёжные системы для обработки онлайн-платежей.
+```bash
+# С использованием uvicorn
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# Или напрямую через Python
+python main.py
+```
+
+### 3. Проверка работоспособности
+
+Откройте браузер и перейдите по адресу:
+- API документация: `http://localhost:8000/docs`
+- Альтернативная документация: `http://localhost:8000/redoc`
+
+---
+
+## ⚙️ Конфигурация
+
+### Переменные окружения
+
+| Переменная | Описание | Обязательно |
+|------------|----------|-------------|
+| `YOOKASSA_SHOP_ID` | Идентификатор магазина в ЮKassa | Да (для ЮKassa) |
+| `YOOKASSA_SECRET_KEY` | Секретный ключ ЮKassa | Да (для ЮKassa) |
+| `TINKOFF_TERMINAL_KEY` | Ключ терминала Tinkoff | Да (для Tinkoff) |
+| `TINKOFF_SECRET_KEY` | Секретный ключ Tinkoff | Да (для Tinkoff) |
+| `CLOUDPAYMENTS_PUBLIC_ID` | Публичный ID CloudPayments | Да (для CP) |
+| `CLOUDPAYMENTS_API_SECRET` | API секрет CloudPayments | Да (для CP) |
+| `UNITPAY_SECRET_KEY` | Секретный ключ UnitPay | Да (для UnitPay) |
+| `ROBOKASSA_MERCHANT_LOGIN` | Логин мерчанта Робокасса | Да (для Робокасса) |
+| `ROBOKASSA_PASSWORD1` | Пароль 1 Робокасса | Да (для Робокасса) |
+| `ROBOKASSA_PASSWORD2` | Пароль 2 Робокасса | Да (для Робокасса) |
+
+### Тестовый режим
+
+Все платёжные системы поддерживают тестовый режим для разработки и отладки. Настройте соответствующие параметры в конфигурации каждой системы.
+
+---
+
+## 📖 API Документация
+
+После запуска сервера доступна интерактивная документация:
+
+- **Swagger UI**: `/docs` — интерактивное тестирование API
+- **ReDoc**: `/redoc` — красивая документация для чтения
+- **OpenAPI JSON**: `/openapi.json` — спецификация OpenAPI
+
+---
+
+## 💡 Примеры использования
+
+### Создание платежа через ЮKassa
+
+```python
+import httpx
+
+async def create_payment():
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "http://localhost:8000/api/yookassa/create-payment",
+            json={
+                "amount": 1000.00,
+                "currency": "RUB",
+                "description": "Оплата заказа #12345",
+                "return_url": "https://example.com/success"
+            }
+        )
+        return response.json()
+```
+
+### Обработка webhook
+
+```python
+from fastapi import FastAPI, Request
+
+app = FastAPI()
+
+@app.post("/webhook/yookassa")
+async def yookassa_webhook(request: Request):
+    payload = await request.json()
+    # Обработка уведомления о платеже
+    event = payload.get("event")
+    payment = payload.get("object")
+    
+    if event == "payment.succeeded":
+        # Логика успешной оплаты
+        pass
+    
+    return {"status": "ok"}
+```
 
 ---
 
 ## 📁 Структура проекта
 
-```plaintext
+```
 fastpay_connect/
+├── main.py                 # Точка входа FastAPI приложения
+├── config.py               # Конфигурация проекта
+├── requirements.txt        # Зависимости проекта
+├── .env.example            # Пример переменных окружения
+├── LICENSE                 # Лицензия (английский)
+├── LICENSE_RU              # Лицензия (русский)
+├── README.md               # Документация
 │
-├── app/
-│   ├── __init__.py               # Инициализация приложения
-│   ├── main.py                   # Главный файл для запуска FastAPI
-│   ├── payment_gateways/         # Интеграции платёжных систем
-│   │   ├── yookassa.py           # ЮKassa
-│   │   ├── tinkoff.py            # Tinkoff Касса
-│   │   ├── cloudpayments.py      # CloudPayments
-│   │   ├── unitpay.py            # UnitPay
-│   │   └── robokassa.py          # Робокасса
-│   ├── routes/                   # Маршруты
-│   │   ├── payment_routes.py     # Работа с платёжными системами
-│   │   └── webhook_routes.py     # Обработка webhook-уведомлений
-│   ├── utils/                    # Вспомогательные функции
-│   ├── config.py                 # Конфигурации платёжных систем (legacy)
-│   ├── settings.py               # Настройки на основе Pydantic
-│   └── database.py               # Подключение к базе данных
+├── api/                    # API маршруты
+│   ├── __init__.py
+│   ├── yookassa.py         # Эндпоинты ЮKassa
+│   ├── tinkoff.py          # Эндпоинты Tinkoff
+│   ├── cloudpayments.py    # Эндпоинты CloudPayments
+│   ├── unitpay.py          # Эндпоинты UnitPay
+│   └── robokassa.py        # Эндпоинты Робокасса
 │
-├── k8s/                          # Kubernetes манифесты → deploy/k8s/
-├── nginx/                        # Nginx конфигурация → deploy/nginx/
-├── scripts/                      # Скрипты деплоя → deploy/scripts/
-├── tests/                        # Тесты
-├── .env                          # Конфиденциальные данные
-├── .env.example                  # Пример .env
-├── requirements.txt              # Зависимости проекта
-├── README.md                     # Описание проекта
-├── DEPLOYMENT.md                 # 📦 Руководство по деплою
-├── docker-compose.yml            # Docker Compose (development)
-├── docker-compose.prod.yml       # Docker Compose (production)
-├── Dockerfile                    # Docker образ
-├── deploy/                       # 📁 Файлы для деплоя
-│   ├── Makefile                  # Автоматизация задач
-│   ├── Procfile                  # Heroku/Railway команды
-│   ├── render.yaml               # Render конфигурация
-│   ├── railway.json              # Railway конфигурация
-│   ├── fly.toml                  # Fly.io конфигурация
-│   ├── cloudflare/               # Cloudflare Workers/Pages
-│   ├── k8s/                      # Kubernetes манифесты
-│   ├── aws/                      # AWS Elastic Beanstalk
-│   ├── gcp/                      # Google Cloud Platform
-│   └── nginx/                    # Nginx конфигурация
-└── run.py                        # Точка входа для запуска приложения
+├── services/               # Бизнес-логика
+│   ├── __init__.py
+│   ├── base.py             # Базовый класс платёжного сервиса
+│   ├── yookassa_service.py
+│   ├── tinkoff_service.py
+│   ├── cloudpayments_service.py
+│   ├── unitpay_service.py
+│   └── robokassa_service.py
+│
+├── models/                 # Pydantic модели
+│   ├── __init__.py
+│   ├── payment.py          # Модели платежей
+│   └── webhook.py          # Модели webhook
+│
+└── utils/                  # Вспомогательные функции
+    ├── __init__.py
+    ├── security.py         # Валидация подписей
+    └── helpers.py          # Вспомогательные функции
 ```
 
 ---
 
-### Описание изменений
+## 🤝 Вклад в проект
 
-1. `fastpay_connect` — это теперь основная папка проекта.
-2. `main.py` — запускает FastAPI-приложение и подключает все маршруты для платёжных систем.
-3. `payment_gateways/` — папка, где находятся интеграции с различными платёжными системами (`ЮKassa`, `Tinkoff`, `CloudPayments`, `UnitPay`, `Робокасса`).
-4. Маршруты `payment_routes.py` и `webhook_routes.py` — определяют все взаимодействия с платёжными системами и обработку webhook-уведомлений.
-5. `config.py` — хранит конфигурации для всех платёжных систем, которые будут использоваться в проекте.
-6. `models/` — если будет нужна база данных, в этом каталоге будут храниться модели для хранения информации о платежах.
-7. `helpers.py` — вспомогательные функции, такие как создание подписи, обработка ошибок и другие утилиты.
-8. `.env` — файл для хранения всех конфиденциальных данных (например, API-ключей и секретных ключей).
+Мы приветствуем вклад в развитие проекта! Перед тем как внести изменения:
 
-**Для установки зависимостей выполните команду:**
+1. **Уведомите автора** о намерении использовать или модифицировать код через [GitHub Issues](https://github.com/QuadDarv1ne/fastpay_connect/issues)
+2. Сделайте fork репозитория
+3. Создайте ветку для ваших изменений (`git checkout -b feature/amazing-feature`)
+4. Зафиксируйте изменения (`git commit -m 'Add amazing feature'`)
+5. Отправьте изменения в ваш fork (`git push origin feature/amazing-feature`)
+6. Создайте Pull Request
 
-```bash
-pip install -r requirements.txt
-```
+Пожалуйста, убедитесь, что ваш код следует стилю проекта и включает соответствующие тесты.
 
 ---
 
-### Настройка проекта
+## 📄 Лицензия
 
-**Создание файла `.env`:**
+Этот проект распространяется под специальной лицензией с ограничениями.
 
-```
-YOOKASSA_API_KEY=your_yookassa_api_key
-TINKOFF_API_KEY=your_tinkoff_api_key
-CLOUDPAYMENTS_API_KEY=your_cloudpayments_api_key
-UNITPAY_API_KEY=your_unitpay_api_key
-ROBKASSA_API_KEY=your_robokassa_api_key
-```
+### Что разрешено ✅
 
----
+- Бесплатное использование в некоммерческих проектах
+- Модификация и создание производных работ с сохранением авторства
+- Распространение под этой же лицензией (ShareAlike)
 
-### Запуск приложения
+### Что запрещено ❌
 
-**Для запуска приложения используйте команду:**
+- Коммерческое использование без письменного согласия автора
+- Удаление или изменение уведомлений об авторских правах
+- Наложение дополнительных ограничений на получателей
 
-```
-uvicorn app.main:app --reload
-```
+### Обязательные требования 📋
 
-После этого вы сможете получить доступ к API, например, по адресу `http://127.0.0.1:8000`
+- Указание имени автора: **Dupley Maxim Igorevich (QuadDarv1ne)**
+- Ссылка на оригинальный репозиторий
+- **Уведомление автора** перед любым использованием
 
----
+Для коммерческого использования свяжитесь с автором.
 
-### API Маршруты
-
-### 1. Создание платежа
-
-Каждый платёжный шлюз имеет свой собственный маршрут для создания платежа. Для создания платежа необходимо отправить POST-запрос с необходимыми параметрами.
-
-#### Создание платежа через ЮKassa
-
-- **URL:** `/payments/yookassa`
-- **Метод:** `POST`
-- **Тело запроса (JSON):**
-    ```json
-    {
-      "amount": 1000,
-      "currency": "RUB",
-      "description": "Оплата за курс по Python"
-    }
-    ```
-
-#### Создание платежа через Tinkoff
-
-- **URL:** `/payments/tinkoff`
-- **Метод:** `POST`
-- **Тело запроса (JSON):**
-    ```json
-    {
-      "amount": 2000,
-      "currency": "RUB",
-      "description": "Оплата за курс по C++"
-    }
-    ```
-
-#### Создание платежа через CloudPayments
-
-- **URL:** `/payments/cloudpayments`
-- **Метод:** `POST`
-- **Тело запроса (JSON):**
-    ```json
-    {
-      "amount": 1500,
-      "currency": "RUB",
-      "description": "Оплата за курс по JavaScript"
-    }
-    ```
-
-#### Создание платежа через UnitPay
-
-- **URL:** `/payments/unitpay`
-- **Метод:** `POST`
-- **Тело запроса (JSON):**
-    ```json
-    {
-      "amount": 500,
-      "currency": "RUB",
-      "description": "Оплата за курс по PHP"
-    }
-    ```
-
-#### Создание платежа через Робокасса
-
-- **URL:** `/payments/robokassa`
-- **Метод:** `POST`
-- **Тело запроса (JSON):**
-    ```json
-    {
-      "amount": 1200,
-      "currency": "RUB",
-      "description": "Оплата за курс по Go"
-    }
-    ```
+📄 [Полный текст лицензии (English)](./LICENSE) | [Полный текст лицензии (Русский)](./LICENSE_RU)
 
 ---
 
-### 2. Обработка Webhook уведомлений
+## 📞 Контакты
 
-Для каждой платёжной системы предусмотрены маршруты для обработки уведомлений о статусе транзакций (webhook).
+**Автор:** Дуплей Максим Игоревич (QuadDarv1ne)
 
-#### Обработка webhook уведомлений от ЮKassa
-
-- **URL:** `/webhooks/yookassa`
-- **Метод:** `POST`
-- **Тело запроса (JSON):**
-    ```json
-    {
-      "payment_id": "123456789",
-      "status": "success",
-      "amount": 1000,
-      "currency": "RUB",
-      "transaction_id": "TX123456789"
-    }
-    ```
-
-#### Обработка webhook уведомлений от Tinkoff
-
-- **URL:** `/webhooks/tinkoff`
-- **Метод:** `POST`
-- **Тело запроса (JSON):**
-    ```json
-    {
-      "order_id": "123456789",
-      "status": "success",
-      "amount": 2000,
-      "currency": "RUB",
-      "transaction_id": "TX987654321"
-    }
-    ```
-
-#### Обработка webhook уведомлений от CloudPayments
-
-- **URL:** `/webhooks/cloudpayments`
-- **Метод:** `POST`
-- **Тело запроса (JSON):**
-    ```json
-    {
-      "payment_id": "123456789",
-      "status": "success",
-      "amount": 1500,
-      "currency": "RUB",
-      "transaction_id": "TX543210987"
-    }
-    ```
-
-#### Обработка webhook уведомлений от UnitPay
-
-- **URL:** `/webhooks/unitpay`
-- **Метод:** `POST`
-- **Тело запроса (JSON):**
-    ```json
-    {
-      "payment_id": "987654321",
-      "status": "success",
-      "amount": 500,
-      "currency": "RUB",
-      "transaction_id": "TX135792468"
-    }
-    ```
-
-#### Обработка webhook уведомлений от Робокасса
-
-- **URL:** `/webhooks/robokassa`
-- **Метод:** `POST`
-- **Тело запроса (JSON):**
-    ```json
-    {
-      "order_id": "987654321",
-      "status": "success",
-      "amount": 1200,
-      "currency": "RUB",
-      "transaction_id": "TX246813579"
-    }
-    ```
+- 💻 GitHub: [QuadDarv1ne](https://github.com/QuadDarv1ne)
+- 📬 Issues: [fastpay_connect/issues](https://github.com/QuadDarv1ne/fastpay_connect/issues)
+- 📁 Репозиторий: [fastpay_connect](https://github.com/QuadDarv1ne/fastpay_connect)
 
 ---
 
-### Ответы на запросы
+<p align="center">
+  <strong>⭐ Если проект был полезен, поставьте звёздочку</strong>
+</p>
 
-Каждый из маршрутов возвратит стандартный ответ в формате JSON:
-
-- **Успех (200 OK)**:
-    ```json
-    {
-      "status": "success",
-      "message": "Платёж успешно создан"
-    }
-    ```
-
-- **Ошибка (400 Bad Request)**:
-    ```json
-    {
-      "status": "error",
-      "message": "Неверные данные в запросе"
-    }
-    ```
-
-- **Ошибка (500 Internal Server Error)**:
-    ```json
-    {
-      "status": "error",
-      "message": "Ошибка сервера"
-    }
-    ```
-
----
-
-### Примечание
-
-Для выполнения запросов к API необходимо настроить и указать API-ключи для каждой платёжной системы в файле `.env`, как указано в [секции настройки проекта](###настройка-проекта).
-
----
-
-## Инструкция по получению API-ключей
-
-### ЮKassa (бывшая Яндекс.Касса) 🏦
-1. Перейдите на сайт [ЮKassa](https://kassa.yandex.ru/).
-2. Зарегистрируйтесь или войдите в личный кабинет.
-3. В разделе "Интеграции" выберите "API" и создайте новый API-ключ.
-4. Сохраните ключ в безопасном месте 🔒.
-
-### Tinkoff Касса 💳
-1. Перейдите на сайт [Tinkoff API](https://www.tinkoff.ru/business/payments/api/).
-2. Зарегистрируйтесь в личном кабинете.
-3. В разделе "Настройки" получите публичный и секретный API-ключи.
-
-### CloudPayments ☁️💳
-1. Перейдите на сайт [CloudPayments](https://www.cloudpayments.ru/).
-2. Зарегистрируйтесь и войдите в личный кабинет.
-3. В разделе "Настройки" получите API-ключи.
-
-### UnitPay 📱
-1. Перейдите на сайт [UnitPay](https://unitpay.ru/).
-2. Зарегистрируйтесь и создайте аккаунт.
-3. В разделе "Настройки" найдите свой API-ключ.
-
-### Робокасса 💰
-1. Перейдите на сайт [Робокасса](https://www.robokassa.ru/).
-2. Зарегистрируйтесь и войдите в личный кабинет.
-3. В разделе "Настройки" получите API-ключи.
-
-### Советы по безопасности 🔐
-- Храните ключи в безопасном месте, например, в переменных окружения или секретных хранилищах.
-- Никогда не размещайте ключи в публичных репозиториях 🚫.
-
----
-
-## 📦 Деплой
-
-Проект поддерживает развёртывание на различных платформах:
-
-### 🐳 Docker
-
-```bash
-# Development
-docker-compose up -d
-
-# Production
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### ☁️ Cloud платформы
-
-| Платформа | Команда | Документация |
-|-----------|---------|--------------|
-| **Render** | `renderctl deploy` | [deploy/render.yaml](deploy/render.yaml) |
-| **Railway** | `railway up` | [deploy/railway.json](deploy/railway.json) |
-| **Fly.io** | `fly deploy` | [deploy/fly.toml](deploy/fly.toml) |
-| **Heroku** | `git push heroku main` | [deploy/Procfile](deploy/Procfile) |
-| **Google Cloud Run** | `gcloud run deploy` | [deploy/gcp/cloudbuild.yaml](deploy/gcp/cloudbuild.yaml) |
-| **AWS Elastic Beanstalk** | `eb deploy` | [deploy/aws/](deploy/aws/) |
-| **Kubernetes** | `kubectl apply -f deploy/k8s/` | [deploy/k8s/deployment.yaml](deploy/k8s/deployment.yaml) |
-| **Cloudflare Workers** | `wrangler deploy` | [deploy/cloudflare/wrangler.toml](deploy/cloudflare/wrangler.toml) |
-| **Cloudflare Pages** | `wrangler pages deploy` | [DEPLOYMENT.md](DEPLOYMENT.md#cloudflare-pages) |
-
-### 📖 Подробное руководство
-
-Смотрите [**DEPLOYMENT.md**](DEPLOYMENT.md) для полной документации по деплою.
-
----
-
-### ⚙️ Конфигурация
-
-`YOOKASSA_API_KEY`, `TINKOFF_API_KEY`, `CLOUDPAYMENTS_API_KEY`, `UNITPAY_API_KEY`, `ROBOKASSA_API_KEY` — ключи для авторизации и взаимодействия с платёжными системами. Замените эти значения на реальные ключи, полученные при регистрации в платёжных системах.
-
-`DATABASE_URL` — строка подключения к базе данных. Пример с SQLite для локальной разработки и с PostgreSQL для продакшн окружения. Вы можете использовать любую другую базу данных по мере необходимости.
-
-`SECRET_KEY` — секретный ключ для безопасности, например, для подписи сессий или JWT токенов.
-
-`ALLOWED_HOSTS` — список хостов, которые могут подключаться к вашему серверу. Используйте это в целях безопасности, чтобы ограничить доступ только с определённых адресов.
-
-`DEBUG` — флаг для включения/выключения режима отладки. Включайте его только в локальной разработке. На продакшн сервере должно быть установлено значение False.
-
-`MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_SERVER`, `MAIL_PORT` — параметры для настройки почтового сервера, если приложение будет отправлять письма.
-Эти маршруты предназначены для обработки уведомлений от платёжных систем о статусе транзакций.
-
----
-
-### 📄 Лицензия
-
-[Этот проект лицензирован под лицензией MIT](LICENSE)
-
-Для получения дополнительной информации ознакомьтесь с файлом `LICENSE`
-
----
-
-### Автор
-
-**Дуплей Максим Игоревич**
-
-**Дата:** 15.10.2024 - 30.10.2024
-
-**Версия:** 1.0
+<p align="center">
+  Сделано с ❤️ для разработчиков
+</p>
