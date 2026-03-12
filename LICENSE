@@ -1,17 +1,24 @@
-Copyright (c) 2024 Dupley Maxim Igorevich
+Custom License by Programming School Maestro7IT
 
-All rights reserved.
+Copyright (c) 2025-2026 Dupley Maxim Igorevich
 
-This project is the intellectual property of Dupley Maxim Igorevich. 
-Usage of the code is permitted only under the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-1. Attribution: Proper credit must be given to the author, Dupley Maxim Igorevich, in any derivative works or distributions.
-This includes mentioning the author's name and providing a link to the original project.
+1. The above copyright notice and this permission notice must be included in all copies or substantial portions of the Software.
+2. The Software may not be sold or otherwise commercially distributed. This includes any form of sale, sublicense, or distribution for a fee.
+3. Any derivative works or modifications of the Software must include prominent attribution to the original author(s), specifying that the work is a derivative of the original Software.
+4. The Software and any modifications or derivative works thereof must be provided under the same conditions as this license.
+5. Any violation of the terms of this license entitles the author to seek an injunction to stop the unauthorized use and to claim compensation for direct damages incurred as a direct result of the violation. This clause does not override the general limitation of liability for indirect or consequential damages set forth in the disclaimer below.
 
-2. Notification: The author must be notified before any use of the code in commercial or non-commercial projects.
-This can be done by contacting the author through the means provided in the project's repository.
-
-3. No Warranty: The software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
-In no event shall the authors or copyright holders be liable for any claim, damages, or other liability, whether in an action of contract, tort, or otherwise, arising from, out of, or in connection with the software or the use or other dealings in the software.
-
-If you have any questions about this license, please contact the author.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
