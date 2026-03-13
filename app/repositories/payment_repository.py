@@ -123,6 +123,23 @@ class PaymentRepository:
             .all()
         )
 
+    def get_by_status_paginated(
+        self, status: Union[str, PaymentStatus], page: int = 1, page_size: int = 20
+    ) -> tuple[List[Payment], int]:
+        """Получить платежи по статусу с пагинацией."""
+        status_value = status.value if isinstance(status, PaymentStatus) else status
+        total = self._db.query(Payment).filter(Payment.status == status_value).count()
+        offset = (page - 1) * page_size
+        payments = (
+            self._db.query(Payment)
+            .filter(Payment.status == status_value)
+            .order_by(Payment.created_at.desc())
+            .offset(offset)
+            .limit(page_size)
+            .all()
+        )
+        return payments, total
+
     def get_by_gateway(self, gateway: str, limit: int = 100) -> List[Payment]:
         """Получить платежи по шлюзу."""
         return (
@@ -132,6 +149,22 @@ class PaymentRepository:
             .limit(limit)
             .all()
         )
+
+    def get_by_gateway_paginated(
+        self, gateway: str, page: int = 1, page_size: int = 20
+    ) -> tuple[List[Payment], int]:
+        """Получить платежи по шлюзу с пагинацией."""
+        total = self._db.query(Payment).filter(Payment.payment_gateway == gateway).count()
+        offset = (page - 1) * page_size
+        payments = (
+            self._db.query(Payment)
+            .filter(Payment.payment_gateway == gateway)
+            .order_by(Payment.created_at.desc())
+            .offset(offset)
+            .limit(page_size)
+            .all()
+        )
+        return payments, total
 
     def get_by_date_range(
         self,
