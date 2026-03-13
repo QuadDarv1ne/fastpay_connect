@@ -99,7 +99,7 @@ class MetricsEndpoint:
     """Endpoint для экспорта метрик Prometheus."""
 
     @staticmethod
-    async def metrics() -> Response:
+    async def metrics(request) -> Response:
         """Export Prometheus metrics."""
         return Response(
             content=generate_latest(),
