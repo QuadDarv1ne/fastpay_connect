@@ -209,6 +209,10 @@ class PaymentRepository:
             "total_completed_amount": float(total_amount),
         }
 
+    def invalidate_statistics_cache(self) -> None:
+        """Инвалидировать кэш статистики."""
+        pass
+
     def _get_by_any(
         self,
         order_id: Optional[str] = None,
