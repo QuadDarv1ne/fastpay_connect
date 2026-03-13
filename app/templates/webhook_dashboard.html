@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook Monitoring Dashboard - FastPay Connect</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-color: #1f2937;
+            --text-muted: #6b7280;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: var(--card-bg);
+            padding: 20px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        header h1 {
+            color: var(--primary-color);
+            font-size: 24px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card h3 {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+        
+        .stat-card.success .value { color: var(--success-color); }
+        .stat-card.warning .value { color: var(--warning-color); }
+        .stat-card.danger .value { color: var(--danger-color); }
+        
+        .section {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .section h2 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--bg-color);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--bg-color);
+        }
+        
+        th {
+            background: var(--bg-color);
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        tr:hover {
+            background: #f9fafb;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-badge.pending { background: #dbeafe; color: #1e40af; }
+        .status-badge.processing { background: #fef3c7; color: #92400e; }
+        .status-badge.success { background: #d1fae5; color: #065f46; }
+        .status-badge.retry { background: #fee2e2; color: #991b1b; }
+        .status-badge.failed { background: #fecaca; color: #991b1b; }
+        
+        .gateway-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: var(--bg-color);
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .refresh-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        
+        .refresh-btn:hover {
+            background: #1d4ed8;
+        }
+        
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .last-updated {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        
+        .chart-container {
+            height: 200px;
+            margin-top: 20px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-color);
+            transition: width 0.3s;
+        }
+        
+        .error-text {
+            color: var(--danger-color);
+            font-size: 13px;
+            max-width: 400px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🔔 Webhook Monitoring Dashboard</h1>
+        </div>
+    </header>
+    
+    <main class="container">
+        <div class="header-actions">
+            <p class="last-updated">Last updated: <span id="lastUpdated">-</span></p>
+            <button class="refresh-btn" onclick="loadDashboard()">🔄 Refresh</button>
+        </div>
+        
+        <!-- Statistics Cards -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <h3>Total Events (7 days)</h3>
+                <div class="value" id="totalEvents">-</div>
+            </div>
+            <div class="stat-card success">
+                <h3>Successfully Processed</h3>
+                <div class="value" id="successCount">-</div>
+            </div>
+            <div class="stat-card warning">
+                <h3>Retrying</h3>
+                <div class="value" id="retryCount">-</div>
+            </div>
+            <div class="stat-card danger">
+                <h3>Failed</h3>
+                <div class="value" id="failedCount">-</div>
+            </div>
+        </div>
+        
+        <!-- By Gateway Section -->
+        <div class="section">
+            <h2>📊 Events by Gateway</h2>
+            <div id="byGateway"></div>
+        </div>
+        
+        <!-- Retry Queue Section -->
+        <div class="section">
+            <h2>⏳ Retry Queue</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Event ID</th>
+                        <th>Order ID</th>
+                        <th>Gateway</th>
+                        <th>Retry Count</th>
+                        <th>Next Retry</th>
+                        <th>Last Error</th>
+                    </tr>
+                </thead>
+                <tbody id="retryQueueBody">
+                    <tr><td colspan="6" class="loading">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Recent Events Section -->
+        <div class="section">
+            <h2>📜 Recent Events</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Event ID</th>
+                        <th>Order ID</th>
+                        <th>Gateway</th>
+                        <th>Status</th>
+                        <th>Retries</th>
+                        <th>Created At</th>
+                    </tr>
+                </thead>
+                <tbody id="recentEventsBody">
+                    <tr><td colspan="6" class="loading">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+    
+    <script>
+        const API_BASE = '/api/monitoring/webhooks';
+        
+        async function loadDashboard() {
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+            
+            try {
+                const [overviewRes, dashboardRes, retryRes] = await Promise.all([
+                    fetch(`${API_BASE}/overview?days=7`),
+                    fetch(`${API_BASE}/dashboard?limit=20`),
+                    fetch(`${API_BASE}/retry-queue?limit=10`)
+                ]);
+                
+                const overview = await overviewRes.json();
+                const dashboard = await dashboardRes.json();
+                const retry = await retryRes.json();
+                
+                if (overview.status === 'success') {
+                    updateStats(overview.data);
+                    updateByGateway(overview.data.by_gateway);
+                }
+                
+                if (dashboard.status === 'success') {
+                    updateRecentEvents(dashboard.data.recent_events);
+                }
+                
+                if (retry.status === 'success') {
+                    updateRetryQueue(retry.data.items);
+                }
+                
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+        
+        function updateStats(data) {
+            document.getElementById('totalEvents').textContent = data.total || 0;
+            document.getElementById('successCount').textContent = data.by_status?.success || 0;
+            document.getElementById('retryCount').textContent = data.retrying || 0;
+            document.getElementById('failedCount').textContent = data.failed || 0;
+        }
+        
+        function updateByGateway(byGateway) {
+            const container = document.getElementById('byGateway');
+            if (!byGateway || Object.keys(byGateway).length === 0) {
+                container.innerHTML = '<p class="loading">No data available</p>';
+                return;
+            }
+            
+            const max = Math.max(...Object.values(byGateway));
+            let html = '';
+            
+            for (const [gateway, count] of Object.entries(byGateway)) {
+                const percentage = max > 0 ? (count / max * 100) : 0;
+                html += `
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span class="gateway-badge">${gateway}</span>
+                            <span>${count} events</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        function updateRetryQueue(items) {
+            const tbody = document.getElementById('retryQueueBody');
+            
+            if (!items || items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">No events in retry queue</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = items.map(event => `
+                <tr>
+                    <td><code>${event.event_id?.substring(0, 12)}...</code></td>
+                    <td>${event.order_id}</td>
+                    <td><span class="gateway-badge">${event.gateway}</span></td>
+                    <td>${event.retry_count}/${event.max_retries}</td>
+                    <td>${event.next_retry_at ? new Date(event.next_retry_at).toLocaleString() : '-'}</td>
+                    <td class="error-text" title="${event.last_error || ''}">${event.last_error || '-'}</td>
+                </tr>
+            `).join('');
+        }
+        
+        function updateRecentEvents(events) {
+            const tbody = document.getElementById('recentEventsBody');
+            
+            if (!events || events.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">No recent events</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = events.map(event => `
+                <tr>
+                    <td><code>${event.event_id?.substring(0, 12)}...</code></td>
+                    <td>${event.order_id}</td>
+                    <td><span class="gateway-badge">${event.gateway}</span></td>
+                    <td><span class="status-badge ${event.status}">${event.status}</span></td>
+                    <td>${event.retry_count}</td>
+                    <td>${new Date(event.created_at).toLocaleString()}</td>
+                </tr>
+            `).join('');
+        }
+        
+        // Auto-refresh every 30 seconds
+        loadDashboard();
+        setInterval(loadDashboard, 30000);
+    </script>
+</body>
+</html>

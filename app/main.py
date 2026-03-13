@@ -17,6 +17,7 @@ from app.routes.payment_routes import router as payment_router
 from app.routes.webhook_routes import router as webhook_router
 from app.routes.admin_routes import router as admin_router
 from app.routes.auth_routes import router as auth_router
+from app.routes.webhook_monitor_routes import router as webhook_monitor_router
 from app.database import init_db, engine, Base
 from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler
 from app.utils.logger import setup_logging
@@ -132,6 +133,9 @@ app.include_router(payment_router, prefix="/payments", tags=["Payments"])
 app.include_router(webhook_router, prefix="/webhooks", tags=["Webhooks"])
 app.include_router(admin_router, prefix="/admin/payments", tags=["Admin"])
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
+
+# Monitoring routes
+app.include_router(webhook_monitor_router, prefix="/api/monitoring/webhooks", tags=["Webhook Monitoring"])
 
 # API Versioning
 app.include_router(v1_router, prefix="/api/v1", tags=["API v1"])
