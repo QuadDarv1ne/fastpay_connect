@@ -1,5 +1,5 @@
 import pytest
-from app.schemas import PaymentRequest, PaymentResponse, WebhookPayload
+from app.schemas import PaymentRequest, PaymentResponse, WebhookPayload, PaymentStatusEnum
 from pydantic import ValidationError
 
 
@@ -73,11 +73,11 @@ class TestPaymentResponse:
 class TestWebhookPayload:
     def test_valid_payload(self):
         payload = WebhookPayload(
-            status="success",
+            status=PaymentStatusEnum.COMPLETED,
             amount=1000.0,
             currency="RUB"
         )
-        assert payload.status == "success"
+        assert payload.status == PaymentStatusEnum.COMPLETED
         assert payload.amount == 1000.0
 
     def test_invalid_status_raises_error(self):
@@ -85,6 +85,8 @@ class TestWebhookPayload:
             WebhookPayload(status="invalid_status")
 
     def test_valid_statuses(self):
-        for status in ["success", "failed", "pending", "cancelled", "refunded"]:
+        for status in [PaymentStatusEnum.PENDING, PaymentStatusEnum.COMPLETED, 
+                       PaymentStatusEnum.FAILED, PaymentStatusEnum.CANCELLED, 
+                       PaymentStatusEnum.REFUNDED]:
             payload = WebhookPayload(status=status)
             assert payload.status == status
