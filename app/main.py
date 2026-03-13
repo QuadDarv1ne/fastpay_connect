@@ -141,7 +141,25 @@ async def root(request: Request):
 @app.get("/health", tags=["Health"])
 async def health_check():
     """Проверка здоровья приложения."""
-    return {"status": "healthy", "debug": settings.debug}
+    from app.database import engine
+    import time
+    
+    start_time = time.time()
+    db_status = "ok"
+    try:
+        with engine.connect() as conn:
+            conn.execute(Base.metadata.tables["payments"].select().limit(1))
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+    
+    return {
+        "status": "healthy",
+        "debug": settings.debug,
+        "checks": {
+            "database": db_status,
+            "response_time_ms": round((time.time() - start_time) * 1000, 2)
+        }
+    }
 
 
 @app.get("/ready", tags=["Health"])
@@ -188,6 +206,9 @@ async def readiness_check():
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         content=readiness_status,
     )
+
+
+app.add_route("/metrics", MetricsEndpoint.metrics)
 
 
 @app.exception_handler(PaymentGatewayError)
