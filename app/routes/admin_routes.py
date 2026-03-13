@@ -68,6 +68,17 @@ class PaymentStatistics(BaseModel):
     total_completed_amount: float
 
 
+class DashboardStats(BaseModel):
+    """Расширенная статистика для дашборда."""
+
+    total_payments: int
+    total_amount: float
+    by_status: Dict[str, int]
+    by_gateway: Dict[str, int]
+    recent_payments: List[PaymentInfo]
+    daily_amount: Dict[str, float]
+
+
 def _validate_api_key(x_api_key: Optional[str] = Header(None)) -> None:
     """Валидация API ключа для admin endpoints."""
     if not x_api_key:
@@ -94,6 +105,41 @@ async def get_statistics(
     _validate_api_key(x_api_key)
     stats = repository.get_statistics()
     return PaymentStatistics(**stats)
+
+
+@router.get("/dashboard", response_model=DashboardStats)
+@limiter.limit("50/minute")
+async def get_dashboard(
+    request: Request,
+    limit: int = Query(default=10, ge=1, le=50, description="Number of recent payments"),
+    repository: PaymentRepository = Depends(get_payment_repository),
+    x_api_key: Optional[str] = Header(None),
+) -> DashboardStats:
+    """Получение расширенной статистики для дашборда."""
+    _validate_api_key(x_api_key)
+    stats = repository.get_dashboard_stats(limit)
+    
+    return DashboardStats(
+        total_payments=stats["total_payments"],
+        total_amount=stats["total_amount"],
+        by_status=stats["by_status"],
+        by_gateway=stats["by_gateway"],
+        recent_payments=[
+            PaymentInfo(
+                order_id=p.order_id,
+                payment_id=p.payment_id,
+                payment_gateway=p.payment_gateway,
+                amount=p.amount,
+                currency=p.currency,
+                status=p.status.value if isinstance(p.status, PaymentStatus) else p.status,
+                description=p.description,
+                created_at=p.created_at,
+                updated_at=p.updated_at,
+            )
+            for p in stats["recent_payments"]
+        ],
+        daily_amount=stats["daily_amount"],
+    )
 
 
 @router.get("/status/{status}", response_model=PaginatedPayments)
