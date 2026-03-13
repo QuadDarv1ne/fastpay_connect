@@ -46,6 +46,6 @@
 
 ### Low Priority
 - [ ] Multi-currency support
-- [ ] Payment statistics dashboard
+- [x] Payment statistics dashboard
 - [ ] Additional payment systems (SBP, Apple Pay, Google Pay)
 - [ ] Mobile SDK (iOS/Android)
