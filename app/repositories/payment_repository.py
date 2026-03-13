@@ -209,6 +209,59 @@ class PaymentRepository:
             "total_completed_amount": float(total_amount),
         }
 
+    def get_dashboard_stats(self, limit: int = 10) -> Dict[str, Any]:
+        """Получить расширенную статистику для дашборда."""
+        from datetime import timedelta
+        
+        total = self._db.query(Payment).count()
+        total_amount = (
+            self._db.query(func.sum(Payment.amount))
+            .filter(Payment.status == PaymentStatus.COMPLETED)
+            .scalar()
+            or 0
+        )
+        by_status = dict(
+            self._db.query(Payment.status, func.count(Payment.id))
+            .group_by(Payment.status)
+            .all()
+        )
+        by_gateway = dict(
+            self._db.query(Payment.payment_gateway, func.count(Payment.id))
+            .group_by(Payment.payment_gateway)
+            .all()
+        )
+        
+        recent_payments = (
+            self._db.query(Payment)
+            .order_by(Payment.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+        
+        seven_days_ago = datetime.now() - timedelta(days=7)
+        daily_stats = (
+            self._db.query(
+                func.date(Payment.created_at).label('date'),
+                func.sum(Payment.amount).label('amount')
+            )
+            .filter(
+                Payment.created_at >= seven_days_ago,
+                Payment.status == PaymentStatus.COMPLETED
+            )
+            .group_by(func.date(Payment.created_at))
+            .all()
+        )
+        daily_amount = {str(stat.date): float(stat.amount) for stat in daily_stats}
+        
+        return {
+            "total_payments": total,
+            "total_amount": float(total_amount),
+            "by_status": by_status,
+            "by_gateway": by_gateway,
+            "recent_payments": recent_payments,
+            "daily_amount": daily_amount,
+        }
+
     def invalidate_statistics_cache(self) -> None:
         """Инвалидировать кэш статистики."""
         pass
