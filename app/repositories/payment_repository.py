@@ -101,6 +101,22 @@ class PaymentRepository:
         try:
             self._db.commit()
             self._db.refresh(payment)
+            
+            # Отправляем WebSocket уведомление
+            try:
+                from app.websocket.notifications import send_payment_notification
+                send_payment_notification(
+                    order_id=payment.order_id,
+                    payment_id=payment.payment_id,
+                    status=status_value,
+                    amount=payment.amount,
+                    currency=payment.currency,
+                    gateway=payment.payment_gateway,
+                    payment_data=metadata,
+                )
+            except Exception as ws_error:
+                logger.warning(f"Failed to send WebSocket notification: {ws_error}")
+                
         except IntegrityError as e:
             self._db.rollback()
             raise RepositoryError(f"Database integrity error: {e}") from e

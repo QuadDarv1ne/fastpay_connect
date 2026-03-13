@@ -41,7 +41,7 @@
 ### Medium Priority
 - [x] Pagination for admin endpoints
 - [x] GraphQL API support
-- [ ] WebSocket notifications for payment events
+- [x] WebSocket notifications for payment events
 - [ ] Multi-tenant support
 
 ### Low Priority

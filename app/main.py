@@ -34,6 +34,9 @@ from app.api.v2 import router as v2_router
 from strawberry.fastapi import GraphQLRouter
 from app.graphql.resolvers import schema as graphql_schema
 
+# WebSocket
+from app.routes.websocket_routes import router as websocket_router
+
 setup_logging(level=settings.log_level, json_logs=settings.json_logs)
 logger = logging.getLogger(__name__)
 
@@ -148,6 +151,9 @@ app.include_router(v2_router, prefix="/api/v2", tags=["API v2"])
 # GraphQL
 graphql_router = GraphQLRouter(graphql_schema)
 app.include_router(graphql_router, prefix="/graphql", tags=["GraphQL"])
+
+# WebSocket
+app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
 
 
 @app.get("/", response_class=HTMLResponse)
