@@ -39,7 +39,7 @@
 - [x] Webhook retry queue monitoring dashboard
 
 ### Medium Priority
-- [ ] Pagination for admin endpoints
+- [x] Pagination for admin endpoints
 - [ ] GraphQL API support
 - [ ] WebSocket notifications for payment events
 - [ ] Multi-tenant support
