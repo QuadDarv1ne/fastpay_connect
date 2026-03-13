@@ -1,17 +1,119 @@
-Copyright (c) 2024 Dupley Maxim Igorevich
+MIT-Style Custom License with Copyleft and Commercial Restrictions
+=====================================================================
 
-All rights reserved.
+Copyright (c) 2025-2026 Dupley Maxim Igorevich (QuadDarv1ne) and Maestro7IT Programming School
 
-This project is the intellectual property of Dupley Maxim Igorevich. 
-Usage of the code is permitted only under the following conditions:
+Project: fastpay_connect — Payment Systems Integration Framework
+Repository: https://github.com/QuadDarv1ne/fastpay_connect
 
-1. Attribution: Proper credit must be given to the author, Dupley Maxim Igorevich, in any derivative works or distributions.
-This includes mentioning the author's name and providing a link to the original project.
 
-2. Notification: The author must be notified before any use of the code in commercial or non-commercial projects.
-This can be done by contacting the author through the means provided in the project's repository.
+TERMS AND CONDITIONS
+--------------------
 
-3. No Warranty: The software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
-In no event shall the authors or copyright holders be liable for any claim, damages, or other liability, whether in an action of contract, tort, or otherwise, arising from, out of, or in connection with the software or the use or other dealings in the software.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, and sublicense copies of
+the Software, subject to the following conditions:
 
-If you have any questions about this license, please contact the author.
+
+1. ATTRIBUTION REQUIREMENT
+--------------------------
+The above copyright notice, this permission notice, and a link to the original
+repository (https://github.com/QuadDarv1ne/fastpay_connect) must be included
+in all copies or substantial portions of the Software.
+
+Any derivative works or modifications must include prominent attribution to
+the original author: Dupley Maxim Igorevich (QuadDarv1ne), specifying that
+the work is a derivative of the original Software.
+
+
+2. NOTIFICATION REQUIREMENT
+---------------------------
+Before any use of the Software in any project (commercial or non-commercial),
+the user MUST notify the author. Notification should be sent via:
+- GitHub Issues: https://github.com/QuadDarv1ne/fastpay_connect/issues
+- Or through other contact means provided in the project repository
+
+The notification should include:
+- Name of the user or organization
+- Intended use case
+- Project name (if applicable)
+
+
+3. COMMERCIAL USE RESTRICTION
+-----------------------------
+Commercial use of the Software is PROHIBITED without prior written consent
+from the author. Commercial use includes, but is not limited to:
+- Sale or licensing of the Software for a fee
+- Use in commercial products or services
+- Integration into paid software solutions
+- Any form of revenue-generating activity using the Software
+
+To obtain a commercial license, please contact the author through the
+project repository.
+
+
+4. SHAREALIKE (COPYLEFT) REQUIREMENT
+------------------------------------
+Any derivative works, modifications, or enhancements of the Software must be
+distributed under the same license terms as this license. This includes:
+- Modified versions of the Software
+- Works that incorporate substantial portions of the Software
+- Translations or adaptations of the Software
+
+You may not impose additional restrictions on the recipients of the Software
+or derivative works beyond those stated in this license.
+
+
+5. DERIVATIVE WORKS
+-------------------
+If you create derivative works based on this Software, you must:
+(a) Clearly indicate that your work is a derivative of fastpay_connect
+(b) Include the original author's name: Dupley Maxim Igorevich
+(c) Provide a link to the original repository
+(d) License your derivative work under these same terms
+(e) Notify the original author of the derivative work
+
+
+6. REDISTRIBUTION
+-----------------
+Redistribution of the Software, with or without modification, is permitted
+only if all the following conditions are met:
+(a) The Software is distributed free of charge (unless a commercial license
+    has been obtained)
+(b) All copyright notices and this license are preserved
+(c) Attribution to the original author is maintained
+(d) The recipient is bound by the same license terms
+
+
+DISCLAIMER
+----------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+VIOLATION
+---------
+Any violation of the terms of this license entitles the author to:
+- Seek an injunction to stop the unauthorized use
+- Claim compensation for direct damages incurred as a direct result of
+  the violation
+- Terminate the license granted herein
+
+This clause does not override the general limitation of liability for
+indirect or consequential damages set forth in the disclaimer above.
+
+
+CONTACT
+-------
+For questions about this license, commercial licensing inquiries, or
+permissions beyond the scope of this license, please contact:
+
+- GitHub: https://github.com/QuadDarv1ne
+- Repository Issues: https://github.com/QuadDarv1ne/fastpay_connect/issues

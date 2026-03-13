@@ -5,20 +5,54 @@ from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 from app.main import app
 from app.dependencies import get_payment_repository
+from app.database import get_db
+from app.models.user import User
+from app.utils.security import get_password_hash
 from datetime import datetime, timezone
 
 
 @pytest.fixture
-def test_client():
-    app.dependency_overrides.clear()
+def db_client(db_session):
+    """Test client с реальной БД сессией."""
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+    
+    app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as client:
         yield client
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
-def admin_headers():
-    """Заголовки для admin endpoints с API key."""
-    return {"x-api-key": "test_api_key_for_admin_access_minimum_32_chars"}
+def admin_token(db_client, db_session):
+    """Получение OAuth2 токена для администратора."""
+    # Создаём пользователя напрямую в БД
+    user = User(
+        username="testadmin",
+        email="admin@example.com",
+        hashed_password=get_password_hash("AdminPass123!"),
+        is_active=True,
+        is_superuser=True,
+        roles='["admin"]',
+    )
+    db_session.add(user)
+    db_session.commit()
+
+    # Получаем токен
+    response = db_client.post(
+        "/api/auth/login",
+        data={"username": "testadmin", "password": "AdminPass123!"},
+    )
+    return response.json()["access_token"]
+
+
+@pytest.fixture
+def admin_headers(admin_token):
+    """Заголовки для admin endpoints с OAuth2 токеном."""
+    return {"Authorization": f"Bearer {admin_token}"}
 
 
 def create_mock_repository():
@@ -53,11 +87,11 @@ def create_mock_repository():
 
 
 class TestDashboardEndpoint:
-    def test_get_dashboard(self, test_client, admin_headers):
+    def test_get_dashboard(self, db_client, admin_headers):
         mock_repo = create_mock_repository()
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
-        response = test_client.get("/admin/payments/dashboard", headers=admin_headers)
+        response = db_client.get("/admin/payments/dashboard", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -70,11 +104,11 @@ class TestDashboardEndpoint:
 
         app.dependency_overrides.clear()
 
-    def test_get_dashboard_with_limit(self, test_client, admin_headers):
+    def test_get_dashboard_with_limit(self, db_client, admin_headers):
         mock_repo = create_mock_repository()
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
-        response = test_client.get(
+        response = db_client.get(
             "/admin/payments/dashboard?limit=20",
             headers=admin_headers
         )
@@ -84,11 +118,11 @@ class TestDashboardEndpoint:
 
         app.dependency_overrides.clear()
 
-    def test_get_dashboard_invalid_limit(self, test_client, admin_headers):
+    def test_get_dashboard_invalid_limit(self, db_client, admin_headers):
         mock_repo = create_mock_repository()
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
-        response = test_client.get(
+        response = db_client.get(
             "/admin/payments/dashboard?limit=100",
             headers=admin_headers
         )
@@ -97,36 +131,38 @@ class TestDashboardEndpoint:
 
         app.dependency_overrides.clear()
 
-    def test_get_dashboard_no_api_key(self, test_client):
+    def test_get_dashboard_no_api_key(self, db_client):
         mock_repo = create_mock_repository()
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
-        response = test_client.get("/admin/payments/dashboard")
+        response = db_client.get("/admin/payments/dashboard")
 
         assert response.status_code == 401
 
         app.dependency_overrides.clear()
 
-    def test_get_dashboard_invalid_api_key(self, test_client):
+    def test_get_dashboard_invalid_api_key(self, db_client):
+        """Тест проверяет что невалидный токен возвращает 401."""
         mock_repo = create_mock_repository()
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
-        response = test_client.get(
+        response = db_client.get(
             "/admin/payments/dashboard",
-            headers={"x-api-key": "short"}
+            headers={"Authorization": "Bearer invalid_token"}
         )
 
-        assert response.status_code == 403
+        # OAuth2 возвращает 401 для невалидного токена
+        assert response.status_code == 401
 
         app.dependency_overrides.clear()
 
 
 class TestStatisticsEndpoint:
-    def test_get_statistics(self, test_client, admin_headers):
+    def test_get_statistics(self, db_client, admin_headers):
         mock_repo = create_mock_repository()
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
-        response = test_client.get("/admin/payments/statistics", headers=admin_headers)
+        response = db_client.get("/admin/payments/statistics", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()

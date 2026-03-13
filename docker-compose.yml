@@ -1,6 +1,19 @@
 version: '3.8'
 
 services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   app:
     build: .
     ports:
@@ -8,6 +21,9 @@ services:
     environment:
       - ENV=production
       - DATABASE_URL=sqlite:///./fastpay_connect.db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - SECRET_KEY=${SECRET_KEY:-change_me_in_production}
       - YOOKASSA_API_KEY=${YOOKASSA_API_KEY}
       - YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}
@@ -22,6 +38,9 @@ services:
       - LOG_LEVEL=INFO
     volumes:
       - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -29,3 +48,48 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+
+  celery_worker:
+    build: .
+    command: celery -A app.tasks.celery_app worker --loglevel=info --pool=solo
+    environment:
+      - DATABASE_URL=sqlite:///./fastpay_connect.db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - SECRET_KEY=${SECRET_KEY:-change_me_in_production}
+      - YOOKASSA_API_KEY=${YOOKASSA_API_KEY}
+      - YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}
+      - TINKOFF_API_KEY=${TINKOFF_API_KEY}
+      - TINKOFF_SECRET_KEY=${TINKOFF_SECRET_KEY}
+      - CLOUDPAYMENTS_API_KEY=${CLOUDPAYMENTS_API_KEY}
+      - CLOUDPAYMENTS_SECRET_KEY=${CLOUDPAYMENTS_SECRET_KEY}
+      - UNITPAY_API_KEY=${UNITPAY_API_KEY}
+      - UNITPAY_SECRET_KEY=${UNITPAY_SECRET_KEY}
+      - ROBOKASSA_API_KEY=${ROBOKASSA_API_KEY}
+      - ROBOKASSA_SECRET_KEY=${ROBOKASSA_SECRET_KEY}
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  celery_beat:
+    build: .
+    command: celery -A app.tasks.celery_app beat --loglevel=info
+    environment:
+      - DATABASE_URL=sqlite:///./fastpay_connect.db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  redis_data:

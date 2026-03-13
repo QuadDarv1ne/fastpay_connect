@@ -36,9 +36,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       - ENV=production
       - DATABASE_URL=postgresql://${POSTGRES_USER:-fastpay_user}:${POSTGRES_PASSWORD:-change_me_in_production}@db:5432/${POSTGRES_DB:-fastpay_connect}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - SECRET_KEY=${SECRET_KEY:-change_me_in_production}
       - YOOKASSA_API_KEY=${YOOKASSA_API_KEY}
       - YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}
@@ -55,6 +60,7 @@ services:
       - HOST=0.0.0.0
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://localhost}
+      - CELERY_ENABLED=true
     volumes:
       - ./logs:/app/logs
     ports:
@@ -68,8 +74,66 @@ services:
     networks:
       - fastpay-network
     command: >
-      sh -c "python -c 'from app.database import Base, engine; Base.metadata.create_all(engine)' &&
+      sh -c "alembic upgrade head &&
              uvicorn app.main:app --host 0.0.0.0 --port 8080 --workers 2"
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastpay-celery-worker
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-fastpay_user}:${POSTGRES_PASSWORD:-change_me_in_production}@db:5432/${POSTGRES_DB:-fastpay_connect}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - SECRET_KEY=${SECRET_KEY:-change_me_in_production}
+      - YOOKASSA_API_KEY=${YOOKASSA_API_KEY}
+      - YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}
+      - TINKOFF_API_KEY=${TINKOFF_API_KEY}
+      - TINKOFF_SECRET_KEY=${TINKOFF_SECRET_KEY}
+      - CLOUDPAYMENTS_API_KEY=${CLOUDPAYMENTS_API_KEY}
+      - CLOUDPAYMENTS_SECRET_KEY=${CLOUDPAYMENTS_SECRET_KEY}
+      - UNITPAY_API_KEY=${UNITPAY_API_KEY}
+      - UNITPAY_SECRET_KEY=${UNITPAY_SECRET_KEY}
+      - ROBOKASSA_API_KEY=${ROBOKASSA_API_KEY}
+      - ROBOKASSA_SECRET_KEY=${ROBOKASSA_SECRET_KEY}
+      - LOG_LEVEL=INFO
+      - CELERY_ENABLED=true
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - fastpay-network
+    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=4
+
+  # Celery Beat (scheduler)
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastpay-celery-beat
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-fastpay_user}:${POSTGRES_PASSWORD:-change_me_in_production}@db:5432/${POSTGRES_DB:-fastpay_connect}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - CELERY_ENABLED=true
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - fastpay-network
+    command: celery -A app.tasks.celery_app beat --loglevel=info
 
   # Nginx Reverse Proxy
   nginx:

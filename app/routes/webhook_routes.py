@@ -10,6 +10,7 @@ from app.repositories.payment_repository import PaymentRepository
 from app.dependencies import get_payment_repository
 from app.utils.ip_validator import verify_webhook_ip
 from app.settings import settings
+from app.tasks.webhook_tasks import process_webhook_task
 import logging
 from dataclasses import dataclass
 
@@ -76,8 +77,25 @@ async def process_webhook(
     payload: Dict[str, Any],
     auth_value: str,
     repository: PaymentRepository,
+    use_celery: Optional[bool] = None,
 ) -> Tuple[Dict[str, str], Optional[str]]:
     """Обработка webhook уведомления."""
+    # Проверяем переменную окружения для тестов
+    if use_celery is None:
+        import os
+        use_celery = os.getenv("DISABLE_CELERY", "false").lower() != "true"
+    
+    if use_celery and settings.celery_enabled:
+        # Асинхронная обработка через Celery с retry логикой
+        task = process_webhook_task.delay(
+            gateway=config.name,
+            payload=payload,
+            auth_value=auth_value,
+        )
+        logger.info(f"Webhook queued to Celery: task_id={task.id}")
+        return {"status": "queued", "message": "Webhook queued for processing"}, None
+
+    # Синхронная обработка (fallback)
     try:
         result = await config.handler(payload, auth_value)
     except Exception as e:

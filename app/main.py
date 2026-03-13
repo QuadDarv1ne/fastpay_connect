@@ -16,6 +16,8 @@ import logging
 from app.routes.payment_routes import router as payment_router
 from app.routes.webhook_routes import router as webhook_router
 from app.routes.admin_routes import router as admin_router
+from app.routes.auth_routes import router as auth_router
+from app.routes.webhook_monitor_routes import router as webhook_monitor_router
 from app.database import init_db, engine, Base
 from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler
 from app.utils.logger import setup_logging
@@ -23,6 +25,20 @@ from app.utils.settings_validator import settings_validator
 from app.settings import settings
 from app.payment_gateways.exceptions import PaymentGatewayError
 from app.utils.metrics import PrometheusMiddleware, MetricsEndpoint
+
+# API Versioning
+from app.api.v1 import router as v1_router
+from app.api.v2 import router as v2_router
+
+# GraphQL
+from strawberry.fastapi import GraphQLRouter
+from app.graphql.resolvers import schema as graphql_schema
+
+# WebSocket
+from app.routes.websocket_routes import router as websocket_router
+
+# Dashboard
+from app.routes.dashboard_routes import router as dashboard_router
 
 setup_logging(level=settings.log_level, json_logs=settings.json_logs)
 logger = logging.getLogger(__name__)
@@ -94,6 +110,10 @@ app.add_middleware(
 
 app.add_middleware(PrometheusMiddleware)
 
+# API Versioning Middleware
+from app.middleware.api_versioning import APIVersionMiddleware
+app.add_middleware(APIVersionMiddleware)
+
 # TrustedHostMiddleware отключен в тестах
 if not DISABLE_RATE_LIMITING and settings.allowed_hosts:
     app.add_middleware(
@@ -118,9 +138,28 @@ if STATIC_DIR.exists():
 else:
     logger.warning(f"Static directory not found: {STATIC_DIR}")
 
+# Legacy routes (backward compatibility)
 app.include_router(payment_router, prefix="/payments", tags=["Payments"])
 app.include_router(webhook_router, prefix="/webhooks", tags=["Webhooks"])
 app.include_router(admin_router, prefix="/admin/payments", tags=["Admin"])
+app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
+
+# Monitoring routes
+app.include_router(webhook_monitor_router, prefix="/api/monitoring/webhooks", tags=["Webhook Monitoring"])
+
+# API Versioning
+app.include_router(v1_router, prefix="/api/v1", tags=["API v1"])
+app.include_router(v2_router, prefix="/api/v2", tags=["API v2"])
+
+# GraphQL
+graphql_router = GraphQLRouter(graphql_schema)
+app.include_router(graphql_router, prefix="/graphql", tags=["GraphQL"])
+
+# WebSocket
+app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
+
+# Dashboard
+app.include_router(dashboard_router, prefix="/api/dashboard", tags=["Dashboard"])
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -170,6 +209,7 @@ async def readiness_check():
         "checks": {
             "database": "ok",
             "configuration": "ok",
+            "celery": "ok" if settings.celery_enabled else "disabled",
         },
     }
 
@@ -199,6 +239,22 @@ async def readiness_check():
         readiness_status["status"] = "not_ready"
         readiness_status["checks"]["configuration"] = "missing_required_settings"
 
+    # Проверка подключения к Redis для Celery
+    if settings.celery_enabled:
+        try:
+            import redis
+            from redis.exceptions import RedisError
+            redis_client = redis.from_url(settings.redis_url)
+            redis_client.ping()
+            readiness_status["checks"]["redis"] = "ok"
+        except ImportError:
+            readiness_status["checks"]["redis"] = "redis package not installed"
+            readiness_status["status"] = "degraded"
+        except RedisError as e:
+            readiness_status["checks"]["redis"] = f"error: {str(e)}"
+            readiness_status["status"] = "degraded"
+            logger.warning(f"Redis connection check failed: {e}")
+
     if readiness_status["status"] == "ready":
         return readiness_status
 
@@ -206,6 +262,36 @@ async def readiness_check():
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         content=readiness_status,
     )
+
+
+@app.get("/health/celery", tags=["Health"])
+async def celery_health_check():
+    """Проверка здоровья Celery worker."""
+    if not settings.celery_enabled:
+        return {"status": "disabled", "message": "Celery is disabled"}
+
+    try:
+        from app.tasks.webhook_tasks import health_check as celery_health_task
+        
+        # Отправляем задачу проверки здоровья
+        result = celery_health_task.delay()
+        result_value = result.get(timeout=10)
+        
+        return {
+            "status": "healthy",
+            "celery": result_value,
+        }
+    except ImportError as e:
+        return {
+            "status": "error",
+            "message": f"Celery not installed: {str(e)}",
+        }
+    except Exception as e:
+        logger.exception(f"Celery health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "message": f"Celery health check failed: {str(e)}",
+        }
 
 
 app.add_route("/metrics", MetricsEndpoint.metrics)

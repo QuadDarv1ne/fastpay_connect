@@ -3,20 +3,54 @@ from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 from app.main import app
 from app.dependencies import get_payment_repository
+from app.database import get_db
+from app.models.user import User
+from app.utils.security import get_password_hash
 from datetime import datetime, timezone
 
 
 @pytest.fixture
-def test_client():
-    app.dependency_overrides.clear()
+def db_client(db_session):
+    """Test client с реальной БД сессией."""
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+    
+    app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as client:
         yield client
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
-def admin_headers():
-    """Заголовки для admin endpoints с API key."""
-    return {"x-api-key": "test_api_key_for_admin_access_minimum_32_chars"}
+def admin_token(db_client, db_session):
+    """Получение OAuth2 токена для администратора."""
+    # Создаём пользователя напрямую в БД
+    user = User(
+        username="testadmin",
+        email="admin@example.com",
+        hashed_password=get_password_hash("AdminPass123!"),
+        is_active=True,
+        is_superuser=True,
+        roles='["admin"]',
+    )
+    db_session.add(user)
+    db_session.commit()
+    
+    # Получаем токен
+    response = db_client.post(
+        "/api/auth/login",
+        data={"username": "testadmin", "password": "AdminPass123!"},
+    )
+    return response.json()["access_token"]
+
+
+@pytest.fixture
+def admin_headers(admin_token):
+    """Заголовки для admin endpoints с OAuth2 токеном."""
+    return {"Authorization": f"Bearer {admin_token}"}
 
 
 def create_mock_repository():
@@ -48,11 +82,11 @@ def create_mock_repository():
 
 
 class TestAdminRoutes:
-    def test_get_payment(self, test_client, admin_headers):
+    def test_get_payment(self, db_client, admin_headers):
         mock_repo = create_mock_repository()
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
-        response = test_client.get("/admin/payments/order_123", headers=admin_headers)
+        response = db_client.get("/admin/payments/order_123", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -61,22 +95,22 @@ class TestAdminRoutes:
 
         app.dependency_overrides.clear()
 
-    def test_get_payment_not_found(self, test_client, admin_headers):
+    def test_get_payment_not_found(self, db_client, admin_headers):
         mock_repo = create_mock_repository()
         mock_repo.get_by_order_id.return_value = None
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
-        response = test_client.get("/admin/payments/nonexistent", headers=admin_headers)
+        response = db_client.get("/admin/payments/nonexistent", headers=admin_headers)
 
         assert response.status_code == 404
 
         app.dependency_overrides.clear()
 
-    def test_get_payments_by_status(self, test_client, admin_headers):
+    def test_get_payments_by_status(self, db_client, admin_headers):
         mock_repo = create_mock_repository()
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
-        response = test_client.get("/admin/payments/status/pending", headers=admin_headers)
+        response = db_client.get("/admin/payments/status/pending", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -85,11 +119,11 @@ class TestAdminRoutes:
 
         app.dependency_overrides.clear()
 
-    def test_get_payments_by_gateway(self, test_client, admin_headers):
+    def test_get_payments_by_gateway(self, db_client, admin_headers):
         mock_repo = create_mock_repository()
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
-        response = test_client.get("/admin/payments/gateway/yookassa", headers=admin_headers)
+        response = db_client.get("/admin/payments/gateway/yookassa", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -98,11 +132,11 @@ class TestAdminRoutes:
 
         app.dependency_overrides.clear()
 
-    def test_refund_payment(self, test_client, admin_headers):
+    def test_refund_payment(self, db_client, admin_headers):
         mock_repo = create_mock_repository()
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
-        response = test_client.post(
+        response = db_client.post(
             "/admin/payments/refund",
             json={"order_id": "order_123", "reason": "Customer request"},
             headers=admin_headers,
@@ -114,11 +148,11 @@ class TestAdminRoutes:
 
         app.dependency_overrides.clear()
 
-    def test_refund_payment_missing_id(self, test_client, admin_headers):
+    def test_refund_payment_missing_id(self, db_client, admin_headers):
         mock_repo = create_mock_repository()
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
-        response = test_client.post(
+        response = db_client.post(
             "/admin/payments/refund",
             json={},
             headers=admin_headers,
@@ -128,12 +162,12 @@ class TestAdminRoutes:
 
         app.dependency_overrides.clear()
 
-    def test_refund_payment_not_found(self, test_client, admin_headers):
+    def test_refund_payment_not_found(self, db_client, admin_headers):
         mock_repo = create_mock_repository()
         mock_repo.update_status.return_value = None
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
-        response = test_client.post(
+        response = db_client.post(
             "/admin/payments/refund",
             json={"order_id": "nonexistent"},
             headers=admin_headers,
@@ -143,11 +177,11 @@ class TestAdminRoutes:
 
         app.dependency_overrides.clear()
 
-    def test_cancel_payment(self, test_client, admin_headers):
+    def test_cancel_payment(self, db_client, admin_headers):
         mock_repo = create_mock_repository()
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
-        response = test_client.post(
+        response = db_client.post(
             "/admin/payments/cancel",
             json={"order_id": "order_123", "reason": "Customer request"},
             headers=admin_headers,
@@ -159,11 +193,11 @@ class TestAdminRoutes:
 
         app.dependency_overrides.clear()
 
-    def test_cancel_payment_missing_id(self, test_client, admin_headers):
+    def test_cancel_payment_missing_id(self, db_client, admin_headers):
         mock_repo = create_mock_repository()
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
-        response = test_client.post(
+        response = db_client.post(
             "/admin/payments/cancel",
             json={},
             headers=admin_headers,
@@ -173,11 +207,11 @@ class TestAdminRoutes:
 
         app.dependency_overrides.clear()
 
-    def test_get_statistics(self, test_client, admin_headers):
+    def test_get_statistics(self, db_client, admin_headers):
         mock_repo = create_mock_repository()
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
-        response = test_client.get("/admin/payments/statistics", headers=admin_headers)
+        response = db_client.get("/admin/payments/statistics", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()

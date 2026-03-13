@@ -6,6 +6,8 @@ from app.repositories.payment_repository import PaymentRepository
 from app.models.payment import PaymentStatus
 from pydantic import BaseModel, ConfigDict, Field
 from app.middleware.rate_limiter import limiter
+from app.utils.security import get_current_user, require_any_role
+from app.models.user import User
 import logging
 
 logger = logging.getLogger(__name__)
@@ -59,6 +61,18 @@ class PaginatedPayments(BaseModel):
     pages: int
 
 
+class PaginatedPaymentsRequest(BaseModel):
+    """Запрос для получения платежей с фильтрами."""
+
+    status: Optional[str] = None
+    gateway: Optional[str] = None
+    search: Optional[str] = None
+    sort_by: str = "created_at"
+    sort_order: str = "desc"
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
+
+
 class PaymentStatistics(BaseModel):
     """Статистика по платежам."""
 
@@ -79,19 +93,16 @@ class DashboardStats(BaseModel):
     daily_amount: Dict[str, float]
 
 
-def _validate_api_key(x_api_key: Optional[str] = Header(None)) -> None:
-    """Валидация API ключа для admin endpoints."""
-    if not x_api_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="API key is required",
-            headers={"WWW-Authenticate": "ApiKey"},
-        )
-    if len(x_api_key) < 32:
+async def get_current_admin_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """Проверка, что пользователь имеет права администратора."""
+    if not current_user.has_any_role(["admin", "operator"]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid API key format",
+            detail="Admin or operator role required",
         )
+    return current_user
 
 
 @router.get("/statistics", response_model=PaymentStatistics)
@@ -99,10 +110,9 @@ def _validate_api_key(x_api_key: Optional[str] = Header(None)) -> None:
 async def get_statistics(
     request: Request,
     repository: PaymentRepository = Depends(get_payment_repository),
-    x_api_key: Optional[str] = Header(None),
+    current_user: User = Depends(get_current_admin_user),
 ) -> PaymentStatistics:
     """Получение статистики по платежам."""
-    _validate_api_key(x_api_key)
     stats = repository.get_statistics()
     return PaymentStatistics(**stats)
 
@@ -113,12 +123,11 @@ async def get_dashboard(
     request: Request,
     limit: int = Query(default=10, ge=1, le=50, description="Number of recent payments"),
     repository: PaymentRepository = Depends(get_payment_repository),
-    x_api_key: Optional[str] = Header(None),
+    current_user: User = Depends(get_current_admin_user),
 ) -> DashboardStats:
     """Получение расширенной статистики для дашборда."""
-    _validate_api_key(x_api_key)
     stats = repository.get_dashboard_stats(limit)
-    
+
     return DashboardStats(
         total_payments=stats["total_payments"],
         total_amount=stats["total_amount"],
@@ -150,10 +159,9 @@ async def get_payments_by_status_endpoint(
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
     repository: PaymentRepository = Depends(get_payment_repository),
-    x_api_key: Optional[str] = Header(None),
+    current_user: User = Depends(get_current_admin_user),
 ) -> PaginatedPayments:
     """Получение платежей по статусу с пагинацией."""
-    _validate_api_key(x_api_key)
     payments, total = repository.get_by_status_paginated(status, page, page_size)
     pages = (total + page_size - 1) // page_size
 
@@ -187,10 +195,9 @@ async def get_payments_by_gateway_endpoint(
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
     repository: PaymentRepository = Depends(get_payment_repository),
-    x_api_key: Optional[str] = Header(None),
+    current_user: User = Depends(get_current_admin_user),
 ) -> PaginatedPayments:
     """Получение платежей по платёжному шлюзу с пагинацией."""
-    _validate_api_key(x_api_key)
     payments, total = repository.get_by_gateway_paginated(gateway, page, page_size)
     pages = (total + page_size - 1) // page_size
 
@@ -222,10 +229,9 @@ async def refund_payment(
     request: Request,
     refund_request: RefundRequest,
     repository: PaymentRepository = Depends(get_payment_repository),
-    x_api_key: Optional[str] = Header(None),
+    current_user: User = Depends(get_current_admin_user),
 ) -> Dict[str, Any]:
     """Возврат платежа."""
-    _validate_api_key(x_api_key)
     if not refund_request.order_id and not refund_request.payment_id:
         raise HTTPException(
             status_code=400, detail="order_id or payment_id is required"
@@ -255,10 +261,9 @@ async def cancel_payment(
     request: Request,
     cancel_request: CancelRequest,
     repository: PaymentRepository = Depends(get_payment_repository),
-    x_api_key: Optional[str] = Header(None),
+    current_user: User = Depends(get_current_admin_user),
 ) -> Dict[str, Any]:
     """Отмена платежа."""
-    _validate_api_key(x_api_key)
     if not cancel_request.order_id and not cancel_request.payment_id:
         raise HTTPException(
             status_code=400, detail="order_id or payment_id is required"
@@ -288,10 +293,9 @@ async def get_payment(
     request: Request,
     order_id: str,
     repository: PaymentRepository = Depends(get_payment_repository),
-    x_api_key: Optional[str] = Header(None),
+    current_user: User = Depends(get_current_admin_user),
 ) -> PaymentInfo:
     """Получение информации о платеже по order_id."""
-    _validate_api_key(x_api_key)
     payment = repository.get_by_order_id(order_id)
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
@@ -306,4 +310,68 @@ async def get_payment(
         description=payment.description,
         created_at=payment.created_at,
         updated_at=payment.updated_at,
+    )
+
+
+@router.get("", response_model=PaginatedPayments)
+@limiter.limit("100/minute")
+async def get_all_payments(
+    request: Request,
+    page: int = Query(default=1, ge=1, description="Page number"),
+    page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
+    status: Optional[str] = Query(default=None, description="Filter by status"),
+    gateway: Optional[str] = Query(default=None, description="Filter by gateway"),
+    search: Optional[str] = Query(default=None, description="Search by order_id or payment_id"),
+    sort_by: str = Query(default="created_at", description="Sort by field"),
+    sort_order: str = Query(default="desc", description="Sort order (asc/desc)"),
+    date_from: Optional[datetime] = Query(default=None, description="Filter by date from"),
+    date_to: Optional[datetime] = Query(default=None, description="Filter by date to"),
+    repository: PaymentRepository = Depends(get_payment_repository),
+    current_user: User = Depends(get_current_admin_user),
+) -> PaginatedPayments:
+    """
+    Получение всех платежей с пагинацией, фильтрами и сортировкой.
+    
+    - **page**: Номер страницы
+    - **page_size**: Размер страницы (1-100)
+    - **status**: Фильтр по статусу (pending, processing, completed, failed, cancelled, refunded)
+    - **gateway**: Фильтр по платёжной системе
+    - **search**: Поиск по order_id или payment_id
+    - **sort_by**: Поле для сортировки (created_at, amount, status, payment_gateway)
+    - **sort_order**: Порядок сортировки (asc, desc)
+    - **date_from**: Дата начала периода
+    - **date_to**: Дата конца периода
+    """
+    payments, total = repository.get_all_paginated(
+        page=page,
+        page_size=page_size,
+        status=status,
+        gateway=gateway,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        date_from=date_from,
+        date_to=date_to,
+    )
+    pages = (total + page_size - 1) // page_size
+
+    return PaginatedPayments(
+        items=[
+            PaymentInfo(
+                order_id=p.order_id,
+                payment_id=p.payment_id,
+                payment_gateway=p.payment_gateway,
+                amount=p.amount,
+                currency=p.currency,
+                status=p.status.value if isinstance(p.status, PaymentStatus) else p.status,
+                description=p.description,
+                created_at=p.created_at,
+                updated_at=p.updated_at,
+            )
+            for p in payments
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
+        pages=pages,
     )
