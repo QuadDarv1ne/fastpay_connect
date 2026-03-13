@@ -37,6 +37,9 @@ from app.graphql.resolvers import schema as graphql_schema
 # WebSocket
 from app.routes.websocket_routes import router as websocket_router
 
+# Dashboard
+from app.routes.dashboard_routes import router as dashboard_router
+
 setup_logging(level=settings.log_level, json_logs=settings.json_logs)
 logger = logging.getLogger(__name__)
 
@@ -154,6 +157,9 @@ app.include_router(graphql_router, prefix="/graphql", tags=["GraphQL"])
 
 # WebSocket
 app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
+
+# Dashboard
+app.include_router(dashboard_router, prefix="/api/dashboard", tags=["Dashboard"])
 
 
 @app.get("/", response_class=HTMLResponse)
