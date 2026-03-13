@@ -67,11 +67,13 @@ class Settings(BaseSettings):
         default_factory=lambda: ["31.131.248.0/24"]
     )
 
-    # Mail (опционально)
+    # Email уведомления
     mail_username: Optional[str] = None
     mail_password: Optional[str] = None
     mail_server: Optional[str] = None
     mail_port: int = 587
+    mail_from_email: Optional[str] = None
+    mail_enabled: bool = False
 
 
 # Глобальный экземпляр настроек
