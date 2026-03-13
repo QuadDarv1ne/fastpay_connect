@@ -6,6 +6,8 @@ from app.repositories.payment_repository import PaymentRepository
 from app.models.payment import PaymentStatus
 from pydantic import BaseModel, ConfigDict, Field
 from app.middleware.rate_limiter import limiter
+from app.utils.security import get_current_user, require_any_role
+from app.models.user import User
 import logging
 
 logger = logging.getLogger(__name__)
@@ -79,19 +81,16 @@ class DashboardStats(BaseModel):
     daily_amount: Dict[str, float]
 
 
-def _validate_api_key(x_api_key: Optional[str] = Header(None)) -> None:
-    """Валидация API ключа для admin endpoints."""
-    if not x_api_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="API key is required",
-            headers={"WWW-Authenticate": "ApiKey"},
-        )
-    if len(x_api_key) < 32:
+async def get_current_admin_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """Проверка, что пользователь имеет права администратора."""
+    if not current_user.has_any_role(["admin", "operator"]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid API key format",
+            detail="Admin or operator role required",
         )
+    return current_user
 
 
 @router.get("/statistics", response_model=PaymentStatistics)
@@ -99,10 +98,9 @@ def _validate_api_key(x_api_key: Optional[str] = Header(None)) -> None:
 async def get_statistics(
     request: Request,
     repository: PaymentRepository = Depends(get_payment_repository),
-    x_api_key: Optional[str] = Header(None),
+    current_user: User = Depends(get_current_admin_user),
 ) -> PaymentStatistics:
     """Получение статистики по платежам."""
-    _validate_api_key(x_api_key)
     stats = repository.get_statistics()
     return PaymentStatistics(**stats)
 
@@ -113,12 +111,11 @@ async def get_dashboard(
     request: Request,
     limit: int = Query(default=10, ge=1, le=50, description="Number of recent payments"),
     repository: PaymentRepository = Depends(get_payment_repository),
-    x_api_key: Optional[str] = Header(None),
+    current_user: User = Depends(get_current_admin_user),
 ) -> DashboardStats:
     """Получение расширенной статистики для дашборда."""
-    _validate_api_key(x_api_key)
     stats = repository.get_dashboard_stats(limit)
-    
+
     return DashboardStats(
         total_payments=stats["total_payments"],
         total_amount=stats["total_amount"],
@@ -150,10 +147,9 @@ async def get_payments_by_status_endpoint(
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
     repository: PaymentRepository = Depends(get_payment_repository),
-    x_api_key: Optional[str] = Header(None),
+    current_user: User = Depends(get_current_admin_user),
 ) -> PaginatedPayments:
     """Получение платежей по статусу с пагинацией."""
-    _validate_api_key(x_api_key)
     payments, total = repository.get_by_status_paginated(status, page, page_size)
     pages = (total + page_size - 1) // page_size
 
@@ -187,10 +183,9 @@ async def get_payments_by_gateway_endpoint(
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
     repository: PaymentRepository = Depends(get_payment_repository),
-    x_api_key: Optional[str] = Header(None),
+    current_user: User = Depends(get_current_admin_user),
 ) -> PaginatedPayments:
     """Получение платежей по платёжному шлюзу с пагинацией."""
-    _validate_api_key(x_api_key)
     payments, total = repository.get_by_gateway_paginated(gateway, page, page_size)
     pages = (total + page_size - 1) // page_size
 
@@ -222,10 +217,9 @@ async def refund_payment(
     request: Request,
     refund_request: RefundRequest,
     repository: PaymentRepository = Depends(get_payment_repository),
-    x_api_key: Optional[str] = Header(None),
+    current_user: User = Depends(get_current_admin_user),
 ) -> Dict[str, Any]:
     """Возврат платежа."""
-    _validate_api_key(x_api_key)
     if not refund_request.order_id and not refund_request.payment_id:
         raise HTTPException(
             status_code=400, detail="order_id or payment_id is required"
@@ -255,10 +249,9 @@ async def cancel_payment(
     request: Request,
     cancel_request: CancelRequest,
     repository: PaymentRepository = Depends(get_payment_repository),
-    x_api_key: Optional[str] = Header(None),
+    current_user: User = Depends(get_current_admin_user),
 ) -> Dict[str, Any]:
     """Отмена платежа."""
-    _validate_api_key(x_api_key)
     if not cancel_request.order_id and not cancel_request.payment_id:
         raise HTTPException(
             status_code=400, detail="order_id or payment_id is required"
@@ -288,10 +281,9 @@ async def get_payment(
     request: Request,
     order_id: str,
     repository: PaymentRepository = Depends(get_payment_repository),
-    x_api_key: Optional[str] = Header(None),
+    current_user: User = Depends(get_current_admin_user),
 ) -> PaymentInfo:
     """Получение информации о платеже по order_id."""
-    _validate_api_key(x_api_key)
     payment = repository.get_by_order_id(order_id)
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")

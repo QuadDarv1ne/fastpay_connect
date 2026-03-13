@@ -13,21 +13,39 @@
 - [x] Webhook idempotency via webhook_event_id
 - [x] Payment routes error handling with PaymentGatewayError
 - [x] Admin routes migrated to repository pattern
+- [x] Integration tests with mocked payment gateways
+- [x] Input validation with Pydantic v2
+- [x] Prometheus metrics export
+- [x] Structured JSON logging (structlog)
+- [x] Rate limiting per API key (slowapi)
+- [x] Comprehensive test coverage (23+ test files)
+- [x] **Webhook retry queue (Celery + Redis)** - Dec 2026
+  - Celery tasks для асинхронной обработки webhook
+  - Redis в качестве брокера сообщений
+  - Экспоненциальная задержка между попытками (60s, 120s, 240s, 480s, 960s)
+  - Максимум 5 попыток обработки
+  - Идемпотентность через webhook_event_id
+  - Flower для мониторинга задач
+  - Docker Compose конфигурация (redis, celery_worker, celery_beat)
+  - Health check endpoint для Celery
+  - Документация: docs/webhook_retry_queue.md
+  - Тесты: tests/test_celery_webhook.py (21 тест)
 
 ## Pending
 
 ### High Priority
-- [ ] Integration tests with mocked payment gateways
-- [ ] Webhook retry queue (Celery + Redis)
-- [ ] Input validation with Pydantic v2
+- [x] OAuth2 authentication for admin panel
+- [ ] API versioning (v1/v2)
+- [ ] Webhook retry queue monitoring dashboard
 
 ### Medium Priority
-- [ ] Prometheus metrics export
-- [ ] Structured JSON logging
 - [ ] Pagination for admin endpoints
-- [ ] Rate limiting per API key
+- [ ] GraphQL API support
+- [ ] WebSocket notifications for payment events
+- [ ] Multi-tenant support
 
 ### Low Priority
 - [ ] Multi-currency support
 - [ ] Payment statistics dashboard
-- [ ] Additional payment systems
+- [ ] Additional payment systems (SBP, Apple Pay, Google Pay)
+- [ ] Mobile SDK (iOS/Android)

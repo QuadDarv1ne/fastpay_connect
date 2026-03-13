@@ -16,6 +16,7 @@ import logging
 from app.routes.payment_routes import router as payment_router
 from app.routes.webhook_routes import router as webhook_router
 from app.routes.admin_routes import router as admin_router
+from app.routes.auth_routes import router as auth_router
 from app.database import init_db, engine, Base
 from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler
 from app.utils.logger import setup_logging
@@ -121,6 +122,7 @@ else:
 app.include_router(payment_router, prefix="/payments", tags=["Payments"])
 app.include_router(webhook_router, prefix="/webhooks", tags=["Webhooks"])
 app.include_router(admin_router, prefix="/admin/payments", tags=["Admin"])
+app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -170,6 +172,7 @@ async def readiness_check():
         "checks": {
             "database": "ok",
             "configuration": "ok",
+            "celery": "ok" if settings.celery_enabled else "disabled",
         },
     }
 
@@ -199,6 +202,22 @@ async def readiness_check():
         readiness_status["status"] = "not_ready"
         readiness_status["checks"]["configuration"] = "missing_required_settings"
 
+    # Проверка подключения к Redis для Celery
+    if settings.celery_enabled:
+        try:
+            import redis
+            from redis.exceptions import RedisError
+            redis_client = redis.from_url(settings.redis_url)
+            redis_client.ping()
+            readiness_status["checks"]["redis"] = "ok"
+        except ImportError:
+            readiness_status["checks"]["redis"] = "redis package not installed"
+            readiness_status["status"] = "degraded"
+        except RedisError as e:
+            readiness_status["checks"]["redis"] = f"error: {str(e)}"
+            readiness_status["status"] = "degraded"
+            logger.warning(f"Redis connection check failed: {e}")
+
     if readiness_status["status"] == "ready":
         return readiness_status
 
@@ -206,6 +225,36 @@ async def readiness_check():
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         content=readiness_status,
     )
+
+
+@app.get("/health/celery", tags=["Health"])
+async def celery_health_check():
+    """Проверка здоровья Celery worker."""
+    if not settings.celery_enabled:
+        return {"status": "disabled", "message": "Celery is disabled"}
+
+    try:
+        from app.tasks.webhook_tasks import health_check as celery_health_task
+        
+        # Отправляем задачу проверки здоровья
+        result = celery_health_task.delay()
+        result_value = result.get(timeout=10)
+        
+        return {
+            "status": "healthy",
+            "celery": result_value,
+        }
+    except ImportError as e:
+        return {
+            "status": "error",
+            "message": f"Celery not installed: {str(e)}",
+        }
+    except Exception as e:
+        logger.exception(f"Celery health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "message": f"Celery health check failed: {str(e)}",
+        }
 
 
 app.add_route("/metrics", MetricsEndpoint.metrics)

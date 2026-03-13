@@ -13,6 +13,7 @@ from typing import Generator
 
 @pytest.fixture(scope="session")
 def db_engine():
+    """Create test database engine."""
     Base.metadata.create_all(bind=engine)
     yield engine
     Base.metadata.drop_all(bind=engine)
@@ -20,6 +21,7 @@ def db_engine():
 
 @pytest.fixture(scope="function")
 def db_session(db_engine) -> Generator:
+    """Create database session for tests."""
     connection = db_engine.connect()
     transaction = connection.begin()
     session = TestingSessionLocal(bind=connection)
@@ -33,6 +35,7 @@ def db_session(db_engine) -> Generator:
 
 @pytest.fixture(scope="function")
 def client(db_session):
+    """Create HTTP client for testing."""
     def override_get_db():
         try:
             yield db_session
@@ -46,3 +49,9 @@ def client(db_session):
         yield test_client
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def db(db_session):
+    """Alias for db_session for backward compatibility."""
+    yield db_session

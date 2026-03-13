@@ -75,6 +75,16 @@ class Settings(BaseSettings):
     mail_from_email: Optional[str] = None
     mail_enabled: bool = False
 
+    # Redis / Celery
+    redis_url: str = "redis://localhost:6379/0"
+    redis_db: int = 0
+    redis_password: Optional[str] = None
+    redis_host: str = "localhost"
+    redis_port: int = 6379
+    celery_broker_url: str = "redis://localhost:6379/0"
+    celery_result_backend: str = "redis://localhost:6379/1"
+    celery_enabled: bool = True  # Включить асинхронную обработку webhook через Celery
+
 
 # Глобальный экземпляр настроек
 settings = Settings()
