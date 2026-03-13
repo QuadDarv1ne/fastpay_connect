@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     # Общие настройки
     debug: bool = False
     log_level: str = "INFO"
+    json_logs: bool = False
     secret_key: Optional[str] = None
     database_url: str = "sqlite+aiosqlite:///./fastpay_connect.db"
     allowed_hosts: List[str] = Field(default_factory=lambda: ["localhost"])

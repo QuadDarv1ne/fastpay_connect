@@ -13,3 +13,6 @@ pytest
 pytest-cov
 pytest-asyncio
 aiosqlite
+respx
+structlog
+prometheus-client

@@ -22,8 +22,9 @@ from app.utils.logger import setup_logging
 from app.utils.settings_validator import settings_validator
 from app.settings import settings
 from app.payment_gateways.exceptions import PaymentGatewayError
+from app.utils.metrics import PrometheusMiddleware, MetricsEndpoint
 
-setup_logging(level=settings.log_level)
+setup_logging(level=settings.log_level, json_logs=settings.json_logs)
 logger = logging.getLogger(__name__)
 
 # Отключаем rate limiting и middleware для тестов
@@ -90,6 +91,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(PrometheusMiddleware)
 
 # TrustedHostMiddleware отключен в тестах
 if not DISABLE_RATE_LIMITING and settings.allowed_hosts:
