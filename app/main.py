@@ -30,6 +30,10 @@ from app.utils.metrics import PrometheusMiddleware, MetricsEndpoint
 from app.api.v1 import router as v1_router
 from app.api.v2 import router as v2_router
 
+# GraphQL
+from strawberry.fastapi import GraphQLRouter
+from app.graphql.resolvers import schema as graphql_schema
+
 setup_logging(level=settings.log_level, json_logs=settings.json_logs)
 logger = logging.getLogger(__name__)
 
@@ -140,6 +144,10 @@ app.include_router(webhook_monitor_router, prefix="/api/monitoring/webhooks", ta
 # API Versioning
 app.include_router(v1_router, prefix="/api/v1", tags=["API v1"])
 app.include_router(v2_router, prefix="/api/v2", tags=["API v2"])
+
+# GraphQL
+graphql_router = GraphQLRouter(graphql_schema)
+app.include_router(graphql_router, prefix="/graphql", tags=["GraphQL"])
 
 
 @app.get("/", response_class=HTMLResponse)
