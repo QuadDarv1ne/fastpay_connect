@@ -25,6 +25,10 @@ from app.settings import settings
 from app.payment_gateways.exceptions import PaymentGatewayError
 from app.utils.metrics import PrometheusMiddleware, MetricsEndpoint
 
+# API Versioning
+from app.api.v1 import router as v1_router
+from app.api.v2 import router as v2_router
+
 setup_logging(level=settings.log_level, json_logs=settings.json_logs)
 logger = logging.getLogger(__name__)
 
@@ -95,6 +99,10 @@ app.add_middleware(
 
 app.add_middleware(PrometheusMiddleware)
 
+# API Versioning Middleware
+from app.middleware.api_versioning import APIVersionMiddleware
+app.add_middleware(APIVersionMiddleware)
+
 # TrustedHostMiddleware отключен в тестах
 if not DISABLE_RATE_LIMITING and settings.allowed_hosts:
     app.add_middleware(
@@ -119,10 +127,15 @@ if STATIC_DIR.exists():
 else:
     logger.warning(f"Static directory not found: {STATIC_DIR}")
 
+# Legacy routes (backward compatibility)
 app.include_router(payment_router, prefix="/payments", tags=["Payments"])
 app.include_router(webhook_router, prefix="/webhooks", tags=["Webhooks"])
 app.include_router(admin_router, prefix="/admin/payments", tags=["Admin"])
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
+
+# API Versioning
+app.include_router(v1_router, prefix="/api/v1", tags=["API v1"])
+app.include_router(v2_router, prefix="/api/v2", tags=["API v2"])
 
 
 @app.get("/", response_class=HTMLResponse)

@@ -35,7 +35,7 @@
 
 ### High Priority
 - [x] OAuth2 authentication for admin panel
-- [ ] API versioning (v1/v2)
+- [x] API versioning (v1/v2)
 - [ ] Webhook retry queue monitoring dashboard
 
 ### Medium Priority
