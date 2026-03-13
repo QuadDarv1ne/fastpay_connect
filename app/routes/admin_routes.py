@@ -61,6 +61,18 @@ class PaginatedPayments(BaseModel):
     pages: int
 
 
+class PaginatedPaymentsRequest(BaseModel):
+    """Запрос для получения платежей с фильтрами."""
+
+    status: Optional[str] = None
+    gateway: Optional[str] = None
+    search: Optional[str] = None
+    sort_by: str = "created_at"
+    sort_order: str = "desc"
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
+
+
 class PaymentStatistics(BaseModel):
     """Статистика по платежам."""
 
@@ -298,4 +310,68 @@ async def get_payment(
         description=payment.description,
         created_at=payment.created_at,
         updated_at=payment.updated_at,
+    )
+
+
+@router.get("", response_model=PaginatedPayments)
+@limiter.limit("100/minute")
+async def get_all_payments(
+    request: Request,
+    page: int = Query(default=1, ge=1, description="Page number"),
+    page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
+    status: Optional[str] = Query(default=None, description="Filter by status"),
+    gateway: Optional[str] = Query(default=None, description="Filter by gateway"),
+    search: Optional[str] = Query(default=None, description="Search by order_id or payment_id"),
+    sort_by: str = Query(default="created_at", description="Sort by field"),
+    sort_order: str = Query(default="desc", description="Sort order (asc/desc)"),
+    date_from: Optional[datetime] = Query(default=None, description="Filter by date from"),
+    date_to: Optional[datetime] = Query(default=None, description="Filter by date to"),
+    repository: PaymentRepository = Depends(get_payment_repository),
+    current_user: User = Depends(get_current_admin_user),
+) -> PaginatedPayments:
+    """
+    Получение всех платежей с пагинацией, фильтрами и сортировкой.
+    
+    - **page**: Номер страницы
+    - **page_size**: Размер страницы (1-100)
+    - **status**: Фильтр по статусу (pending, processing, completed, failed, cancelled, refunded)
+    - **gateway**: Фильтр по платёжной системе
+    - **search**: Поиск по order_id или payment_id
+    - **sort_by**: Поле для сортировки (created_at, amount, status, payment_gateway)
+    - **sort_order**: Порядок сортировки (asc, desc)
+    - **date_from**: Дата начала периода
+    - **date_to**: Дата конца периода
+    """
+    payments, total = repository.get_all_paginated(
+        page=page,
+        page_size=page_size,
+        status=status,
+        gateway=gateway,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        date_from=date_from,
+        date_to=date_to,
+    )
+    pages = (total + page_size - 1) // page_size
+
+    return PaginatedPayments(
+        items=[
+            PaymentInfo(
+                order_id=p.order_id,
+                payment_id=p.payment_id,
+                payment_gateway=p.payment_gateway,
+                amount=p.amount,
+                currency=p.currency,
+                status=p.status.value if isinstance(p.status, PaymentStatus) else p.status,
+                description=p.description,
+                created_at=p.created_at,
+                updated_at=p.updated_at,
+            )
+            for p in payments
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
+        pages=pages,
     )

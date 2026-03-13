@@ -1,11 +1,11 @@
 """Репозиторий для работы с платежами."""
 
 import json
-from typing import List, Optional, Dict, Any, Union
-from datetime import datetime
+from typing import List, Optional, Dict, Any, Union, Tuple
+from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, and_, or_
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from app.models.payment import Payment, PaymentStatus
@@ -164,6 +164,75 @@ class PaymentRepository:
             .limit(page_size)
             .all()
         )
+        return payments, total
+
+    def get_all_paginated(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        status: Optional[Union[str, PaymentStatus]] = None,
+        gateway: Optional[str] = None,
+        search: Optional[str] = None,
+        sort_by: str = "created_at",
+        sort_order: str = "desc",
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+    ) -> Tuple[List[Payment], int]:
+        """
+        Получить все платежи с пагинацией, фильтрами и сортировкой.
+        
+        Args:
+            page: Номер страницы (1-based)
+            page_size: Размер страницы (1-100)
+            status: Фильтр по статусу
+            gateway: Фильтр по платёжной системе
+            search: Поиск по order_id или payment_id
+            sort_by: Поле для сортировки (created_at, amount, status, gateway)
+            sort_order: Порядок сортировки (asc, desc)
+            date_from: Дата начала периода
+            date_to: Дата конца периода
+        
+        Returns:
+            Tuple[List[Payment], int]: Список платежей и общее количество
+        """
+        query = self._db.query(Payment)
+        
+        # Применяем фильтры
+        if status:
+            status_value = status.value if isinstance(status, PaymentStatus) else status
+            query = query.filter(Payment.status == status_value)
+        
+        if gateway:
+            query = query.filter(Payment.payment_gateway == gateway)
+        
+        if search:
+            query = query.filter(
+                or_(
+                    Payment.order_id.ilike(f"%{search}%"),
+                    Payment.payment_id.ilike(f"%{search}%"),
+                )
+            )
+        
+        if date_from:
+            query = query.filter(Payment.created_at >= date_from)
+        
+        if date_to:
+            query = query.filter(Payment.created_at <= date_to)
+        
+        # Общее количество
+        total = query.count()
+        
+        # Сортировка
+        sort_column = getattr(Payment, sort_by, Payment.created_at)
+        if sort_order.lower() == "asc":
+            query = query.order_by(sort_column.asc())
+        else:
+            query = query.order_by(sort_column.desc())
+        
+        # Пагинация
+        offset = (page - 1) * page_size
+        payments = query.offset(offset).limit(page_size).all()
+        
         return payments, total
 
     def get_by_date_range(
