@@ -1,6 +1,6 @@
 """Webhook routes for API v1."""
 
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Depends, HTTPException
 from typing import Dict, Any
 
 from app.dependencies import get_payment_repository
@@ -80,6 +80,25 @@ async def robokassa_webhook_v1(
     from app.payment_gateways.robokassa import handle_robokassa_webhook
     payload = await request.json()
     signature = request.headers.get("X-Signature", "")
-    
+
     result = await handle_robokassa_webhook(payload, signature)
     return {"status": "success", "message": "Webhook processed"}
+
+
+@router.post("/rustore")
+@limiter.limit("1000/hour")
+async def rustore_webhook_v1(
+    request: Request,
+    repository: PaymentRepository = Depends(get_payment_repository),
+) -> Dict[str, Any]:
+    """RuStore webhook handler (v1)."""
+    from app.payment_gateways.rustore import gateway
+    payload = await request.json()
+    signature = request.headers.get("X-Signature", "")
+
+    result = await gateway.handle_webhook(payload, signature)
+    
+    if result.get("status") == "failed":
+        raise HTTPException(status_code=400, detail=result.get("message"))
+    
+    return {"status": "success", "message": "Webhook processed", "result": result}

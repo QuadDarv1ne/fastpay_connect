@@ -30,6 +30,15 @@
   - Health check endpoint для Celery
   - Документация: docs/webhook_retry_queue.md
   - Тесты: tests/test_celery_webhook.py (21 тест)
+- [x] **RuStore Pay SDK Integration** - Mar 2026
+  - Серверный шлюз: app/payment_gateways/rustore.py
+  - Валидация покупок и подписок через RuStore API
+  - Обработка webhook уведомлений с проверкой подписи
+  - Двухстадийные платежи (confirm/cancel)
+  - API endpoints: /api/v1/rustore/*
+  - Webhook handler: /api/v1/webhooks/rustore
+  - Тесты: tests/test_rustore.py (13 тестов)
+  - Переменные окружения в .env_template
 
 ## Pending
 

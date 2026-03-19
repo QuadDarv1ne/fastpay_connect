@@ -67,6 +67,19 @@ class Settings(BaseSettings):
         default_factory=lambda: ["31.131.248.0/24"]
     )
 
+    # RuStore Pay SDK
+    rustore_console_application_id: Optional[str] = None
+    rustore_api_key: Optional[str] = None
+    rustore_secret_key: Optional[str] = None
+    rustore_return_url: str = "https://localhost:8080/payment/return"
+    rustore_ips: List[str] = Field(
+        default_factory=lambda: [
+            "185.165.128.0/24",
+            "185.165.129.0/24",
+            "185.165.130.0/24",
+        ]
+    )
+
     # Email уведомления
     mail_username: Optional[str] = None
     mail_password: Optional[str] = None
