@@ -118,6 +118,11 @@ app.add_middleware(APIVersionMiddleware)
 from app.middleware.tenant import TenantMiddleware
 app.add_middleware(TenantMiddleware)
 
+# Webhook Security Middleware для автоматической проверки IP и заголовков
+from app.middleware.webhook_security import WebhookSecurityMiddleware
+app.add_middleware(WebhookSecurityMiddleware)
+logger.info("Webhook security middleware enabled")
+
 # TrustedHostMiddleware отключен в тестах
 if not DISABLE_RATE_LIMITING and settings.allowed_hosts:
     app.add_middleware(
