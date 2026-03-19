@@ -13,12 +13,27 @@ class PaymentStatusEnum(str, Enum):
     REFUNDED = "refunded"
 
 
+class CurrencyEnum(str, Enum):
+    """Поддерживаемые валюты (ISO 4217)."""
+    RUB = "RUB"  # Российский рубль
+    USD = "USD"  # Доллар США
+    EUR = "EUR"  # Евро
+    KZT = "KZT"  # Казахстанский тенге
+    BYN = "BYN"  # Белорусский рубль
+    CNY = "CNY"  # Китайский юань
+    TRY = "TRY"  # Турецкая лира
+    AED = "AED"  # Дирхам ОАЭ
+    GBP = "GBP"  # Британский фунт
+    JPY = "JPY"  # Японская иена
+
+
 class PaymentRequest(BaseModel):
     """Модель запроса для создания платежа."""
     amount: float = Field(..., gt=0, le=1000000, description="Сумма платежа")
     description: str = Field(..., min_length=1, max_length=500, description="Описание платежа")
     order_id: Optional[str] = Field(None, max_length=50, description="ID заказа (опционально)")
     email: Optional[EmailStr] = Field(None, description="Email для уведомлений")
+    currency: Optional[CurrencyEnum] = Field(default=CurrencyEnum.RUB, description="Валюта платежа")
 
     @field_validator('amount')
     @classmethod

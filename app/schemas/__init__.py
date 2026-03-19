@@ -18,6 +18,7 @@ from app.schemas.payment import (
     PaymentStatusEnum,
     WebhookPayload,
     BulkPaymentRequest,
+    CurrencyEnum,
 )
 
 __all__ = [
@@ -37,4 +38,5 @@ __all__ = [
     "PaymentStatusEnum",
     "WebhookPayload",
     "BulkPaymentRequest",
+    "CurrencyEnum",
 ]

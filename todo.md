@@ -48,6 +48,13 @@
   - Обновлены репозитории: PaymentRepository, UserRepository (tenant filter)
   - API endpoints: /api/v1/tenants/*
   - Тесты: tests/test_multi_tenant.py (18 тестов)
+- [x] **Multi-Currency Support** - Mar 2026
+  - Currency enum: 10 валют (RUB, USD, EUR, KZT, BYN, CNY, TRY, AED, GBP, JPY)
+  - CurrencyService: app/utils/currency.py
+  - Конвертация валют через базовую RUB
+  - API endpoints: /api/v1/currencies/*
+  - Символы валют (₽, $, €, ₸, etc.)
+  - Тесты: tests/test_multi_currency.py (28 тестов)
 
 ## Pending
 
@@ -63,7 +70,7 @@
 - [x] Multi-tenant support
 
 ### Low Priority
-- [ ] Multi-currency support
+- [x] Multi-currency support
 - [x] Payment statistics dashboard
 - [ ] Additional payment systems (SBP, Apple Pay, Google Pay)
 - [ ] Mobile SDK (iOS/Android)
