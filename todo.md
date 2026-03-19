@@ -72,5 +72,20 @@
 ### Low Priority
 - [x] Multi-currency support
 - [x] Payment statistics dashboard
-- [ ] Additional payment systems (SBP, Apple Pay, Google Pay)
+- [x] **SBP Integration** - Mar 2026
+  - Серверный шлюз: app/payment_gateways/sbp.py
+  - Справочник банков: SBPBank (20 банков с BIC кодами)
+  - Статусы платежей: SBPStatus (PENDING, PAID, REJECTED, EXPIRED, REFUNDED)
+  - HMAC-SHA256 подпись запросов с timestamp verification
+  - Создание платежей с QR кодом и payment_url
+  - Возврат и отмена платежей
+  - Webhook уведомления с проверкой подписи
+  - API endpoints: /api/v1/sbp/* (8 endpoints)
+  - Webhook handler: /api/v1/webhooks/sbp
+  - Валидация и нормализация номеров телефонов
+  - Тесты: tests/test_sbp.py (28 тестов)
+  - Переменные окружения в .env_template
+- [ ] Apple Pay / Google Pay integration
 - [ ] Mobile SDK (iOS/Android)
+- [ ] Payment analytics and reporting API
+- [ ] Multi-language support (i18n)
