@@ -114,6 +114,10 @@ app.add_middleware(PrometheusMiddleware)
 from app.middleware.api_versioning import APIVersionMiddleware
 app.add_middleware(APIVersionMiddleware)
 
+# Tenant Middleware для multi-tenant поддержки
+from app.middleware.tenant import TenantMiddleware
+app.add_middleware(TenantMiddleware)
+
 # TrustedHostMiddleware отключен в тестах
 if not DISABLE_RATE_LIMITING and settings.allowed_hosts:
     app.add_middleware(
@@ -150,6 +154,10 @@ app.include_router(webhook_monitor_router, prefix="/api/monitoring/webhooks", ta
 # API Versioning
 app.include_router(v1_router, prefix="/api/v1", tags=["API v1"])
 app.include_router(v2_router, prefix="/api/v2", tags=["API v2"])
+
+# Tenant Management
+from app.api.v1.routes.tenants import router as tenants_router
+app.include_router(tenants_router, prefix="/api/v1", tags=["Tenants"])
 
 # GraphQL
 graphql_router = GraphQLRouter(graphql_schema)
