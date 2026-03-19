@@ -163,6 +163,10 @@ app.include_router(tenants_router, prefix="/api/v1", tags=["Tenants"])
 from app.api.v1.routes.currencies import router as currencies_router
 app.include_router(currencies_router, prefix="/api/v1", tags=["Currencies"])
 
+# SBP Payment
+from app.api.v1.routes.sbp import router as sbp_router
+app.include_router(sbp_router, prefix="/api/v1", tags=["SBP"])
+
 # GraphQL
 graphql_router = GraphQLRouter(graphql_schema)
 app.include_router(graphql_router, prefix="/graphql", tags=["GraphQL"])

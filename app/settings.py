@@ -80,6 +80,18 @@ class Settings(BaseSettings):
         ]
     )
 
+    # SBP (Система Быстрых Платежей)
+    sbp_api_key: Optional[str] = None
+    sbp_secret_key: Optional[str] = None
+    sbp_merchant_id: Optional[str] = None
+    sbp_return_url: str = "https://localhost:8080/payment/return"
+    sbp_ips: List[str] = Field(
+        default_factory=lambda: [
+            "195.162.0.0/16",
+            "91.232.0.0/16",
+        ]
+    )
+
     # Email уведомления
     mail_username: Optional[str] = None
     mail_password: Optional[str] = None

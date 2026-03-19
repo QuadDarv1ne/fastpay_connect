@@ -102,3 +102,23 @@ async def rustore_webhook_v1(
         raise HTTPException(status_code=400, detail=result.get("message"))
     
     return {"status": "success", "message": "Webhook processed", "result": result}
+
+
+@router.post("/sbp")
+@limiter.limit("1000/hour")
+async def sbp_webhook_v1(
+    request: Request,
+    repository: PaymentRepository = Depends(get_payment_repository),
+) -> Dict[str, Any]:
+    """SBP webhook handler (v1)."""
+    from app.payment_gateways.sbp import gateway
+    payload = await request.json()
+    signature = request.headers.get("X-Signature", "")
+    timestamp = request.headers.get("X-Timestamp", "")
+
+    result = await gateway.handle_webhook(payload, signature, timestamp)
+    
+    if result.get("status") == "failed":
+        raise HTTPException(status_code=400, detail=result.get("message"))
+    
+    return {"status": "success", "message": "Webhook processed", "result": result}
