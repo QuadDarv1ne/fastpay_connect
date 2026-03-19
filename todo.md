@@ -89,3 +89,32 @@
 - [ ] Mobile SDK (iOS/Android)
 - [ ] Payment analytics and reporting API
 - [ ] Multi-language support (i18n)
+
+---
+
+## Project Health & Quality Metrics
+
+### Current State (Mar 2026)
+- **Payment Gateways**: 8 (YooKassa, Tinkoff, CloudPayments, UnitPay, RoboKassa, RuStore, SBP)
+- **Test Files**: 36
+- **API Version**: v1 (v2 planned)
+- **Database**: SQLite (dev) / PostgreSQL (prod via Docker)
+- **Async Tasks**: Celery + Redis (webhook retry queue)
+
+### Technical Debt
+- [ ] Add integration tests for all payment gateways (currently ~60% coverage)
+- [ ] Implement API v2 with breaking changes support
+- [ ] Add OpenAPI/Swagger documentation for all endpoints
+- [ ] Set up CI/CD pipeline (GitHub Actions)
+- [ ] Add performance benchmarks and load testing
+- [ ] Implement distributed tracing (OpenTelemetry)
+- [ ] Add comprehensive error codes documentation
+
+### Future Enhancements
+- [ ] Recurring payments / subscriptions API
+- [ ] Split payments / marketplace support
+- [ ] Fraud detection integration
+- [ ] Real-time payment notifications (WebSocket)
+- [ ] Admin dashboard with analytics
+- [ ] Export payment data (CSV, Excel, PDF)
+- [ ] Webhook management UI (retry, view history)
