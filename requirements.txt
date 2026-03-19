@@ -5,7 +5,7 @@ pydantic
 pydantic-settings
 pydantic[email]
 python-dotenv
-sqlalchemy
+sqlalchemy[asyncio]>=2.0.0
 jinja2
 python-multipart
 slowapi
@@ -14,6 +14,7 @@ pytest
 pytest-cov
 pytest-asyncio
 aiosqlite
+asyncpg
 respx
 structlog
 prometheus-client
