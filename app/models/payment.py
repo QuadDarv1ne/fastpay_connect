@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Enum, Index
+from sqlalchemy import Column, Integer, String, Float, DateTime, Enum, Index, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 from app.database import Base
@@ -24,9 +25,11 @@ class Payment(Base):
         Index('ix_gateway_status', 'payment_gateway', 'status'),
         Index('ix_transaction_id', 'transaction_id'),
         Index('ix_order_id', 'order_id'),
+        Index('ix_tenant_id', 'tenant_id'),
     )
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey('tenants.id'), index=True, nullable=True)
     order_id = Column(String, unique=True, index=True, nullable=False)
     payment_id = Column(String, index=True)
     transaction_id = Column(String, index=True)
@@ -40,6 +43,9 @@ class Payment(Base):
     webhook_processed = Column(String, default="")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    
+    # Связь с tenant
+    tenant = relationship("Tenant", backref="payments")
 
     def __repr__(self) -> str:
         return f"<Payment(order_id={self.order_id}, amount={self.amount}, status={self.status})>"

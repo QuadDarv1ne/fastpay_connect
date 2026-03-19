@@ -11,6 +11,7 @@ import json
 
 from app.models.user import User
 from app.utils.security import get_password_hash
+from app.utils.tenant import get_current_tenant
 
 logger = logging.getLogger(__name__)
 
@@ -25,13 +26,35 @@ class UserRepository:
         """Получить пользователя по ID."""
         return self.db.query(User).filter(User.id == user_id).first()
     
-    def get_by_username(self, username: str) -> Optional[User]:
+    def get_by_username(self, username: str, tenant_id: Optional[int] = None) -> Optional[User]:
         """Получить пользователя по username."""
-        return self.db.query(User).filter(User.username == username).first()
-    
-    def get_by_email(self, email: str) -> Optional[User]:
+        query = self.db.query(User).filter(User.username == username)
+        
+        # Если tenant_id не указан, используем текущий из контекста
+        if tenant_id is None:
+            current_tenant = get_current_tenant()
+            if current_tenant:
+                tenant_id = current_tenant.id
+        
+        # Фильтруем по tenant если он указан
+        if tenant_id is not None:
+            query = query.filter(User.tenant_id == tenant_id)
+            
+        return query.first()
+
+    def get_by_email(self, email: str, tenant_id: Optional[int] = None) -> Optional[User]:
         """Получить пользователя по email."""
-        return self.db.query(User).filter(User.email == email).first()
+        query = self.db.query(User).filter(User.email == email)
+        
+        if tenant_id is None:
+            current_tenant = get_current_tenant()
+            if current_tenant:
+                tenant_id = current_tenant.id
+        
+        if tenant_id is not None:
+            query = query.filter(User.tenant_id == tenant_id)
+            
+        return query.first()
     
     def get_all(
         self,
@@ -64,6 +87,7 @@ class UserRepository:
         is_active: bool = True,
         is_superuser: bool = False,
         roles: Optional[List[str]] = None,
+        tenant_id: Optional[int] = None,
     ) -> Optional[User]:
         """Создать нового пользователя."""
         try:
@@ -71,13 +95,19 @@ class UserRepository:
             if self.get_by_username(username):
                 logger.warning(f"User with username '{username}' already exists")
                 return None
-            
+
             if self.get_by_email(email):
                 logger.warning(f"User with email '{email}' already exists")
                 return None
-            
+
+            # Если tenant_id не указан, пробуем получить из контекста
+            if tenant_id is None:
+                current_tenant = get_current_tenant()
+                if current_tenant:
+                    tenant_id = current_tenant.id
+
             hashed_password = get_password_hash(password)
-            
+
             user = User(
                 username=username,
                 email=email,
@@ -85,15 +115,16 @@ class UserRepository:
                 is_active=is_active,
                 is_superuser=is_superuser,
                 roles=json.dumps(roles) if roles else json.dumps(["viewer"]),
+                tenant_id=tenant_id,
             )
-            
+
             self.db.add(user)
             self.db.commit()
             self.db.refresh(user)
-            
+
             logger.info(f"User '{username}' created successfully")
             return user
-            
+
         except IntegrityError as e:
             self.db.rollback()
             logger.error(f"Integrity error creating user: {e}")

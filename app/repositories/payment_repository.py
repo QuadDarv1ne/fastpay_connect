@@ -1,6 +1,7 @@
 """Репозиторий для работы с платежами."""
 
 import json
+import logging
 from typing import List, Optional, Dict, Any, Union, Tuple
 from datetime import datetime, timedelta
 
@@ -9,6 +10,9 @@ from sqlalchemy import func, and_, or_
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from app.models.payment import Payment, PaymentStatus
+from app.utils.tenant import get_current_tenant
+
+logger = logging.getLogger(__name__)
 
 
 class RepositoryError(Exception):
@@ -38,10 +42,17 @@ class PaymentRepository:
         currency: str = "RUB",
         payment_id: Optional[str] = None,
         payment_url: Optional[str] = None,
+        tenant_id: Optional[int] = None,
     ) -> Payment:
         """Создать платёж."""
         if amount <= 0:
             raise ValueError(f"Invalid amount: {amount}")
+
+        # Если tenant_id не указан, пробуем получить из контекста
+        if tenant_id is None:
+            current_tenant = get_current_tenant()
+            if current_tenant:
+                tenant_id = current_tenant.id
 
         payment = Payment(
             order_id=order_id,
@@ -52,23 +63,56 @@ class PaymentRepository:
             payment_id=payment_id,
             payment_url=payment_url,
             status=PaymentStatus.PENDING,
+            tenant_id=tenant_id,
         )
         self._db.add(payment)
         self._db.commit()
         self._db.refresh(payment)
         return payment
 
-    def get_by_order_id(self, order_id: str) -> Optional[Payment]:
+    def get_by_order_id(self, order_id: str, tenant_id: Optional[int] = None) -> Optional[Payment]:
         """Получить платёж по order_id."""
-        return self._db.query(Payment).filter(Payment.order_id == order_id).first()
+        query = self._db.query(Payment).filter(Payment.order_id == order_id)
+        
+        # Если tenant_id не указан, используем текущий из контекста
+        if tenant_id is None:
+            current_tenant = get_current_tenant()
+            if current_tenant:
+                tenant_id = current_tenant.id
+        
+        # Фильтруем по tenant если он указан
+        if tenant_id is not None:
+            query = query.filter(Payment.tenant_id == tenant_id)
+            
+        return query.first()
 
-    def get_by_payment_id(self, payment_id: str) -> Optional[Payment]:
+    def get_by_payment_id(self, payment_id: str, tenant_id: Optional[int] = None) -> Optional[Payment]:
         """Получить платёж по payment_id."""
-        return self._db.query(Payment).filter(Payment.payment_id == payment_id).first()
+        query = self._db.query(Payment).filter(Payment.payment_id == payment_id)
+        
+        if tenant_id is None:
+            current_tenant = get_current_tenant()
+            if current_tenant:
+                tenant_id = current_tenant.id
+        
+        if tenant_id is not None:
+            query = query.filter(Payment.tenant_id == tenant_id)
+            
+        return query.first()
 
-    def get_by_transaction_id(self, transaction_id: str) -> Optional[Payment]:
+    def get_by_transaction_id(self, transaction_id: str, tenant_id: Optional[int] = None) -> Optional[Payment]:
         """Получить платёж по transaction_id."""
-        return self._db.query(Payment).filter(Payment.transaction_id == transaction_id).first()
+        query = self._db.query(Payment).filter(Payment.transaction_id == transaction_id)
+        
+        if tenant_id is None:
+            current_tenant = get_current_tenant()
+            if current_tenant:
+                tenant_id = current_tenant.id
+        
+        if tenant_id is not None:
+            query = query.filter(Payment.tenant_id == tenant_id)
+            
+        return query.first()
 
     def update_status(
         self,
@@ -193,10 +237,11 @@ class PaymentRepository:
         sort_order: str = "desc",
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
+        tenant_id: Optional[int] = None,
     ) -> Tuple[List[Payment], int]:
         """
         Получить все платежи с пагинацией, фильтрами и сортировкой.
-        
+
         Args:
             page: Номер страницы (1-based)
             page_size: Размер страницы (1-100)
@@ -207,20 +252,31 @@ class PaymentRepository:
             sort_order: Порядок сортировки (asc, desc)
             date_from: Дата начала периода
             date_to: Дата конца периода
-        
+            tenant_id: Фильтр по tenant (опционально)
+
         Returns:
             Tuple[List[Payment], int]: Список платежей и общее количество
         """
         query = self._db.query(Payment)
+
+        # Если tenant_id не указан, используем текущий из контекста
+        if tenant_id is None:
+            current_tenant = get_current_tenant()
+            if current_tenant:
+                tenant_id = current_tenant.id
         
+        # Фильтруем по tenant если он указан
+        if tenant_id is not None:
+            query = query.filter(Payment.tenant_id == tenant_id)
+
         # Применяем фильтры
         if status:
             status_value = status.value if isinstance(status, PaymentStatus) else status
             query = query.filter(Payment.status == status_value)
-        
+
         if gateway:
             query = query.filter(Payment.payment_gateway == gateway)
-        
+
         if search:
             query = query.filter(
                 or_(
@@ -228,27 +284,27 @@ class PaymentRepository:
                     Payment.payment_id.ilike(f"%{search}%"),
                 )
             )
-        
+
         if date_from:
             query = query.filter(Payment.created_at >= date_from)
-        
+
         if date_to:
             query = query.filter(Payment.created_at <= date_to)
-        
+
         # Общее количество
         total = query.count()
-        
+
         # Сортировка
         sort_column = getattr(Payment, sort_by, Payment.created_at)
         if sort_order.lower() == "asc":
             query = query.order_by(sort_column.asc())
         else:
             query = query.order_by(sort_column.desc())
-        
+
         # Пагинация
         offset = (page - 1) * page_size
         payments = query.offset(offset).limit(page_size).all()
-        
+
         return payments, total
 
     def get_by_date_range(
@@ -267,21 +323,33 @@ class PaymentRepository:
             query = query.filter(Payment.status == status_value)
         return query.order_by(Payment.created_at.desc()).all()
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self, tenant_id: Optional[int] = None) -> Dict[str, Any]:
         """Получить статистику."""
-        total = self._db.query(Payment).count()
+        query = self._db.query(Payment)
+        
+        # Если tenant_id не указан, используем текущий из контекста
+        if tenant_id is None:
+            current_tenant = get_current_tenant()
+            if current_tenant:
+                tenant_id = current_tenant.id
+        
+        # Фильтруем по tenant если он указан
+        if tenant_id is not None:
+            query = query.filter(Payment.tenant_id == tenant_id)
+        
+        total = query.count()
         by_status = (
-            self._db.query(Payment.status, func.count(Payment.id))
+            query.with_entities(Payment.status, func.count(Payment.id))
             .group_by(Payment.status)
             .all()
         )
         by_gateway = (
-            self._db.query(Payment.payment_gateway, func.count(Payment.id))
+            query.with_entities(Payment.payment_gateway, func.count(Payment.id))
             .group_by(Payment.payment_gateway)
             .all()
         )
         total_amount = (
-            self._db.query(func.sum(Payment.amount))
+            query.with_entities(func.sum(Payment.amount))
             .filter(Payment.status == PaymentStatus.COMPLETED)
             .scalar()
             or 0
@@ -294,38 +362,49 @@ class PaymentRepository:
             "total_completed_amount": float(total_amount),
         }
 
-    def get_dashboard_stats(self, limit: int = 10) -> Dict[str, Any]:
+    def get_dashboard_stats(self, limit: int = 10, tenant_id: Optional[int] = None) -> Dict[str, Any]:
         """Получить расширенную статистику для дашборда."""
         from datetime import timedelta
+
+        query = self._db.query(Payment)
         
-        total = self._db.query(Payment).count()
+        # Если tenant_id не указан, используем текущий из контекста
+        if tenant_id is None:
+            current_tenant = get_current_tenant()
+            if current_tenant:
+                tenant_id = current_tenant.id
+        
+        # Фильтруем по tenant если он указан
+        if tenant_id is not None:
+            query = query.filter(Payment.tenant_id == tenant_id)
+
+        total = query.count()
         total_amount = (
-            self._db.query(func.sum(Payment.amount))
+            query.with_entities(func.sum(Payment.amount))
             .filter(Payment.status == PaymentStatus.COMPLETED)
             .scalar()
             or 0
         )
         by_status = dict(
-            self._db.query(Payment.status, func.count(Payment.id))
+            query.with_entities(Payment.status, func.count(Payment.id))
             .group_by(Payment.status)
             .all()
         )
         by_gateway = dict(
-            self._db.query(Payment.payment_gateway, func.count(Payment.id))
+            query.with_entities(Payment.payment_gateway, func.count(Payment.id))
             .group_by(Payment.payment_gateway)
             .all()
         )
-        
+
         recent_payments = (
-            self._db.query(Payment)
-            .order_by(Payment.created_at.desc())
+            query.order_by(Payment.created_at.desc())
             .limit(limit)
             .all()
         )
-        
+
         seven_days_ago = datetime.now() - timedelta(days=7)
         daily_stats = (
-            self._db.query(
+            query.with_entities(
                 func.date(Payment.created_at).label('date'),
                 func.sum(Payment.amount).label('amount')
             )
@@ -337,7 +416,7 @@ class PaymentRepository:
             .all()
         )
         daily_amount = {str(stat.date): float(stat.amount) for stat in daily_stats}
-        
+
         return {
             "total_payments": total,
             "total_amount": float(total_amount),

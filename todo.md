@@ -39,6 +39,15 @@
   - Webhook handler: /api/v1/webhooks/rustore
   - Тесты: tests/test_rustore.py (13 тестов)
   - Переменные окружения в .env_template
+- [x] **Multi-Tenant Support** - Mar 2026
+  - Tenant модель: app/models/tenant.py
+  - TenantRepository: app/repositories/tenant_repository.py
+  - TenantMiddleware: app/middleware/tenant.py (X-API-Key header)
+  - Tenant context: app/utils/tenant.py
+  - Обновлены модели: Payment, User (tenant_id foreign key)
+  - Обновлены репозитории: PaymentRepository, UserRepository (tenant filter)
+  - API endpoints: /api/v1/tenants/*
+  - Тесты: tests/test_multi_tenant.py (18 тестов)
 
 ## Pending
 
@@ -51,7 +60,7 @@
 - [x] Pagination for admin endpoints
 - [x] GraphQL API support
 - [x] WebSocket notifications for payment events
-- [ ] Multi-tenant support
+- [x] Multi-tenant support
 
 ### Low Priority
 - [ ] Multi-currency support

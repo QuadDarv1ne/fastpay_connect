@@ -1,5 +1,6 @@
 from .payment import Payment, PaymentStatus
 from .webhook_event import WebhookEvent, WebhookEventStatus, WebhookStats
+from .tenant import Tenant, TenantStatus
 
 __all__ = [
     "Payment",
@@ -7,4 +8,6 @@ __all__ = [
     "WebhookEvent",
     "WebhookEventStatus",
     "WebhookStats",
+    "Tenant",
+    "TenantStatus",
 ]

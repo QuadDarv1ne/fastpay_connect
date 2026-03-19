@@ -2,7 +2,7 @@
 User model for OAuth2 authentication.
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum as SQLEnum, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from typing import Optional, List
@@ -12,7 +12,7 @@ import enum
 
 class UserRole(enum.Enum):
     """Роли пользователей."""
-    
+
     ADMIN = "admin"
     OPERATOR = "operator"
     VIEWER = "viewer"
@@ -20,10 +20,11 @@ class UserRole(enum.Enum):
 
 class User(Base):
     """Модель пользователя для аутентификации."""
-    
+
     __tablename__ = 'users'
-    
+
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey('tenants.id'), index=True, nullable=True)
     username = Column(String(50), unique=True, index=True, nullable=False)
     email = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
@@ -32,12 +33,15 @@ class User(Base):
     roles = Column(String(255), default="viewer")  # JSON список ролей
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
-        DateTime, 
-        default=lambda: datetime.now(timezone.utc), 
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc)
     )
     last_login = Column(DateTime, nullable=True)
     
+    # Связь с tenant
+    tenant = relationship("Tenant", backref="users")
+
     def __repr__(self) -> str:
         return f"<User(username={self.username}, email={self.email})>"
     
