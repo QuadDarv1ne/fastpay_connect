@@ -59,18 +59,18 @@
 ## Pending
 
 ### High Priority
-- [x] OAuth2 authentication for admin panel
-- [x] API versioning (v1/v2)
-- [x] Webhook retry queue monitoring dashboard
+- [x] OAuth2 authentication for admin panel - ✅ JWT auth, refresh tokens, password reset
+- [x] API versioning (v1/v2) - ✅ v1 fully implemented, v2 structure ready
+- [x] Webhook retry queue monitoring dashboard - ✅ Celery + Flower monitoring
 
 ### Medium Priority
 - [x] Pagination for admin endpoints
-- [x] GraphQL API support
-- [x] WebSocket notifications for payment events
-- [x] Multi-tenant support
+- [x] GraphQL API support - ✅ Strawberry GraphQL with resolvers
+- [x] WebSocket notifications for payment events - ✅ Real-time payment updates
+- [x] Multi-tenant support - ✅ TenantMiddleware, X-API-Key isolation
 
 ### Low Priority
-- [x] Multi-currency support
+- [x] Multi-currency support - ✅ 10 currencies (RUB, USD, EUR, KZT, BYN, CNY, TRY, AED, GBP, JPY)
 - [x] Payment statistics dashboard
 - [x] **SBP Integration** - Mar 2026
   - Серверный шлюз: app/payment_gateways/sbp.py
@@ -96,18 +96,30 @@
 
 ### Current State (Mar 2026)
 - **Payment Gateways**: 8 (YooKassa, Tinkoff, CloudPayments, UnitPay, RoboKassa, RuStore, SBP)
-- **Test Files**: 36
-- **API Version**: v1 (v2 planned)
+- **Test Files**: 36+ (60%+ coverage)
+- **API Version**: v1 (v2 structure ready)
 - **Database**: SQLite (dev) / PostgreSQL (prod via Docker)
 - **Async Tasks**: Celery + Redis (webhook retry queue)
+- **GraphQL**: Strawberry GraphQL API
+- **WebSocket**: Real-time notifications
+- **Auth**: OAuth2/JWT with refresh tokens
+- **Multi-tenant**: X-API-Key isolation
+- **Multi-currency**: 10 currencies (RUB base)
 
 ### Technical Debt
 - [x] Add webhook security middleware for IP and header validation
 - [x] Add async SQLAlchemy support for non-blocking database operations
 - [ ] Add integration tests for all payment gateways (currently ~60% coverage)
+  - ✅ YooKassa, Tinkoff, RoboKassa, RuStore, SBP covered
+  - ⚠️ CloudPayments, UnitPay need more tests
 - [ ] Implement API v2 with breaking changes support
+  - ✅ v2 structure exists (app/api/v2/)
+  - ⚠️ Needs endpoints implementation
 - [ ] Add OpenAPI/Swagger documentation for all endpoints
+  - ✅ Auto-generated docs at /docs
+  - ⚠️ Manual descriptions needed for complex endpoints
 - [ ] Set up CI/CD pipeline (GitHub Actions)
+  - ⚠️ .github/ exists but needs workflow configuration
 - [ ] Add performance benchmarks and load testing
 - [ ] Implement distributed tracing (OpenTelemetry)
 - [ ] Add comprehensive error codes documentation
