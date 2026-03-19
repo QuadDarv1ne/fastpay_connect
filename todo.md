@@ -102,6 +102,7 @@
 - **Async Tasks**: Celery + Redis (webhook retry queue)
 
 ### Technical Debt
+- [x] Add webhook security middleware for IP and header validation
 - [ ] Add integration tests for all payment gateways (currently ~60% coverage)
 - [ ] Implement API v2 with breaking changes support
 - [ ] Add OpenAPI/Swagger documentation for all endpoints
