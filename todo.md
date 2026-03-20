@@ -1,6 +1,6 @@
 # FastPay Connect - TODO
 
-> **Last Updated**: Mar 21, 2026
+> **Last Updated**: Mar 22, 2026
 > **Current Branch**: main & dev (synced)
 > **Test Coverage**: 40 test files (~60%+ coverage)
 > **Payment Gateways**: 8 integrated
@@ -11,6 +11,13 @@
 > **Webhook Management**: API endpoints with retry, filters, pagination
 > **Payment Export**: CSV + JSON export with filters
 > **Startup Scripts**: Windows, macOS, Linux, Android, Docker (8 files)
+>
+> ## Recent Improvements (Mar 2026)
+> ✅ Rate limiting with Redis persistence
+> ✅ PostgreSQL dev environment (docker-compose.dev.yml)
+> ✅ Webhook Management API (retry, filters, pagination)
+> ✅ Payment Export API (CSV/JSON)
+> ✅ Cross-platform startup scripts (8 files)
 
 ## Completed
 
