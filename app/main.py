@@ -56,6 +56,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Lifespan context manager с graceful shutdown."""
     logger.info("Application startup initiated")
 
+    # Инициализация OpenTelemetry
+    try:
+        from app.utils.opentelemetry import setup_opentelemetry
+        setup_opentelemetry(
+            service_name="fastpay-connect",
+            service_version="1.0.0",
+        )
+        logger.info("OpenTelemetry initialized")
+    except ImportError:
+        logger.debug("OpenTelemetry not installed, skipping instrumentation")
+    except Exception as e:
+        logger.warning(f"OpenTelemetry initialization failed: {e}")
+
     settings_validator.validate_all(
         yookassa_key=settings.yookassa_api_key,
         yookassa_secret=settings.yookassa_secret_key,
@@ -88,6 +101,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("Database connections closed")
     except Exception as e:
         logger.error(f"Error closing database connections: {e}")
+    
+    # Shutdown OpenTelemetry
+    try:
+        from app.utils.opentelemetry import shutdown_opentelemetry
+        shutdown_opentelemetry()
+        logger.info("OpenTelemetry shutdown complete")
+    except Exception as e:
+        logger.warning(f"OpenTelemetry shutdown failed: {e}")
 
 
 app = FastAPI(
