@@ -1,11 +1,11 @@
 # FastPay Connect - TODO
 
 > **Last Updated**: Mar 20, 2026
-> **Current Branch**: main & dev (synced)
+> **Current Branch**: main (dev ready for improvements)
 > **Test Coverage**: 42 test files (~60%+ coverage)
-> **Payment Gateways**: 8 integrated
+> **Payment Gateways**: 10 integrated (YooKassa, Tinkoff, CloudPayments, UnitPay, RoboKassa, RuStore, SBP, Apple Pay, Google Pay)
 > **CI/CD**: GitHub Actions (multi-platform deploy)
-> **Codebase**: 88 Python files (app/), 42 test files, 11 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks
+> **Codebase**: 92 Python files (app/), 42 test files, 11 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 10 schemas, 10 payment gateways, 2 tasks
 > **Redis Integration**: Rate limiting persistence, Celery broker/backend
 > **PostgreSQL**: dev environment ready (docker-compose.dev.yml, alembic.ini, DEVELOPMENT.md)
 > **Webhook Management**: API endpoints with retry, filters, pagination
@@ -32,6 +32,8 @@
 > ✅ OpenTelemetry distributed tracing
 > ✅ Performance Benchmarks and load testing (tests/test_benchmarks.py + docs/PERFORMANCE_BENCHMARKS.md)
 > ✅ **PWA Implementation** (manifest.json, service-worker.js, offline page, push notifications)
+> ✅ **Apple Pay Integration** (payment gateway + schemas + routes + tests)
+> ✅ **Google Pay Integration** (payment gateway + schemas + tests)
 
 ## Completed
 
@@ -238,11 +240,11 @@
 - [x] PWA Icons - ✅ app/static/icons/ (16 icons: 8 sizes + badges + shortcuts)
 - [x] PWA Scripts - ✅ scripts/generate_pwa_icons_simple.py, scripts/generate_pwa_icons.ps1
 
-## Pending
+### Pending
 
 ### High Priority
 - [x] API v2 endpoints implementation (health endpoints done: /health, /ready, /live) - ✅ app/api/v2/routes/health.py (3 endpoints)
-- [ ] Apple Pay / Google Pay integration
+- [x] Apple Pay / Google Pay integration - ✅ app/payment_gateways/apple_pay.py, google_pay.py + schemas + routes
 - [ ] Mobile SDK (iOS/Android)
 - [x] Performance benchmarks and load testing - ✅ tests/test_benchmarks.py + docs/PERFORMANCE_BENCHMARKS.md
 - [ ] GraphQL schema improvements (currently basic Strawberry setup)
@@ -275,7 +277,7 @@
 ### Current State (Mar 2026)
 | Metric | Value |
 |--------|-------|
-| **Payment Gateways** | 8 (YooKassa, Tinkoff, CloudPayments, UnitPay, RoboKassa, RuStore, SBP) |
+| **Payment Gateways** | 10 (YooKassa, Tinkoff, CloudPayments, UnitPay, RoboKassa, RuStore, SBP, Apple Pay, Google Pay) |
 | **Test Files** | 42 files (~60%+ coverage) |
 | **API Version** | v1 (stable), v2 (health endpoints ready) |
 | **Database** | SQLite (dev) / PostgreSQL (prod via Docker) |
@@ -289,8 +291,8 @@
 | **CI/CD** | GitHub Actions (test, lint, build, deploy) |
 | **Deploy Targets** | 14 configs (AWS, GCP, Cloudflare, K8s, Render, Railway, Fly.io, Vercel, Netlify) |
 | **Documentation** | Swagger UI, ReDoc, 9 docs (incl. PWA.md), README (330 lines), deploy/README (250 lines), START.md (336 lines), PERFORMANCE_BENCHMARKS.md |
-| **Codebase** | 88 Python files, 11 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks |
-| **Templates** | 13 Jinja2 templates (admin, payment, webhook dashboards, PWA, offline) |
+| **Codebase** | 92 Python files, 11 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 10 schemas, 10 payment gateways, 2 tasks |
+| **Templates** | 14 Jinja2 templates (admin, payment, webhook dashboards, PWA, offline) |
 | **Static Assets** | Logo, styles.css, scripts, startup scripts (8 files), PWA icons (16 files) |
 | **Alembic Migrations** | 6 migration files |
 | **Startup Scripts** | Windows (.bat), macOS/Linux (.sh), Android (Termux), Docker |
@@ -300,7 +302,7 @@
 - [x] Webhook security middleware - ✅ app/middleware/webhook_security.py
 - [x] Async SQLAlchemy support - ✅ app/repositories/async_payment_repository.py
 - [x] Integration tests for all payment gateways
-  - ✅ YooKassa, Tinkoff, RoboKassa, RuStore, SBP, CloudPayments, UnitPay
+  - ✅ YooKassa, Tinkoff, RoboKassa, RuStore, SBP, CloudPayments, UnitPay, Apple Pay, Google Pay
 - [x] API v2 structure - ✅ app/api/v2/ + middleware/api_versioning.py
 - [x] API v2 health endpoints - ✅ app/api/v2/routes/health.py (/health, /ready, /live)
 - [x] OpenAPI/Swagger documentation - ✅ /docs, /redoc
@@ -312,12 +314,14 @@
 - [x] PostgreSQL migration (alembic.ini switched to PostgreSQL) - ✅ + docker-compose.dev.yml, DEVELOPMENT.md
 - [x] Flower dashboard deployment (configured but needs deployment) - ✅ Auth, persistent storage, docs/FLOWER_DEPLOYMENT.md
 - [x] Webhook signature verification - ✅ app/utils/webhook_signature.py + tests (21 tests)
+- [x] Apple Pay / Google Pay integration - ✅ payment_gateways + schemas + routes
 
 ### Future Enhancements
 - [ ] Recurring payments / subscriptions API
 - [ ] Split payments / marketplace support
 - [ ] Fraud detection integration
-- [ ] Apple Pay / Google Pay integration
 - [ ] Mobile SDK (iOS/Android)
-- [ ] Payment analytics and reporting API
 - [ ] Multi-language support (i18n)
+- [ ] Admin dashboard with analytics
+- [ ] Multi-factor authentication (2FA)
+- [ ] Audit logging for admin actions
