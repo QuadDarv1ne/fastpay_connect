@@ -5,14 +5,14 @@
 > **Test Coverage**: 40 test files (~60%+ coverage)  
 > **Payment Gateways**: 8 integrated  
 > **CI/CD**: GitHub Actions (multi-platform deploy)  
-> **Codebase**: 79 Python files (app/), 8 route files, 5 middleware files
+> **Codebase**: 79 Python files (app/), 8 route files, 5 middleware files, 5 models
 
 ## Completed
 
 ### Core Infrastructure
 - [x] Migrate from config.py to settings.py (Pydantic Settings) - ✅ app/settings.py
 - [x] PaymentStatus Enum with SQLAlchemy values_callable
-- [x] Multi-stage Dockerfile with healthcheck
+- [x] Multi-stage Dockerfile with healthcheck - ✅ Dockerfile (builder + runtime stages)
 - [x] Pre-commit hooks (black, flake8, isort, mypy, detect-secrets) - ✅ .pre-commit-config.yaml
 - [x] TrustedHostMiddleware for production
 - [x] Alembic migrations - ✅ 5 migration files in alembic/versions/
@@ -23,6 +23,7 @@
 - [x] Settings validator - ✅ app/utils/settings_validator.py
 - [x] CORS middleware - ✅ app/main.py (CORSMiddleware)
 - [x] Lifespan events (startup/shutdown) - ✅ app/main.py
+- [x] Multi-platform deploy configs - ✅ deploy/ (14 files: AWS, GCP, Cloudflare, K8s, etc.)
 
 ### Repositories & Data Layer
 - [x] PaymentRepository with error handling - ✅ app/repositories/payment_repository.py
@@ -31,6 +32,13 @@
 - [x] UserRepository - ✅ app/repositories/user_repository.py
 - [x] WebhookEventRepository - ✅ app/repositories/webhook_event_repository.py
 - [x] Webhook idempotency via webhook_event_id - ✅ WebhookEvent model
+
+### Models (5 total)
+- [x] Payment model - ✅ app/models/payment.py
+- [x] User model - ✅ app/models/user.py
+- [x] Tenant model - ✅ app/models/tenant.py
+- [x] WebhookEvent model - ✅ app/models/webhook_event.py
+- [x] SQLAlchemy Base - ✅ app/database.py (Base, SessionLocal, engine)
 
 ### Payment Gateways (8 total)
 - [x] YooKassa - ✅ app/payment_gateways/yookassa.py + tests/test_yookassa.py
@@ -73,8 +81,9 @@
 - [x] **Email Service** - ✅ app/services/email_service.py
 - [x] **Payment Service** - ✅ app/services/payment_service.py
 - [x] **GraphQL API** - ✅ Strawberry GraphQL with resolvers (app/graphql/)
-  - GraphQL schema: app/graphql/schema.py
+  - GraphQL schema: app/graphql/schema.py (Payment, PaymentConnection types)
   - GraphQL resolvers: app/graphql/resolvers.py
+  - PaymentStatus enum
 - [x] **OAuth2/JWT Authentication** - ✅ JWT auth, refresh tokens, password reset
 - [x] **WebSocket Notifications** - ✅ app/websocket/ (real-time payment updates)
   - WebSocket router: app/routes/websocket_routes.py
@@ -84,6 +93,22 @@
 - [x] **Rate limiting per API key** - ✅ app/middleware/rate_limiter.py (slowapi)
 - [x] **IP Validator** - ✅ app/utils/ip_validator.py
 - [x] **Metrics utility** - ✅ app/utils/metrics.py
+
+### Deploy Configurations (14 files)
+- [x] Dockerfile (multi-stage) - ✅ Dockerfile
+- [x] Docker Compose - ✅ docker-compose.yml, docker-compose.prod.yml
+- [x] AWS Elastic Beanstalk - ✅ deploy/aws/
+- [x] Google Cloud Platform - ✅ deploy/gcp/cloudbuild.yaml
+- [x] Cloudflare Workers/Pages - ✅ deploy/cloudflare/ (wrangler.toml, worker.ts)
+- [x] Kubernetes - ✅ deploy/k8s/deployment.yaml
+- [x] Render - ✅ deploy/render.yaml
+- [x] Railway - ✅ deploy/railway.json
+- [x] Fly.io - ✅ deploy/fly.toml
+- [x] Vercel - ✅ deploy/vercel.json
+- [x] Netlify - ✅ deploy/netlify.toml
+- [x] Nginx - ✅ deploy/nginx/
+- [x] Deploy scripts - ✅ deploy/scripts/deploy.sh, init-db.sql
+- [x] Makefile - ✅ deploy/Makefile
 
 ### Templates & Frontend
 - [x] Jinja2 templates - ✅ app/templates/
@@ -123,6 +148,8 @@
 - [x] pytest.ini configured - ✅ pytest.ini
 - [x] conftest.py with fixtures - ✅ tests/conftest.py (db_engine, db_session, client)
 - [x] Test database setup (SQLite for tests) - ✅ tests/conftest.py
+- [x] Alembic configuration - ✅ alembic.ini (SQLite dev, PostgreSQL prod)
+- [x] Database init script - ✅ scripts/init-db.sql
 
 ### Utilities & Helpers
 - [x] Currency utils - ✅ app/utils/currency.py
@@ -149,6 +176,7 @@
 - [x] Project logo - ✅ fastpay_connect.png
 - [x] Static files directory - ✅ app/static/
 - [x] Templates directory - ✅ app/templates/ (Jinja2)
+- [x] Scripts - ✅ scripts/create_superuser.py, deploy/scripts/deploy.sh
 
 ## Pending
 
@@ -158,6 +186,7 @@
 - [ ] Mobile SDK (iOS/Android)
 - [ ] Performance benchmarks and load testing
 - [ ] GraphQL schema improvements (currently basic Strawberry setup)
+- [ ] PostgreSQL migration scripts (alembic.ini uses SQLite for dev)
 
 ### Medium Priority
 - [ ] Payment analytics and reporting API
@@ -166,6 +195,7 @@
 - [ ] Rate limiting persistence (currently in-memory)
 - [ ] Distributed tracing (OpenTelemetry)
 - [ ] Webhook signature verification for all gateways (some implemented)
+- [ ] Flower dashboard deployment (configured in docker-compose.prod.yml)
 
 ### Low Priority
 - [ ] Payment statistics dashboard (basic dashboard exists: routes/dashboard_routes.py)
@@ -176,6 +206,7 @@
 - [ ] Audit logging for admin actions
 - [ ] Comprehensive error codes documentation
 - [ ] Background task monitoring dashboard (Flower integration)
+- [ ] Additional deploy scripts for remaining platforms
 
 ---
 
@@ -189,16 +220,16 @@
 | **API Version** | v1 (stable), v2 (structure ready) |
 | **Database** | SQLite (dev) / PostgreSQL (prod via Docker) |
 | **Async Tasks** | Celery + Redis (webhook retry queue, 5 tasks) |
-| **GraphQL** | Strawberry GraphQL API (basic schema) |
+| **GraphQL** | Strawberry GraphQL API (Payment, PaymentConnection types) |
 | **WebSocket** | Real-time notifications |
 | **Auth** | OAuth2/JWT with refresh tokens |
 | **Multi-tenant** | X-API-Key isolation |
 | **Multi-currency** | 10 currencies (RUB base) |
 | **CI/CD** | GitHub Actions (test, lint, build, deploy) |
-| **Deploy Targets** | Cloudflare, Render, Railway, Fly.io, K8s, VPS |
-| **Documentation** | Swagger UI, ReDoc, 7 docs, README (308 lines) |
-| **Codebase** | 79 Python files, 8 routes, 5 middleware |
-| **Static Assets** | Logo, templates (Jinja2), static files |
+| **Deploy Targets** | 14 configs (AWS, GCP, Cloudflare, K8s, Render, Railway, Fly.io, Vercel, Netlify) |
+| **Documentation** | Swagger UI, ReDoc, 7 docs, README (308 lines), deploy/README (250 lines) |
+| **Codebase** | 79 Python files, 8 routes, 5 middleware, 5 models |
+| **Static Assets** | Logo, templates (Jinja2), static files, scripts |
 
 ### Technical Debt
 - [x] Webhook security middleware - ✅ app/middleware/webhook_security.py
@@ -208,9 +239,12 @@
 - [x] API v2 structure - ✅ app/api/v2/ + middleware/api_versioning.py
 - [x] OpenAPI/Swagger documentation - ✅ /docs, /redoc
 - [x] CI/CD pipeline - ✅ .github/workflows/ci.yml
+- [x] Multi-platform deploy configs - ✅ 14 deployment configurations
 - [ ] Distributed tracing (OpenTelemetry)
 - [ ] Comprehensive error codes documentation
 - [ ] API v2 endpoints implementation
+- [ ] PostgreSQL migration (alembic.ini defaults to SQLite for dev)
+- [ ] Flower dashboard deployment (configured but needs deployment)
 
 ### Future Enhancements
 - [ ] Recurring payments / subscriptions API
