@@ -1,15 +1,16 @@
 # FastPay Connect - TODO
 
-> **Last Updated**: Mar 20, 2026
+> **Last Updated**: Mar 21, 2026
 > **Current Branch**: main & dev (synced)
 > **Test Coverage**: 40 test files (~60%+ coverage)
 > **Payment Gateways**: 8 integrated
 > **CI/CD**: GitHub Actions (multi-platform deploy)
 > **Codebase**: 85 Python files (app/), 40 test files, 9 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks
 > **Redis Integration**: Rate limiting persistence, Celery broker/backend
-> **PostgreSQL**: dev environment ready (docker-compose.dev.yml, alembic.ini)
+> **PostgreSQL**: dev environment ready (docker-compose.dev.yml, alembic.ini, DEVELOPMENT.md)
 > **Webhook Management**: API endpoints with retry, filters, pagination
 > **Payment Export**: CSV + JSON export with filters
+> **Startup Scripts**: Windows, macOS, Linux, Android, Docker (8 files)
 
 ## Completed
 
@@ -214,6 +215,15 @@
   - ✅ payment_status.html, profile_edit.html, success_payment.html
   - ✅ webhook_dashboard.html, webhook_notification.html
 - [x] Scripts - ✅ scripts/create_superuser.py, deploy/scripts/deploy.sh
+- [x] Startup scripts - ✅ 8 files for all platforms
+  - ✅ start-windows.bat (Windows)
+  - ✅ start.sh (Linux/macOS)
+  - ✅ start-macos.sh (macOS with notifications)
+  - ✅ start-docker.sh (Docker Compose launcher)
+  - ✅ start-android.sh (Termux)
+  - ✅ START.md (main guide)
+  - ✅ START_ANDROID.md (Android instructions)
+  - ✅ START_IOS.md (iOS instructions)
 
 ## Pending
 
@@ -264,11 +274,12 @@
 | **Multi-currency** | 10 currencies (RUB base) |
 | **CI/CD** | GitHub Actions (test, lint, build, deploy) |
 | **Deploy Targets** | 14 configs (AWS, GCP, Cloudflare, K8s, Render, Railway, Fly.io, Vercel, Netlify) |
-| **Documentation** | Swagger UI, ReDoc, 7 docs, README (308 lines), deploy/README (250 lines) |
-| **Codebase** | 81 Python files, 8 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 5 schemas, 10 payment gateways, 2 tasks |
+| **Documentation** | Swagger UI, ReDoc, 7 docs, README (308 lines), deploy/README (250 lines), START.md (336 lines) |
+| **Codebase** | 85 Python files, 9 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks |
 | **Templates** | 11 Jinja2 templates (admin, payment, webhook dashboards) |
-| **Static Assets** | Logo, styles.css, scripts |
+| **Static Assets** | Logo, styles.css, scripts, startup scripts (8 files) |
 | **Alembic Migrations** | 6 migration files |
+| **Startup Scripts** | Windows (.bat), macOS/Linux (.sh), Android (Termux), Docker |
 
 ### Technical Debt
 - [x] Webhook security middleware - ✅ app/middleware/webhook_security.py
