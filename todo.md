@@ -6,6 +6,7 @@
 > **Payment Gateways**: 8 integrated
 > **CI/CD**: GitHub Actions (multi-platform deploy)
 > **Codebase**: 81 Python files (app/), 40 test files, 8 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 5 schemas, 10 payment gateways, 2 tasks
+> **Redis Integration**: Rate limiting persistence, Celery broker/backend
 
 ## Completed
 
@@ -224,8 +225,8 @@
 ### Medium Priority
 - [ ] Payment analytics and reporting API
 - [ ] Multi-language support (i18n)
-- [ ] Cache service with Redis (currently using in-memory LRUCache)
-- [ ] Rate limiting persistence (currently in-memory)
+- [x] Cache service with Redis (currently using in-memory LRUCache) - ✅ Rate limiting now uses Redis
+- [x] Rate limiting persistence (currently in-memory) - ✅ app/middleware/rate_limiter.py with Redis backend
 - [ ] Distributed tracing (OpenTelemetry)
 - [ ] Webhook signature verification for all gateways (some implemented)
 - [ ] Flower dashboard deployment (configured in docker-compose.prod.yml)
