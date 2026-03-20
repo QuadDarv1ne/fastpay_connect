@@ -17,6 +17,7 @@
 > **Error Documentation**: 400+ lines covering all error codes
 > **OpenTelemetry**: Distributed tracing with Jaeger/Zipkin/OTLP support
 > **Performance Benchmarks**: Load testing documentation + tests
+> **PWA**: Progressive Web App with offline support, push notifications, install prompt
 >
 > ## Recent Improvements (Mar 2026)
 > ✅ Rate limiting with Redis persistence
@@ -30,6 +31,7 @@
 > ✅ Error Codes Documentation (400+ lines)
 > ✅ OpenTelemetry distributed tracing
 > ✅ Performance Benchmarks and load testing (tests/test_benchmarks.py + docs/PERFORMANCE_BENCHMARKS.md)
+> ✅ **PWA Implementation** (manifest.json, service-worker.js, offline page, push notifications)
 
 ## Completed
 
@@ -142,6 +144,15 @@
 - [x] Jinja2 templates - ✅ app/templates/
 - [x] Payment dashboard template - ✅ app/templates/payment_dashboard.html
 - [x] Static files serving - ✅ app/static/
+- [x] **PWA Support** - ✅ Mar 2026
+  - manifest.json - ✅ app/static/manifest.json
+  - service-worker.js - ✅ app/static/service-worker.js
+  - offline.html - ✅ app/templates/offline.html
+  - pwa.html - ✅ app/templates/pwa.html
+  - base.html updated with PWA - ✅ app/templates/base.html
+  - PWA icons (8 sizes) - ✅ app/static/icons/
+  - PWA documentation - ✅ docs/PWA.md
+  - PWA routes in main.py - ✅ /manifest.json, /service-worker.js, /offline, /pwa
 
 ### Routes & Endpoints
 - [x] Payment routes - ✅ app/routes/payment_routes.py
@@ -201,16 +212,19 @@
 - [x] docs/api_versioning.md
 - [x] docs/DEPLOYMENT.md
 - [x] docs/CLOUDFLARE_DEPLOY.md
-- [x] README.md (308 строк) - ✅ Основная документация проекта
+- [x] docs/PWA.md - ✅ PWA документация
+- [x] README.md (330 строк) - ✅ Основная документация проекта
 
 ### Static Assets
 - [x] Project logo - ✅ fastpay_connect.png
 - [x] Static files directory - ✅ app/static/ (styles.css)
-- [x] Templates directory - ✅ app/templates/ (11 Jinja2 templates)
+- [x] Templates directory - ✅ app/templates/ (14 Jinja2 templates)
   - ✅ admin_payments.html, base.html, course_detail.html
   - ✅ error_payment.html, home.html, payment_dashboard.html
   - ✅ payment_status.html, profile_edit.html, success_payment.html
   - ✅ webhook_dashboard.html, webhook_notification.html
+  - ✅ **offline.html** (PWA offline page)
+  - ✅ **pwa.html** (PWA install page)
 - [x] Scripts - ✅ scripts/create_superuser.py, deploy/scripts/deploy.sh
 - [x] Startup scripts - ✅ 8 files for all platforms
   - ✅ start-windows.bat (Windows)
@@ -221,6 +235,8 @@
   - ✅ START.md (main guide)
   - ✅ START_ANDROID.md (Android instructions)
   - ✅ START_IOS.md (iOS instructions)
+- [x] PWA Icons - ✅ app/static/icons/ (16 icons: 8 sizes + badges + shortcuts)
+- [x] PWA Scripts - ✅ scripts/generate_pwa_icons_simple.py, scripts/generate_pwa_icons.ps1
 
 ## Pending
 
@@ -269,12 +285,13 @@
 | **Auth** | OAuth2/JWT with refresh tokens |
 | **Multi-tenant** | X-API-Key isolation |
 | **Multi-currency** | 10 currencies (RUB base) |
+| **PWA** | ✅ manifest.json, service-worker.js, offline page, install prompt, push notifications |
 | **CI/CD** | GitHub Actions (test, lint, build, deploy) |
 | **Deploy Targets** | 14 configs (AWS, GCP, Cloudflare, K8s, Render, Railway, Fly.io, Vercel, Netlify) |
-| **Documentation** | Swagger UI, ReDoc, 8 docs, README (308 lines), deploy/README (250 lines), START.md (336 lines), PERFORMANCE_BENCHMARKS.md |
+| **Documentation** | Swagger UI, ReDoc, 9 docs (incl. PWA.md), README (330 lines), deploy/README (250 lines), START.md (336 lines), PERFORMANCE_BENCHMARKS.md |
 | **Codebase** | 88 Python files, 11 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks |
-| **Templates** | 11 Jinja2 templates (admin, payment, webhook dashboards) |
-| **Static Assets** | Logo, styles.css, scripts, startup scripts (8 files) |
+| **Templates** | 13 Jinja2 templates (admin, payment, webhook dashboards, PWA, offline) |
+| **Static Assets** | Logo, styles.css, scripts, startup scripts (8 files), PWA icons (16 files) |
 | **Alembic Migrations** | 6 migration files |
 | **Startup Scripts** | Windows (.bat), macOS/Linux (.sh), Android (Termux), Docker |
 | **Performance Benchmarks** | Load testing tests + documentation |

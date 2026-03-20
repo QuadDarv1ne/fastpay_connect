@@ -1,49 +1,211 @@
 <!-- app/templates/base.html -->
+<!-- FastPay Connect PWA -->
+<!-- Автор: Dupley Maxim Igorevich -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Мой сайт{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="FastPay Connect - интеграция платёжных систем">
+    <meta name="author" content="Dupley Maxim Igorevich">
+    <meta name="theme-color" content="#009688">
     
-    <!-- Подключение стилей Bootstrap через CDN -->
+    <!-- PWA Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="FastPay">
+    <meta name="application-name" content="FastPay Connect">
+    <meta name="msapplication-TileColor" content="#009688">
+    <meta name="msapplication-tap-highlight" content="no">
+    
+    <!-- PWA Icons -->
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='icons/icon-512x512.png') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
+    <link rel="apple-touch-icon" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{{ url_for('static', filename='icons/icon-152x152.png') }}">
+    <link rel="apple-touch-icon" sizes="144x144" href="{{ url_for('static', filename='icons/icon-144x144.png') }}">
+    <link rel="apple-touch-icon" sizes="128x128" href="{{ url_for('static', filename='icons/icon-128x128.png') }}">
+    <link rel="apple-touch-icon" sizes="96x96" href="{{ url_for('static', filename='icons/icon-96x96.png') }}">
+    <link rel="apple-touch-icon" sizes="72x72" href="{{ url_for('static', filename='icons/icon-72x72.png') }}">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    
+    <title>{% block title %}FastPay Connect{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <!-- Подключение пользовательских стилей -->
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Custom Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
     <!-- Навигационное меню -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <a class="navbar-brand" href="{{ url_for('home') }}">Мой сайт</a>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-teal sticky-top">
+        <a class="navbar-brand" href="{{ url_for('root') }}">
+            <span class="material-icons align-middle">account_balance</span>
+            FastPay Connect
+        </a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ml-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('home') }}">Главная</a>
+                    <a class="nav-link" href="{{ url_for('root') }}">
+                        <span class="material-icons align-middle">home</span>
+                        Главная
+                    </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('courses') }}">Курсы</a>
+                    <a class="nav-link" href="{{ url_for('root') }}">
+                        <span class="material-icons align-middle">payment</span>
+                        Платежи
+                    </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('profile') }}">Профиль</a>
+                    <a class="nav-link" href="{{ url_for('root') }}">
+                        <span class="material-icons align-middle">notifications</span>
+                        Webhooks
+                    </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('auth:login') }}">Войти</a>
+                    <a class="nav-link" href="{{ url_for('root') }}">
+                        <span class="material-icons align-middle">dashboard</span>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('root') }}">
+                        <span class="material-icons align-middle">settings</span>
+                        Настройки
+                    </a>
                 </li>
             </ul>
         </div>
     </nav>
 
     <!-- Основной контент -->
-    <div class="container mt-4">
+    <main class="container mt-4">
         {% block content %}{% endblock %}
-    </div>
+    </main>
 
-    <!-- Подключение скриптов Bootstrap через CDN -->
+    <!-- Footer -->
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">© 2026 FastPay Connect. Автор: Dupley Maxim Igorevich. Все права защищены.</span>
+            <div class="mt-2">
+                <a href="/docs" class="text-muted mr-3">API Docs</a>
+                <a href="/redoc" class="text-muted mr-3">ReDoc</a>
+                <a href="/pwa" class="text-muted mr-3">PWA</a>
+                <a href="#" class="text-muted" id="install-pwa-btn" style="display: none;">
+                    <span class="material-icons align-middle">install_mobile</span>
+                    Установить приложение
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap Scripts -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.6.0/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+    <!-- PWA Scripts -->
+    <script>
+        // Регистрация Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(function(registration) {
+                        console.log('[PWA] Service Worker registered:', registration.scope);
+                        
+                        // Проверка обновлений
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // Доступно обновление
+                                    if (confirm('Доступна новая версия приложения. Обновить?')) {
+                                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                        window.location.reload();
+                                    }
+                                }
+                            });
+                        });
+                    })
+                    .catch(function(error) {
+                        console.log('[PWA] Service Worker registration failed:', error);
+                    });
+            });
+        }
+        
+        // Кнопка установки PWA
+        let deferredPrompt;
+        const installBtn = document.getElementById('install-pwa-btn');
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = 'inline';
+            
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log('[PWA] User choice:', outcome);
+                    deferredPrompt = null;
+                    installBtn.style.display = 'none';
+                }
+            });
+        });
+        
+        // Обработка установки
+        window.addEventListener('appinstalled', () => {
+            console.log('[PWA] App installed');
+            installBtn.style.display = 'none';
+        });
+        
+        // Онлайн/Офлайн статус
+        function updateOnlineStatus() {
+            const status = navigator.onLine ? 'Онлайн' : 'Офлайн';
+            console.log('[PWA] Connection status:', status);
+            
+            if (!navigator.onLine) {
+                // Показать офлайн уведомление
+                const offlineBanner = document.createElement('div');
+                offlineBanner.className = 'alert alert-warning alert-dismissible fade show fixed-top';
+                offlineBanner.role = 'alert';
+                offlineBanner.innerHTML = `
+                    <strong>Нет подключения к интернету</strong>
+                    <button type="button" class="close" data-dismiss="alert">
+                        <span>&times;</span>
+                    </button>
+                `;
+                document.body.insertBefore(offlineBanner, document.body.firstChild);
+            }
+        }
+        
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        updateOnlineStatus();
+        
+        // Push Notifications
+        async function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                const permission = await Notification.requestPermission();
+                console.log('[PWA] Notification permission:', permission);
+            }
+        }
+        
+        // Запрос разрешений после загрузки
+        window.addEventListener('load', requestNotificationPermission);
+    </script>
+    
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

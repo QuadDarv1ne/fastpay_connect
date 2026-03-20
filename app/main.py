@@ -331,11 +331,11 @@ async def celery_health_check():
 
     try:
         from app.tasks.webhook_tasks import health_check as celery_health_task
-        
+
         # Отправляем задачу проверки здоровья
         result = celery_health_task.delay()
         result_value = result.get(timeout=10)
-        
+
         return {
             "status": "healthy",
             "celery": result_value,
@@ -351,6 +351,51 @@ async def celery_health_check():
             "status": "unhealthy",
             "message": f"Celery health check failed: {str(e)}",
         }
+
+
+# PWA Routes
+# Автор: Dupley Maxim Igorevich
+@app.get("/manifest.json", tags=["PWA"])
+async def get_manifest():
+    """Отдача manifest.json для PWA."""
+    from fastapi.responses import FileResponse
+    manifest_path = STATIC_DIR / "manifest.json"
+    if manifest_path.exists():
+        return FileResponse(str(manifest_path), media_type="application/manifest+json")
+    raise HTTPException(status_code=404, detail="Manifest not found")
+
+
+@app.get("/service-worker.js", tags=["PWA"])
+async def get_service_worker():
+    """Отдача service-worker.js для PWA."""
+    from fastapi.responses import FileResponse
+    sw_path = STATIC_DIR / "service-worker.js"
+    if sw_path.exists():
+        return FileResponse(str(sw_path), media_type="application/javascript")
+    raise HTTPException(status_code=404, detail="Service Worker not found")
+
+
+@app.get("/offline", response_class=HTMLResponse, tags=["PWA"])
+async def offline_page(request: Request):
+    """Страница офлайн-режима для PWA."""
+    if not templates:
+        return HTMLResponse(content="<h1>Нет подключения к интернету</h1>", status_code=503)
+    try:
+        return templates.TemplateResponse("offline.html", {"request": request})
+    except Exception:
+        return HTMLResponse(content="<h1>Нет подключения к интернету</h1>", status_code=503)
+
+
+@app.get("/pwa", response_class=HTMLResponse, tags=["PWA"])
+async def pwa_page(request: Request):
+    """Страница PWA приложения."""
+    if not templates:
+        raise HTTPException(status_code=503, detail="Templates not available")
+    try:
+        return templates.TemplateResponse("pwa.html", {"request": request})
+    except Exception as e:
+        logger.exception(f"Error rendering PWA page: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 app.add_route("/metrics", MetricsEndpoint.metrics)

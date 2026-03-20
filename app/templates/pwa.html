@@ -1,0 +1,453 @@
+<!-- app/templates/pwa.html -->
+<!-- FastPay Connect PWA - Install Page -->
+<!-- Автор: Dupley Maxim Igorevich -->
+{% extends "base.html" %}
+
+{% block title %}PWA Приложение | FastPay Connect{% endblock %}
+
+{% block extra_css %}
+<style>
+    .pwa-hero {
+        background: linear-gradient(135deg, #009688 0%, #00796B 100%);
+        color: white;
+        padding: 60px 0;
+        border-radius: 16px;
+        margin-bottom: 40px;
+        text-align: center;
+    }
+    
+    .pwa-hero h1 {
+        font-size: 48px;
+        font-weight: 700;
+        margin-bottom: 16px;
+    }
+    
+    .pwa-hero p {
+        font-size: 20px;
+        opacity: 0.95;
+        margin-bottom: 32px;
+    }
+    
+    .install-card {
+        background: white;
+        border-radius: 16px;
+        padding: 40px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        margin-bottom: 32px;
+    }
+    
+    .install-button {
+        display: inline-flex;
+        align-items: center;
+        padding: 20px 40px;
+        background: #009688;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 24px;
+    }
+    
+    .install-button:hover {
+        background: #00796B;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 150, 136, 0.4);
+    }
+    
+    .install-button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+        margin-top: 40px;
+    }
+    
+    .feature-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 24px;
+        text-align: center;
+        transition: transform 0.3s ease;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+    
+    .feature-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+    }
+    
+    .feature-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #333;
+    }
+    
+    .feature-description {
+        color: #666;
+        line-height: 1.6;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 16px;
+    }
+    
+    .status-available {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+    
+    .status-installed {
+        background: #fff3e0;
+        color: #ef6c00;
+    }
+    
+    .step-list {
+        counter-reset: step;
+        list-style: none;
+        padding: 0;
+    }
+    
+    .step-list li {
+        position: relative;
+        padding-left: 60px;
+        margin-bottom: 24px;
+    }
+    
+    .step-list li::before {
+        counter-increment: step;
+        content: counter(step);
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 40px;
+        height: 40px;
+        background: #009688;
+        color: white;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 40px;
+        font-weight: 600;
+    }
+    
+    .step-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #333;
+    }
+    
+    .step-description {
+        color: #666;
+        line-height: 1.6;
+    }
+    
+    .notification-permission {
+        background: #fff3e0;
+        border-left: 4px solid #ff9800;
+        padding: 16px;
+        border-radius: 4px;
+        margin: 24px 0;
+    }
+    
+    .notification-button {
+        display: inline-flex;
+        align-items: center;
+        padding: 12px 24px;
+        background: #ff9800;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 12px;
+    }
+    
+    .notification-button:hover {
+        background: #f57c00;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pwa-hero">
+    <div class="container">
+        <h1>📱 FastPay Connect PWA</h1>
+        <p>Установите наше приложение для быстрого доступа к платежам</p>
+        <div id="install-status" class="status-badge status-available">
+            ✅ Готово к установке
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="install-card">
+        <h2 class="mb-4">Установка приложения</h2>
+        
+        <button id="install-btn" class="install-button" style="display: none;">
+            <span class="material-icons align-middle mr-2">install_mobile</span>
+            Установить приложение
+        </button>
+        
+        <p id="install-message" class="text-muted">
+            Нажмите кнопку выше, чтобы установить приложение на ваше устройство.
+            После установки вы сможете получать push-уведомления о платежах.
+        </p>
+        
+        <div class="notification-permission">
+            <strong>🔔 Push-уведомления</strong>
+            <p class="mb-2">Включите уведомления, чтобы получать информацию о новых платежах мгновенно.</p>
+            <button id="notification-btn" class="notification-button">
+                <span class="material-icons align-middle">notifications</span>
+                Включить уведомления
+            </button>
+            <span id="notification-status" class="ml-3"></span>
+        </div>
+    </div>
+    
+    <h2 class="mb-4">Как установить</h2>
+    <ul class="step-list">
+        <li>
+            <div class="step-title">Нажмите кнопку установки</div>
+            <div class="step-description">
+                Нажмите кнопку "Установить приложение" выше. Браузер покажет диалог подтверждения.
+            </div>
+        </li>
+        <li>
+            <div class="step-title">Подтвердите установку</div>
+            <div class="step-description">
+                В диалоге браузера нажмите "Установить" или "Добавить на главный экран".
+            </div>
+        </li>
+        <li>
+            <div class="step-title">Запустите приложение</div>
+            <div class="step-description">
+                Найдите иконку FastPay Connect на главном экране и запустите приложение.
+            </div>
+        </li>
+        <li>
+            <div class="step-title">Включите уведомления</div>
+            <div class="step-description">
+                Разрешите push-уведомления для получения информации о платежах.
+            </div>
+        </li>
+    </ul>
+    
+    <h2 class="mt-5 mb-4">Возможности PWA</h2>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="feature-icon">🚀</div>
+            <div class="feature-title">Быстрая загрузка</div>
+            <div class="feature-description">
+                Мгновенная загрузка благодаря кэшированию ресурсов
+            </div>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">📴</div>
+            <div class="feature-title">Офлайн режим</div>
+            <div class="feature-description">
+                Работа без подключения к интернету с синхронизацией
+            </div>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">🔔</div>
+            <div class="feature-title">Push-уведомления</div>
+            <div class="feature-description">
+                Мгновенные уведомления о новых платежах и webhook-ах
+            </div>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">📱</div>
+            <div class="feature-title">Адаптивный дизайн</div>
+            <div class="feature-description">
+                Оптимальное отображение на любом устройстве
+            </div>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">🔄</div>
+            <div class="feature-title">Автообновление</div>
+            <div class="feature-description">
+                Приложение автоматически обновляется при наличии новой версии
+            </div>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">🔒</div>
+            <div class="feature-title">Безопасность</div>
+            <div class="feature-description">
+                HTTPS соединение и безопасное хранение данных
+            </div>
+        </div>
+    </div>
+    
+    <h2 class="mt-5 mb-4">Техническая информация</h2>
+    <div class="install-card">
+        <table class="table table-borderless">
+            <tbody>
+                <tr>
+                    <td><strong>Service Worker:</strong></td>
+                    <td id="sw-status">Проверка...</td>
+                </tr>
+                <tr>
+                    <td><strong>Кэш:</strong></td>
+                    <td id="cache-status">Проверка...</td>
+                </tr>
+                <tr>
+                    <td><strong>Push-поддержка:</strong></td>
+                    <td id="push-status">Проверка...</td>
+                </tr>
+                <tr>
+                    <td><strong>Установка:</strong></td>
+                    <td id="install-support-status">Проверка...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Проверка поддержки Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration()
+            .then(registration => {
+                document.getElementById('sw-status').innerHTML = registration 
+                    ? '<span class="text-success">✅ Активен</span>' 
+                    : '<span class="text-warning">⚠️ Не зарегистрирован</span>';
+            });
+    } else {
+        document.getElementById('sw-status').innerHTML = '<span class="text-danger">❌ Не поддерживается</span>';
+    }
+    
+    // Проверка поддержки кэша
+    if ('caches' in window) {
+        caches.keys()
+            .then(names => {
+                document.getElementById('cache-status').innerHTML = 
+                    `<span class="text-success">✅ Доступен (${names.length} кэшей)</span>`;
+            });
+    } else {
+        document.getElementById('cache-status').innerHTML = '<span class="text-danger">❌ Не поддерживается</span>';
+    }
+    
+    // Проверка поддержки Push
+    if ('PushManager' in window) {
+        document.getElementById('push-status').innerHTML = '<span class="text-success">✅ Поддерживается</span>';
+    } else {
+        document.getElementById('push-status').innerHTML = '<span class="text-danger">❌ Не поддерживается</span>';
+    }
+    
+    // Проверка поддержки установки
+    if ('beforeinstallprompt' in window || window.matchMedia('(display-mode: standalone)').matches) {
+        document.getElementById('install-support-status').innerHTML = '<span class="text-success">✅ Доступна</span>';
+    } else {
+        document.getElementById('install-support-status').innerHTML = '<span class="text-warning">⚠️ Ограничена</span>';
+    }
+    
+    // Обработка кнопки установки
+    let deferredPrompt;
+    const installBtn = document.getElementById('install-btn');
+    const installStatus = document.getElementById('install-status');
+    const installMessage = document.getElementById('install-message');
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'inline-flex';
+        installStatus.className = 'status-badge status-available';
+        installStatus.innerHTML = '✅ Готово к установке';
+    });
+    
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            
+            if (outcome === 'accepted') {
+                installStatus.className = 'status-badge status-installed';
+                installStatus.innerHTML = '🔄 Установка...';
+                installMessage.textContent = 'Приложение устанавливается...';
+            }
+            
+            deferredPrompt = null;
+        }
+    });
+    
+    window.addEventListener('appinstalled', () => {
+        installStatus.className = 'status-badge status-installed';
+        installStatus.innerHTML = '✅ Установлено';
+        installMessage.textContent = 'Приложение успешно установлено!';
+        installBtn.style.display = 'none';
+    });
+    
+    // Обработка кнопки уведомлений
+    const notificationBtn = document.getElementById('notification-btn');
+    const notificationStatus = document.getElementById('notification-status');
+    
+    notificationBtn.addEventListener('click', async () => {
+        if (!('Notification' in window)) {
+            notificationStatus.textContent = '❌ Уведомления не поддерживаются';
+            notificationStatus.className = 'text-danger';
+            return;
+        }
+        
+        const permission = await Notification.requestPermission();
+        
+        if (permission === 'granted') {
+            notificationStatus.textContent = '✅ Уведомления включены';
+            notificationStatus.className = 'text-success';
+            
+            // Тестовое уведомление
+            new Notification('FastPay Connect', {
+                body: 'Уведомления успешно включены!',
+                icon: '/static/icons/icon-192x192.png',
+            });
+        } else if (permission === 'denied') {
+            notificationStatus.textContent = '❌ Уведомления отклонены';
+            notificationStatus.className = 'text-danger';
+        }
+    });
+    
+    // Проверка текущей подписки на push
+    async function checkPushSubscription() {
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                const subscription = await registration.pushManager.getSubscription();
+                
+                if (subscription) {
+                    notificationStatus.textContent = '✅ Подписка активна';
+                    notificationStatus.className = 'text-success';
+                }
+            } catch (error) {
+                console.log('[PWA] Push subscription check failed:', error);
+            }
+        }
+    }
+    
+    checkPushSubscription();
+</script>
+{% endblock %}
