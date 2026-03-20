@@ -1,0 +1,266 @@
+<!-- app/templates/offline.html -->
+<!-- FastPay Connect PWA - Offline Page -->
+<!-- Автор: Dupley Maxim Igorevich -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#009688">
+    <meta name="author" content="Dupley Maxim Igorevich">
+    <title>Нет подключения | FastPay Connect</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #009688 0%, #00796B 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+        
+        .container {
+            text-align: center;
+            padding: 40px 20px;
+            max-width: 500px;
+        }
+        
+        .icon {
+            font-size: 96px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 24px;
+        }
+        
+        h1 {
+            font-size: 32px;
+            color: white;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        
+        p {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+        
+        .status-card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            margin-bottom: 24px;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            background: #ffebee;
+            color: #c62828;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #c62828;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .retry-button {
+            display: inline-flex;
+            align-items: center;
+            padding: 16px 32px;
+            background: #009688;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        
+        .retry-button:hover {
+            background: #00796B;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 150, 136, 0.4);
+        }
+        
+        .retry-button:active {
+            transform: translateY(0);
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 12px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+            margin-top: 32px;
+        }
+        
+        .feature {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 16px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        
+        .feature-title {
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .cached-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="status-card">
+            <div class="icon">📡</div>
+            
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                Нет подключения к интернету
+            </div>
+            
+            <h1>Офлайн режим</h1>
+            <p>
+                Похоже, у вас нет подключения к сети. 
+                Некоторые функции могут быть недоступны, но вы можете просмотреть закэшированные данные.
+            </p>
+            
+            <button class="retry-button" onclick="retryConnection()">
+                <span class="spinner" id="retry-spinner" style="display: none;"></span>
+                🔄 Попробовать снова
+            </button>
+            
+            <div id="connection-status" style="margin-top: 16px; font-size: 14px; color: #666;"></div>
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">💾</div>
+                <div class="feature-title">Кэш</div>
+                <div class="cached-badge">Доступен</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <div class="feature-title">История</div>
+                <div class="cached-badge">Доступна</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⚙️</div>
+                <div class="feature-title">Настройки</div>
+                <div class="cached-badge">Доступны</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Проверка подключения
+        function checkConnection() {
+            return navigator.onLine;
+        }
+        
+        // Попытка переподключения
+        async function retryConnection() {
+            const spinner = document.getElementById('retry-spinner');
+            const statusDiv = document.getElementById('connection-status');
+            
+            spinner.style.display = 'inline-block';
+            statusDiv.textContent = 'Проверка подключения...';
+            
+            // Имитация проверки
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            if (checkConnection()) {
+                statusDiv.textContent = '✅ Подключение восстановлено! Перезагрузка...';
+                statusDiv.style.color = '#4CAF50';
+                
+                // Перезагрузка страницы
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                statusDiv.textContent = '❌ Подключение не найдено. Проверьте настройки сети.';
+                statusDiv.style.color = '#c62828';
+                spinner.style.display = 'none';
+            }
+        }
+        
+        // Автоматическая проверка при восстановлении соединения
+        window.addEventListener('online', async () => {
+            const statusDiv = document.getElementById('connection-status');
+            statusDiv.textContent = '🌐 Подключение обнаружено! Перезагрузка...';
+            statusDiv.style.color = '#4CAF50';
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            window.location.reload();
+        });
+        
+        // Service Worker для офлайн режима
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('[Offline] Service Worker registered');
+                })
+                .catch(error => {
+                    console.log('[Offline] Service Worker registration failed:', error);
+                });
+        }
+    </script>
+    
+    <footer style="position: fixed; bottom: 10px; width: 100%; text-align: center; color: rgba(255,255,255,0.7); font-size: 12px;">
+        © 2026 FastPay Connect. Автор: Dupley Maxim Igorevich
+    </footer>
+</body>
+</html>

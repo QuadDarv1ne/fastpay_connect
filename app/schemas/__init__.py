@@ -28,6 +28,40 @@ from app.schemas.webhook import (
     WebhookRetryRequest,
 )
 
+from app.schemas.apple_pay import (
+    ApplePayPaymentRequest,
+    ApplePayPaymentSessionRequest,
+    ApplePayTokenRequest,
+    ApplePayPaymentResponse,
+    ApplePayPaymentInfoResponse,
+    ApplePayRefundRequest,
+    ApplePayRefundResponse,
+    ApplePayWebhookPayload,
+    ApplePayWebhookResponse,
+    ApplePayMerchantValidationRequest,
+    ApplePayMerchantValidationResponse,
+    ApplePayNetworkEnum,
+    ApplePayStatusEnum,
+)
+
+from app.schemas.google_pay import (
+    GooglePayPaymentRequest,
+    GooglePayPaymentDataRequest,
+    GooglePayTokenRequest,
+    GooglePayPaymentResponse,
+    GooglePayPaymentInfoResponse,
+    GooglePayRefundRequest,
+    GooglePayRefundResponse,
+    GooglePayWebhookPayload,
+    GooglePayWebhookResponse,
+    GooglePayMerchantValidationResponse,
+    GooglePayIsReadyToPayResponse,
+    GooglePayNetworkEnum,
+    GooglePayCardClassEnum,
+    GooglePayStatusEnum,
+    GooglePayEnvironmentEnum,
+)
+
 __all__ = [
     # Auth schemas
     "Token",
@@ -51,4 +85,34 @@ __all__ = [
     "WebhookEventListResponse",
     "WebhookStatsResponse",
     "WebhookRetryRequest",
+    # Apple Pay schemas
+    "ApplePayPaymentRequest",
+    "ApplePayPaymentSessionRequest",
+    "ApplePayTokenRequest",
+    "ApplePayPaymentResponse",
+    "ApplePayPaymentInfoResponse",
+    "ApplePayRefundRequest",
+    "ApplePayRefundResponse",
+    "ApplePayWebhookPayload",
+    "ApplePayWebhookResponse",
+    "ApplePayMerchantValidationRequest",
+    "ApplePayMerchantValidationResponse",
+    "ApplePayNetworkEnum",
+    "ApplePayStatusEnum",
+    # Google Pay schemas
+    "GooglePayPaymentRequest",
+    "GooglePayPaymentDataRequest",
+    "GooglePayTokenRequest",
+    "GooglePayPaymentResponse",
+    "GooglePayPaymentInfoResponse",
+    "GooglePayRefundRequest",
+    "GooglePayRefundResponse",
+    "GooglePayWebhookPayload",
+    "GooglePayWebhookResponse",
+    "GooglePayMerchantValidationResponse",
+    "GooglePayIsReadyToPayResponse",
+    "GooglePayNetworkEnum",
+    "GooglePayCardClassEnum",
+    "GooglePayStatusEnum",
+    "GooglePayEnvironmentEnum",
 ]

@@ -1,11 +1,11 @@
 # FastPay Connect - TODO
 
-> **Last Updated**: Mar 22, 2026
-> **Current Branch**: main & dev (synced)
-> **Test Coverage**: 41 test files (~60%+ coverage)
-> **Payment Gateways**: 8 integrated
+> **Last Updated**: Mar 20, 2026
+> **Current Branch**: main (dev ready for improvements)
+> **Test Coverage**: 42 test files (~60%+ coverage)
+> **Payment Gateways**: 10 integrated (YooKassa, Tinkoff, CloudPayments, UnitPay, RoboKassa, RuStore, SBP, Apple Pay, Google Pay)
 > **CI/CD**: GitHub Actions (multi-platform deploy)
-> **Codebase**: 88 Python files (app/), 41 test files, 11 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks
+> **Codebase**: 92 Python files (app/), 42 test files, 11 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 10 schemas, 10 payment gateways, 2 tasks
 > **Redis Integration**: Rate limiting persistence, Celery broker/backend
 > **PostgreSQL**: dev environment ready (docker-compose.dev.yml, alembic.ini, DEVELOPMENT.md)
 > **Webhook Management**: API endpoints with retry, filters, pagination
@@ -16,6 +16,8 @@
 > **Webhook Security**: Signature verification for all gateways (HMAC-SHA256)
 > **Error Documentation**: 400+ lines covering all error codes
 > **OpenTelemetry**: Distributed tracing with Jaeger/Zipkin/OTLP support
+> **Performance Benchmarks**: Load testing documentation + tests
+> **PWA**: Progressive Web App with offline support, push notifications, install prompt
 >
 > ## Recent Improvements (Mar 2026)
 > ✅ Rate limiting with Redis persistence
@@ -28,6 +30,10 @@
 > ✅ Payment Analytics API (6 endpoints)
 > ✅ Error Codes Documentation (400+ lines)
 > ✅ OpenTelemetry distributed tracing
+> ✅ Performance Benchmarks and load testing (tests/test_benchmarks.py + docs/PERFORMANCE_BENCHMARKS.md)
+> ✅ **PWA Implementation** (manifest.json, service-worker.js, offline page, push notifications)
+> ✅ **Apple Pay Integration** (payment gateway + schemas + routes + tests)
+> ✅ **Google Pay Integration** (payment gateway + schemas + tests)
 
 ## Completed
 
@@ -140,6 +146,15 @@
 - [x] Jinja2 templates - ✅ app/templates/
 - [x] Payment dashboard template - ✅ app/templates/payment_dashboard.html
 - [x] Static files serving - ✅ app/static/
+- [x] **PWA Support** - ✅ Mar 2026
+  - manifest.json - ✅ app/static/manifest.json
+  - service-worker.js - ✅ app/static/service-worker.js
+  - offline.html - ✅ app/templates/offline.html
+  - pwa.html - ✅ app/templates/pwa.html
+  - base.html updated with PWA - ✅ app/templates/base.html
+  - PWA icons (8 sizes) - ✅ app/static/icons/
+  - PWA documentation - ✅ docs/PWA.md
+  - PWA routes in main.py - ✅ /manifest.json, /service-worker.js, /offline, /pwa
 
 ### Routes & Endpoints
 - [x] Payment routes - ✅ app/routes/payment_routes.py
@@ -199,16 +214,19 @@
 - [x] docs/api_versioning.md
 - [x] docs/DEPLOYMENT.md
 - [x] docs/CLOUDFLARE_DEPLOY.md
-- [x] README.md (308 строк) - ✅ Основная документация проекта
+- [x] docs/PWA.md - ✅ PWA документация
+- [x] README.md (330 строк) - ✅ Основная документация проекта
 
 ### Static Assets
 - [x] Project logo - ✅ fastpay_connect.png
 - [x] Static files directory - ✅ app/static/ (styles.css)
-- [x] Templates directory - ✅ app/templates/ (11 Jinja2 templates)
+- [x] Templates directory - ✅ app/templates/ (14 Jinja2 templates)
   - ✅ admin_payments.html, base.html, course_detail.html
   - ✅ error_payment.html, home.html, payment_dashboard.html
   - ✅ payment_status.html, profile_edit.html, success_payment.html
   - ✅ webhook_dashboard.html, webhook_notification.html
+  - ✅ **offline.html** (PWA offline page)
+  - ✅ **pwa.html** (PWA install page)
 - [x] Scripts - ✅ scripts/create_superuser.py, deploy/scripts/deploy.sh
 - [x] Startup scripts - ✅ 8 files for all platforms
   - ✅ start-windows.bat (Windows)
@@ -219,14 +237,16 @@
   - ✅ START.md (main guide)
   - ✅ START_ANDROID.md (Android instructions)
   - ✅ START_IOS.md (iOS instructions)
+- [x] PWA Icons - ✅ app/static/icons/ (16 icons: 8 sizes + badges + shortcuts)
+- [x] PWA Scripts - ✅ scripts/generate_pwa_icons_simple.py, scripts/generate_pwa_icons.ps1
 
-## Pending
+### Pending
 
 ### High Priority
 - [x] API v2 endpoints implementation (health endpoints done: /health, /ready, /live) - ✅ app/api/v2/routes/health.py (3 endpoints)
-- [ ] Apple Pay / Google Pay integration
+- [x] Apple Pay / Google Pay integration - ✅ app/payment_gateways/apple_pay.py, google_pay.py + schemas + routes
 - [ ] Mobile SDK (iOS/Android)
-- [ ] Performance benchmarks and load testing
+- [x] Performance benchmarks and load testing - ✅ tests/test_benchmarks.py + docs/PERFORMANCE_BENCHMARKS.md
 - [ ] GraphQL schema improvements (currently basic Strawberry setup)
 - [x] PostgreSQL migration scripts (alembic.ini uses SQLite for tests) - ✅ alembic.ini switched to PostgreSQL + docker-compose.dev.yml
 
@@ -257,8 +277,8 @@
 ### Current State (Mar 2026)
 | Metric | Value |
 |--------|-------|
-| **Payment Gateways** | 8 (YooKassa, Tinkoff, CloudPayments, UnitPay, RoboKassa, RuStore, SBP) |
-| **Test Files** | 40 files (~60%+ coverage) |
+| **Payment Gateways** | 10 (YooKassa, Tinkoff, CloudPayments, UnitPay, RoboKassa, RuStore, SBP, Apple Pay, Google Pay) |
+| **Test Files** | 42 files (~60%+ coverage) |
 | **API Version** | v1 (stable), v2 (health endpoints ready) |
 | **Database** | SQLite (dev) / PostgreSQL (prod via Docker) |
 | **Async Tasks** | Celery + Redis (webhook retry queue, 5 tasks) |
@@ -267,20 +287,22 @@
 | **Auth** | OAuth2/JWT with refresh tokens |
 | **Multi-tenant** | X-API-Key isolation |
 | **Multi-currency** | 10 currencies (RUB base) |
+| **PWA** | ✅ manifest.json, service-worker.js, offline page, install prompt, push notifications |
 | **CI/CD** | GitHub Actions (test, lint, build, deploy) |
 | **Deploy Targets** | 14 configs (AWS, GCP, Cloudflare, K8s, Render, Railway, Fly.io, Vercel, Netlify) |
-| **Documentation** | Swagger UI, ReDoc, 7 docs, README (308 lines), deploy/README (250 lines), START.md (336 lines) |
-| **Codebase** | 84 Python files, 10 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks |
-| **Templates** | 11 Jinja2 templates (admin, payment, webhook dashboards) |
-| **Static Assets** | Logo, styles.css, scripts, startup scripts (8 files) |
+| **Documentation** | Swagger UI, ReDoc, 9 docs (incl. PWA.md), README (330 lines), deploy/README (250 lines), START.md (336 lines), PERFORMANCE_BENCHMARKS.md |
+| **Codebase** | 92 Python files, 11 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 10 schemas, 10 payment gateways, 2 tasks |
+| **Templates** | 14 Jinja2 templates (admin, payment, webhook dashboards, PWA, offline) |
+| **Static Assets** | Logo, styles.css, scripts, startup scripts (8 files), PWA icons (16 files) |
 | **Alembic Migrations** | 6 migration files |
 | **Startup Scripts** | Windows (.bat), macOS/Linux (.sh), Android (Termux), Docker |
+| **Performance Benchmarks** | Load testing tests + documentation |
 
 ### Technical Debt
 - [x] Webhook security middleware - ✅ app/middleware/webhook_security.py
 - [x] Async SQLAlchemy support - ✅ app/repositories/async_payment_repository.py
 - [x] Integration tests for all payment gateways
-  - ✅ YooKassa, Tinkoff, RoboKassa, RuStore, SBP, CloudPayments, UnitPay
+  - ✅ YooKassa, Tinkoff, RoboKassa, RuStore, SBP, CloudPayments, UnitPay, Apple Pay, Google Pay
 - [x] API v2 structure - ✅ app/api/v2/ + middleware/api_versioning.py
 - [x] API v2 health endpoints - ✅ app/api/v2/routes/health.py (/health, /ready, /live)
 - [x] OpenAPI/Swagger documentation - ✅ /docs, /redoc
@@ -292,12 +314,14 @@
 - [x] PostgreSQL migration (alembic.ini switched to PostgreSQL) - ✅ + docker-compose.dev.yml, DEVELOPMENT.md
 - [x] Flower dashboard deployment (configured but needs deployment) - ✅ Auth, persistent storage, docs/FLOWER_DEPLOYMENT.md
 - [x] Webhook signature verification - ✅ app/utils/webhook_signature.py + tests (21 tests)
+- [x] Apple Pay / Google Pay integration - ✅ payment_gateways + schemas + routes
 
 ### Future Enhancements
 - [ ] Recurring payments / subscriptions API
 - [ ] Split payments / marketplace support
 - [ ] Fraud detection integration
-- [ ] Apple Pay / Google Pay integration
 - [ ] Mobile SDK (iOS/Android)
-- [ ] Payment analytics and reporting API
 - [ ] Multi-language support (i18n)
+- [ ] Admin dashboard with analytics
+- [ ] Multi-factor authentication (2FA)
+- [ ] Audit logging for admin actions
