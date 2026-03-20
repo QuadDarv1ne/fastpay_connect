@@ -5,6 +5,7 @@
 """
 
 import logging
+import json
 from typing import Callable, Dict, List, Optional
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -12,6 +13,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
 from app.utils.ip_validator import is_ip_in_whitelist
+from app.utils.webhook_signature import signature_verifier
 from app.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -51,6 +53,17 @@ class WebhookSecurityMiddleware(BaseHTTPMiddleware):
         "sbp": ["X-Signature", "X-Timestamp"],  # SBP требует подпись и timestamp
     }
 
+    # Шлюзы с обязательной проверкой подписи
+    GATEWAY_SIGNATURE_REQUIRED: Dict[str, bool] = {
+        "yookassa": False,  # Опционально
+        "tinkoff": False,  # Опционально
+        "cloudpayments": False,  # Опционально
+        "unitpay": True,  # Обязательно
+        "robokassa": True,  # Обязательно
+        "rustore": True,  # Обязательно
+        "sbp": True,  # Обязательно
+    }
+
     def __init__(self, app: ASGIApp) -> None:
         """Инициализация middleware."""
         super().__init__(app)
@@ -81,6 +94,9 @@ class WebhookSecurityMiddleware(BaseHTTPMiddleware):
 
             # Проверяем метод HTTP
             self._verify_http_method(request)
+
+            # Проверяем подпись (если требуется)
+            await self._verify_signature(request, gateway_name)
 
         return await call_next(request)
 
@@ -183,6 +199,83 @@ class WebhookSecurityMiddleware(BaseHTTPMiddleware):
                 status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
                 detail="Method not allowed. Webhooks only accept POST.",
             )
+
+    async def _verify_signature(self, request: Request, gateway_name: str) -> None:
+        """Проверка подписи webhook.
+
+        Args:
+            request: HTTP запрос
+            gateway_name: Имя платёжного шлюза
+
+        Raises:
+            HTTPException: Если подпись невалидна
+        """
+        # Проверяем требуется ли подпись для этого шлюза
+        if not self.GATEWAY_SIGNATURE_REQUIRED.get(gateway_name, False):
+            return
+
+        # Получаем секретный ключ шлюза
+        secret_key = self._get_gateway_secret_key(gateway_name)
+        if not secret_key:
+            logger.warning(f"No secret key configured for {gateway_name}")
+            return
+
+        # Получаем тело запроса
+        body = await request.body()
+
+        # Получаем подпись из заголовка
+        signature = request.headers.get("X-Signature", "")
+        if not signature:
+            logger.warning(f"Webhook from {gateway_name} missing signature")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing webhook signature",
+            )
+
+        # Получаем timestamp (для SBP)
+        timestamp = request.headers.get("X-Timestamp")
+
+        # Получаем параметры из query string (для UnitPay, RoboKassa)
+        params = dict(request.query_params)
+
+        # Проверяем подпись
+        is_valid = signature_verifier.verify(
+            gateway=gateway_name,
+            payload=body,
+            signature=signature,
+            secret_key=secret_key,
+            params=params if params else None,
+            timestamp=timestamp,
+        )
+
+        if not is_valid:
+            logger.warning(f"Invalid webhook signature from {gateway_name}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid webhook signature",
+            )
+
+        logger.debug(f"Webhook signature verified for {gateway_name}")
+
+    def _get_gateway_secret_key(self, gateway_name: str) -> Optional[str]:
+        """Получить секретный ключ шлюза.
+
+        Args:
+            gateway_name: Имя шлюза
+
+        Returns:
+            Секретный ключ или None
+        """
+        key_mapping = {
+            "yookassa": settings.yookassa_secret_key,
+            "tinkoff": settings.tinkoff_secret_key,
+            "cloudpayments": settings.cloudpayments_secret_key,
+            "unitpay": settings.unitpay_secret_key,
+            "robokassa": settings.robokassa_secret_key,
+            "rustore": settings.rustore_secret_key,
+            "sbp": settings.sbp_secret_key,
+        }
+        return key_mapping.get(gateway_name)
 
 
 def setup_webhook_security_middleware(app: FastAPI) -> None:
