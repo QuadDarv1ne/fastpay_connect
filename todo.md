@@ -5,7 +5,7 @@
 > **Test Coverage**: 40 test files (~60%+ coverage)
 > **Payment Gateways**: 8 integrated
 > **CI/CD**: GitHub Actions (multi-platform deploy)
-> **Codebase**: 85 Python files (app/), 40 test files, 9 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks
+> **Codebase**: 84 Python files (app/), 40 test files, 10 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks
 > **Redis Integration**: Rate limiting persistence, Celery broker/backend
 > **PostgreSQL**: dev environment ready (docker-compose.dev.yml, alembic.ini, DEVELOPMENT.md)
 > **Webhook Management**: API endpoints with retry, filters, pagination
@@ -275,7 +275,7 @@
 | **CI/CD** | GitHub Actions (test, lint, build, deploy) |
 | **Deploy Targets** | 14 configs (AWS, GCP, Cloudflare, K8s, Render, Railway, Fly.io, Vercel, Netlify) |
 | **Documentation** | Swagger UI, ReDoc, 7 docs, README (308 lines), deploy/README (250 lines), START.md (336 lines) |
-| **Codebase** | 85 Python files, 9 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks |
+| **Codebase** | 84 Python files, 10 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks |
 | **Templates** | 11 Jinja2 templates (admin, payment, webhook dashboards) |
 | **Static Assets** | Logo, styles.css, scripts, startup scripts (8 files) |
 | **Alembic Migrations** | 6 migration files |
