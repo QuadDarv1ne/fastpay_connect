@@ -444,3 +444,40 @@ class PaymentRepository:
         elif transaction_id:
             return self.get_by_transaction_id(transaction_id)
         return None
+
+    def get_payments_by_period(
+        self,
+        start_date: datetime,
+        end_date: datetime,
+        gateway: Optional[str] = None,
+        status: Optional[str] = None,
+        tenant_id: Optional[int] = None,
+    ) -> List[Payment]:
+        """
+        Получить платежи за период с фильтрами.
+        
+        Args:
+            start_date: Начальная дата
+            end_date: Конечная дата
+            gateway: Фильтр по платёжной системе
+            status: Фильтр по статусу
+            tenant_id: Фильтр по tenant ID
+            
+        Returns:
+            Список платежей
+        """
+        query = self._db.query(Payment).filter(
+            Payment.created_at >= start_date,
+            Payment.created_at <= end_date,
+        )
+        
+        if gateway:
+            query = query.filter(Payment.payment_gateway == gateway)
+        
+        if status:
+            query = query.filter(Payment.status == PaymentStatus(status))
+        
+        if tenant_id:
+            query = query.filter(Payment.tenant_id == tenant_id)
+        
+        return query.order_by(Payment.created_at.desc()).all()
