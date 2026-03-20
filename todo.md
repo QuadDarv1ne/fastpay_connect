@@ -5,7 +5,7 @@
 > **Test Coverage**: 40 test files (~60%+ coverage)
 > **Payment Gateways**: 8 integrated
 > **CI/CD**: GitHub Actions (multi-platform deploy)
-> **Codebase**: 81 Python files (app/), 40 test files, 8 routes, 5 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 5 schemas, 10 payment gateways, 2 tasks
+> **Codebase**: 81 Python files (app/), 40 test files, 8 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 5 schemas, 10 payment gateways, 2 tasks
 
 ## Completed
 
@@ -153,7 +153,7 @@
 - [x] API v2 router - ✅ app/api/v2/__init__.py (health v2 endpoint)
 - [x] API v2 routes structure - ✅ app/api/v2/routes/ (health.py with /health, /ready, /live)
 
-### Middleware (5 total)
+### Middleware (7 total)
 - [x] API Versioning Middleware - ✅ app/middleware/api_versioning.py
 - [x] Rate Limiter Middleware - ✅ app/middleware/rate_limiter.py (slowapi)
 - [x] Tenant Middleware - ✅ app/middleware/tenant.py (X-API-Key isolation)
@@ -259,7 +259,7 @@
 | **CI/CD** | GitHub Actions (test, lint, build, deploy) |
 | **Deploy Targets** | 14 configs (AWS, GCP, Cloudflare, K8s, Render, Railway, Fly.io, Vercel, Netlify) |
 | **Documentation** | Swagger UI, ReDoc, 7 docs, README (308 lines), deploy/README (250 lines) |
-| **Codebase** | 81 Python files, 8 routes, 5 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 5 schemas, 10 payment gateways, 2 tasks |
+| **Codebase** | 81 Python files, 8 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 5 schemas, 10 payment gateways, 2 tasks |
 | **Templates** | 11 Jinja2 templates (admin, payment, webhook dashboards) |
 | **Static Assets** | Logo, styles.css, scripts |
 | **Alembic Migrations** | 6 migration files |
