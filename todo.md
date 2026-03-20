@@ -2,16 +2,17 @@
 
 > **Last Updated**: Mar 22, 2026
 > **Current Branch**: main & dev (synced)
-> **Test Coverage**: 40 test files (~60%+ coverage)
+> **Test Coverage**: 41 test files (~60%+ coverage)
 > **Payment Gateways**: 8 integrated
 > **CI/CD**: GitHub Actions (multi-platform deploy)
-> **Codebase**: 84 Python files (app/), 40 test files, 10 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks
+> **Codebase**: 85 Python files (app/), 41 test files, 10 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks
 > **Redis Integration**: Rate limiting persistence, Celery broker/backend
 > **PostgreSQL**: dev environment ready (docker-compose.dev.yml, alembic.ini, DEVELOPMENT.md)
 > **Webhook Management**: API endpoints with retry, filters, pagination
 > **Payment Export**: CSV + JSON export with filters
 > **Startup Scripts**: Windows, macOS, Linux, Android, Docker (8 files)
 > **Flower Dashboard**: Celery monitoring with auth, persistent storage
+> **Webhook Security**: Signature verification for all gateways (HMAC-SHA256)
 >
 > ## Recent Improvements (Mar 2026)
 > ✅ Rate limiting with Redis persistence
@@ -20,6 +21,7 @@
 > ✅ Payment Export API (CSV/JSON)
 > ✅ Cross-platform startup scripts (8 files)
 > ✅ Flower Dashboard deployment (auth, docs)
+> ✅ Webhook signature verification (all gateways)
 
 ## Completed
 
@@ -228,7 +230,7 @@
 - [x] Cache service with Redis (currently using in-memory LRUCache) - ✅ Rate limiting now uses Redis
 - [x] Rate limiting persistence (currently in-memory) - ✅ app/middleware/rate_limiter.py with Redis backend
 - [ ] Distributed tracing (OpenTelemetry)
-- [ ] Webhook signature verification for all gateways (some implemented)
+- [x] Webhook signature verification for all gateways (some implemented) - ✅ app/utils/webhook_signature.py + middleware
 - [x] Flower dashboard deployment (configured in docker-compose.prod.yml) - ✅ Auth + docs/FLOWER_DEPLOYMENT.md
 
 ### Low Priority
@@ -283,6 +285,7 @@
 - [ ] API v2 endpoints implementation (payments, webhooks, admin, etc.)
 - [x] PostgreSQL migration (alembic.ini switched to PostgreSQL) - ✅ + docker-compose.dev.yml, DEVELOPMENT.md
 - [x] Flower dashboard deployment (configured but needs deployment) - ✅ Auth, persistent storage, docs/FLOWER_DEPLOYMENT.md
+- [x] Webhook signature verification - ✅ app/utils/webhook_signature.py + tests (21 tests)
 
 ### Future Enhancements
 - [ ] Recurring payments / subscriptions API
