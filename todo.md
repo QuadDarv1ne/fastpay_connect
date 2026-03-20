@@ -5,7 +5,7 @@
 > **Test Coverage**: 40 test files (~60%+ coverage)  
 > **Payment Gateways**: 8 integrated  
 > **CI/CD**: GitHub Actions (multi-platform deploy)  
-> **Codebase**: 79 Python files (app/)
+> **Codebase**: 79 Python files (app/), 8 route files, 5 middleware files
 
 ## Completed
 
@@ -21,6 +21,8 @@
 - [x] Structured JSON logging (structlog)
 - [x] Environment settings validation - ✅ app/settings.py (Pydantic Settings)
 - [x] Settings validator - ✅ app/utils/settings_validator.py
+- [x] CORS middleware - ✅ app/main.py (CORSMiddleware)
+- [x] Lifespan events (startup/shutdown) - ✅ app/main.py
 
 ### Repositories & Data Layer
 - [x] PaymentRepository with error handling - ✅ app/repositories/payment_repository.py
@@ -71,13 +73,42 @@
 - [x] **Email Service** - ✅ app/services/email_service.py
 - [x] **Payment Service** - ✅ app/services/payment_service.py
 - [x] **GraphQL API** - ✅ Strawberry GraphQL with resolvers (app/graphql/)
+  - GraphQL schema: app/graphql/schema.py
+  - GraphQL resolvers: app/graphql/resolvers.py
 - [x] **OAuth2/JWT Authentication** - ✅ JWT auth, refresh tokens, password reset
 - [x] **WebSocket Notifications** - ✅ app/websocket/ (real-time payment updates)
+  - WebSocket router: app/routes/websocket_routes.py
+  - Connection manager: app/websocket/
 - [x] **API Versioning** - ✅ v1/v2 structure (app/api/v1/, app/api/v2/)
 - [x] **Webhook Security Middleware** - ✅ app/middleware/webhook_security.py
 - [x] **Rate limiting per API key** - ✅ app/middleware/rate_limiter.py (slowapi)
 - [x] **IP Validator** - ✅ app/utils/ip_validator.py
 - [x] **Metrics utility** - ✅ app/utils/metrics.py
+
+### Templates & Frontend
+- [x] Jinja2 templates - ✅ app/templates/
+- [x] Payment dashboard template - ✅ app/templates/payment_dashboard.html
+- [x] Static files serving - ✅ app/static/
+
+### Routes & Endpoints
+- [x] Payment routes - ✅ app/routes/payment_routes.py
+- [x] Webhook routes - ✅ app/routes/webhook_routes.py
+- [x] Admin routes - ✅ app/routes/admin_routes.py
+- [x] Auth routes - ✅ app/routes/auth_routes.py
+- [x] Dashboard routes - ✅ app/routes/dashboard_routes.py
+- [x] Webhook monitor routes - ✅ app/routes/webhook_monitor_routes.py
+- [x] WebSocket routes - ✅ app/routes/websocket_routes.py
+- [x] API v1 router - ✅ app/api/v1/__init__.py (payments, webhooks, admin, auth, health)
+- [x] API v2 router - ✅ app/api/v2/__init__.py (development status)
+
+### Middleware (5 total)
+- [x] API Versioning Middleware - ✅ app/middleware/api_versioning.py
+- [x] Rate Limiter Middleware - ✅ app/middleware/rate_limiter.py (slowapi)
+- [x] Tenant Middleware - ✅ app/middleware/tenant.py (X-API-Key isolation)
+- [x] Webhook Security Middleware - ✅ app/middleware/webhook_security.py (IP + signature validation)
+- [x] CORS Middleware - ✅ app/main.py (CORSMiddleware)
+- [x] TrustedHost Middleware - ✅ app/main.py (production)
+- [x] Prometheus Metrics Middleware - ✅ app/utils/metrics.py
 
 ### Testing & CI/CD
 - [x] Integration tests with mocked payment gateways - ✅ 40 test files
@@ -90,7 +121,8 @@
 - [x] Prometheus metrics export - ✅ app/utils/metrics.py
 - [x] Health check endpoints - ✅ /health, /health/celery, /health/db, /health/redis
 - [x] pytest.ini configured - ✅ pytest.ini
-- [x] conftest.py with fixtures - ✅ tests/conftest.py
+- [x] conftest.py with fixtures - ✅ tests/conftest.py (db_engine, db_session, client)
+- [x] Test database setup (SQLite for tests) - ✅ tests/conftest.py
 
 ### Utilities & Helpers
 - [x] Currency utils - ✅ app/utils/currency.py
@@ -111,6 +143,12 @@
 - [x] docs/api_versioning.md
 - [x] docs/DEPLOYMENT.md
 - [x] docs/CLOUDFLARE_DEPLOY.md
+- [x] README.md (308 строк) - ✅ Основная документация проекта
+
+### Static Assets
+- [x] Project logo - ✅ fastpay_connect.png
+- [x] Static files directory - ✅ app/static/
+- [x] Templates directory - ✅ app/templates/ (Jinja2)
 
 ## Pending
 
@@ -119,6 +157,7 @@
 - [ ] Apple Pay / Google Pay integration
 - [ ] Mobile SDK (iOS/Android)
 - [ ] Performance benchmarks and load testing
+- [ ] GraphQL schema improvements (currently basic Strawberry setup)
 
 ### Medium Priority
 - [ ] Payment analytics and reporting API
@@ -126,6 +165,7 @@
 - [ ] Cache service with Redis (currently using in-memory LRUCache)
 - [ ] Rate limiting persistence (currently in-memory)
 - [ ] Distributed tracing (OpenTelemetry)
+- [ ] Webhook signature verification for all gateways (some implemented)
 
 ### Low Priority
 - [ ] Payment statistics dashboard (basic dashboard exists: routes/dashboard_routes.py)
@@ -135,6 +175,7 @@
 - [ ] Multi-factor authentication (2FA)
 - [ ] Audit logging for admin actions
 - [ ] Comprehensive error codes documentation
+- [ ] Background task monitoring dashboard (Flower integration)
 
 ---
 
@@ -147,15 +188,17 @@
 | **Test Files** | 40 files (~60%+ coverage) |
 | **API Version** | v1 (stable), v2 (structure ready) |
 | **Database** | SQLite (dev) / PostgreSQL (prod via Docker) |
-| **Async Tasks** | Celery + Redis (webhook retry queue) |
-| **GraphQL** | Strawberry GraphQL API |
+| **Async Tasks** | Celery + Redis (webhook retry queue, 5 tasks) |
+| **GraphQL** | Strawberry GraphQL API (basic schema) |
 | **WebSocket** | Real-time notifications |
 | **Auth** | OAuth2/JWT with refresh tokens |
 | **Multi-tenant** | X-API-Key isolation |
 | **Multi-currency** | 10 currencies (RUB base) |
 | **CI/CD** | GitHub Actions (test, lint, build, deploy) |
 | **Deploy Targets** | Cloudflare, Render, Railway, Fly.io, K8s, VPS |
-| **Documentation** | Swagger UI (/docs), ReDoc (/redoc), 7 docs |
+| **Documentation** | Swagger UI, ReDoc, 7 docs, README (308 lines) |
+| **Codebase** | 79 Python files, 8 routes, 5 middleware |
+| **Static Assets** | Logo, templates (Jinja2), static files |
 
 ### Technical Debt
 - [x] Webhook security middleware - ✅ app/middleware/webhook_security.py
