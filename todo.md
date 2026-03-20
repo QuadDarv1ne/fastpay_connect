@@ -5,7 +5,7 @@
 > **Test Coverage**: 41 test files (~60%+ coverage)
 > **Payment Gateways**: 8 integrated
 > **CI/CD**: GitHub Actions (multi-platform deploy)
-> **Codebase**: 87 Python files (app/), 41 test files, 11 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks
+> **Codebase**: 88 Python files (app/), 41 test files, 11 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks
 > **Redis Integration**: Rate limiting persistence, Celery broker/backend
 > **PostgreSQL**: dev environment ready (docker-compose.dev.yml, alembic.ini, DEVELOPMENT.md)
 > **Webhook Management**: API endpoints with retry, filters, pagination
@@ -15,6 +15,7 @@
 > **Flower Dashboard**: Celery monitoring with auth, persistent storage
 > **Webhook Security**: Signature verification for all gateways (HMAC-SHA256)
 > **Error Documentation**: 400+ lines covering all error codes
+> **OpenTelemetry**: Distributed tracing with Jaeger/Zipkin/OTLP support
 >
 > ## Recent Improvements (Mar 2026)
 > ✅ Rate limiting with Redis persistence
@@ -26,6 +27,7 @@
 > ✅ Webhook signature verification (all gateways)
 > ✅ Payment Analytics API (6 endpoints)
 > ✅ Error Codes Documentation (400+ lines)
+> ✅ OpenTelemetry distributed tracing
 
 ## Completed
 
@@ -233,7 +235,7 @@
 - [ ] Multi-language support (i18n)
 - [x] Cache service with Redis (currently using in-memory LRUCache) - ✅ Rate limiting now uses Redis
 - [x] Rate limiting persistence (currently in-memory) - ✅ app/middleware/rate_limiter.py with Redis backend
-- [ ] Distributed tracing (OpenTelemetry)
+- [x] Distributed tracing (OpenTelemetry) - ✅ app/utils/opentelemetry.py + docs/OPENTELEMETRY.md
 - [x] Webhook signature verification for all gateways (some implemented) - ✅ app/utils/webhook_signature.py + middleware
 - [x] Flower dashboard deployment (configured in docker-compose.prod.yml) - ✅ Auth + docs/FLOWER_DEPLOYMENT.md
 
@@ -284,7 +286,7 @@
 - [x] OpenAPI/Swagger documentation - ✅ /docs, /redoc
 - [x] CI/CD pipeline - ✅ .github/workflows/ci.yml
 - [x] Multi-platform deploy configs - ✅ 14 deployment configurations
-- [ ] Distributed tracing (OpenTelemetry)
+- [x] Distributed tracing (OpenTelemetry) - ✅ app/utils/opentelemetry.py + docs/OPENTELEMETRY.md
 - [x] Comprehensive error codes documentation - ✅ docs/ERROR_CODES.md
 - [ ] API v2 endpoints implementation (payments, webhooks, admin, etc.)
 - [x] PostgreSQL migration (alembic.ini switched to PostgreSQL) - ✅ + docker-compose.dev.yml, DEVELOPMENT.md
