@@ -201,8 +201,12 @@
 
 ### Static Assets
 - [x] Project logo - ✅ fastpay_connect.png
-- [x] Static files directory - ✅ app/static/
-- [x] Templates directory - ✅ app/templates/ (Jinja2)
+- [x] Static files directory - ✅ app/static/ (styles.css)
+- [x] Templates directory - ✅ app/templates/ (11 Jinja2 templates)
+  - ✅ admin_payments.html, base.html, course_detail.html
+  - ✅ error_payment.html, home.html, payment_dashboard.html
+  - ✅ payment_status.html, profile_edit.html, success_payment.html
+  - ✅ webhook_dashboard.html, webhook_notification.html
 - [x] Scripts - ✅ scripts/create_superuser.py, deploy/scripts/deploy.sh
 
 ## Pending
@@ -243,8 +247,8 @@
 | Metric | Value |
 |--------|-------|
 | **Payment Gateways** | 8 (YooKassa, Tinkoff, CloudPayments, UnitPay, RoboKassa, RuStore, SBP) |
-| **Test Files** | 38 files (~60%+ coverage) |
-| **API Version** | v1 (stable), v2 (structure ready) |
+| **Test Files** | 40 files (~60%+ coverage) |
+| **API Version** | v1 (stable), v2 (health endpoints ready) |
 | **Database** | SQLite (dev) / PostgreSQL (prod via Docker) |
 | **Async Tasks** | Celery + Redis (webhook retry queue, 5 tasks) |
 | **GraphQL** | Strawberry GraphQL API (Payment, PaymentConnection types) |
@@ -255,8 +259,10 @@
 | **CI/CD** | GitHub Actions (test, lint, build, deploy) |
 | **Deploy Targets** | 14 configs (AWS, GCP, Cloudflare, K8s, Render, Railway, Fly.io, Vercel, Netlify) |
 | **Documentation** | Swagger UI, ReDoc, 7 docs, README (308 lines), deploy/README (250 lines) |
-| **Codebase** | 79 Python files, 8 routes, 5 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 5 schemas, 10 payment gateways, 2 tasks |
-| **Static Assets** | Logo, templates (Jinja2), static files, scripts |
+| **Codebase** | 81 Python files, 8 routes, 5 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 5 schemas, 10 payment gateways, 2 tasks |
+| **Templates** | 11 Jinja2 templates (admin, payment, webhook dashboards) |
+| **Static Assets** | Logo, styles.css, scripts |
+| **Alembic Migrations** | 6 migration files |
 
 ### Technical Debt
 - [x] Webhook security middleware - ✅ app/middleware/webhook_security.py
