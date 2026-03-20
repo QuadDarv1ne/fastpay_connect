@@ -2,7 +2,7 @@
 
 > **Last Updated**: Mar 2026  
 > **Current Branch**: main & dev (synced)  
-> **Test Coverage**: 40 test files (~60%+ coverage)  
+> **Test Coverage**: 38 test files (~60%+ coverage)  
 > **Payment Gateways**: 8 integrated  
 > **CI/CD**: GitHub Actions (multi-platform deploy)  
 > **Codebase**: 79 Python files (app/), 8 routes, 5 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 5 schemas, 10 payment gateways, 2 tasks
@@ -16,6 +16,11 @@
 - [x] Pre-commit hooks (black, flake8, isort, mypy, detect-secrets) - ✅ .pre-commit-config.yaml
 - [x] TrustedHostMiddleware for production
 - [x] Alembic migrations - ✅ 5 migration files in alembic/versions/
+  - e177d6c0b9cc_initial_migration_add_payments_table.py
+  - a2b3c4d5e6f7_update_payment_model_add_transaction_id.py
+  - 2e99afdbf552_add_webhook_processed_field_to_payment_.py
+  - oauth2_auth.py
+  - webhook_events_monitoring.py
 - [x] Async payment gateways with retry logic
 - [x] Input validation with Pydantic v2
 - [x] Structured JSON logging (structlog)
@@ -157,7 +162,7 @@
 - [x] Prometheus Metrics Middleware - ✅ app/utils/metrics.py
 
 ### Testing & CI/CD
-- [x] Integration tests with mocked payment gateways - ✅ 40 test files
+- [x] Integration tests with mocked payment gateways - ✅ 38 test files
 - [x] CI/CD Pipeline - ✅ .github/workflows/ci.yml
   - Test & Lint job
   - Docker build & push (ghcr.io)
@@ -237,7 +242,7 @@
 | Metric | Value |
 |--------|-------|
 | **Payment Gateways** | 8 (YooKassa, Tinkoff, CloudPayments, UnitPay, RoboKassa, RuStore, SBP) |
-| **Test Files** | 40 files (~60%+ coverage) |
+| **Test Files** | 38 files (~60%+ coverage) |
 | **API Version** | v1 (stable), v2 (structure ready) |
 | **Database** | SQLite (dev) / PostgreSQL (prod via Docker) |
 | **Async Tasks** | Celery + Redis (webhook retry queue, 5 tasks) |
