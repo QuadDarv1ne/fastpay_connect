@@ -150,7 +150,9 @@
 - [x] Webhook monitor routes - ✅ app/routes/webhook_monitor_routes.py
 - [x] WebSocket routes - ✅ app/routes/websocket_routes.py
 - [x] API v1 router - ✅ app/api/v1/__init__.py (payments, webhooks, admin, auth, health, currencies, rustore, sbp, tenants)
-- [x] API v2 router - ✅ app/api/v2/__init__.py (health v2 endpoint)
+  - ✅ API v1 routes: 10 files (admin, auth, currencies, health, payments, rustore, sbp, tenants, webhooks)
+- [x] API v2 router - ✅ app/api/v2/__init__.py (3 health endpoints)
+  - ✅ API v2 routes: /health, /ready, /live
 - [x] API v2 routes structure - ✅ app/api/v2/routes/ (health.py with /health, /ready, /live)
 
 ### Middleware (7 total)
