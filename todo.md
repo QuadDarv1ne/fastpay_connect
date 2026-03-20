@@ -1,11 +1,11 @@
 # FastPay Connect - TODO
 
-> **Last Updated**: Mar 22, 2026
+> **Last Updated**: Mar 20, 2026
 > **Current Branch**: main & dev (synced)
-> **Test Coverage**: 41 test files (~60%+ coverage)
+> **Test Coverage**: 42 test files (~60%+ coverage)
 > **Payment Gateways**: 8 integrated
 > **CI/CD**: GitHub Actions (multi-platform deploy)
-> **Codebase**: 88 Python files (app/), 41 test files, 11 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks
+> **Codebase**: 88 Python files (app/), 42 test files, 11 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks
 > **Redis Integration**: Rate limiting persistence, Celery broker/backend
 > **PostgreSQL**: dev environment ready (docker-compose.dev.yml, alembic.ini, DEVELOPMENT.md)
 > **Webhook Management**: API endpoints with retry, filters, pagination
@@ -16,6 +16,7 @@
 > **Webhook Security**: Signature verification for all gateways (HMAC-SHA256)
 > **Error Documentation**: 400+ lines covering all error codes
 > **OpenTelemetry**: Distributed tracing with Jaeger/Zipkin/OTLP support
+> **Performance Benchmarks**: Load testing documentation + tests
 >
 > ## Recent Improvements (Mar 2026)
 > ✅ Rate limiting with Redis persistence
@@ -28,6 +29,7 @@
 > ✅ Payment Analytics API (6 endpoints)
 > ✅ Error Codes Documentation (400+ lines)
 > ✅ OpenTelemetry distributed tracing
+> ✅ Performance Benchmarks and load testing (tests/test_benchmarks.py + docs/PERFORMANCE_BENCHMARKS.md)
 
 ## Completed
 
@@ -226,7 +228,7 @@
 - [x] API v2 endpoints implementation (health endpoints done: /health, /ready, /live) - ✅ app/api/v2/routes/health.py (3 endpoints)
 - [ ] Apple Pay / Google Pay integration
 - [ ] Mobile SDK (iOS/Android)
-- [ ] Performance benchmarks and load testing
+- [x] Performance benchmarks and load testing - ✅ tests/test_benchmarks.py + docs/PERFORMANCE_BENCHMARKS.md
 - [ ] GraphQL schema improvements (currently basic Strawberry setup)
 - [x] PostgreSQL migration scripts (alembic.ini uses SQLite for tests) - ✅ alembic.ini switched to PostgreSQL + docker-compose.dev.yml
 
@@ -258,7 +260,7 @@
 | Metric | Value |
 |--------|-------|
 | **Payment Gateways** | 8 (YooKassa, Tinkoff, CloudPayments, UnitPay, RoboKassa, RuStore, SBP) |
-| **Test Files** | 40 files (~60%+ coverage) |
+| **Test Files** | 42 files (~60%+ coverage) |
 | **API Version** | v1 (stable), v2 (health endpoints ready) |
 | **Database** | SQLite (dev) / PostgreSQL (prod via Docker) |
 | **Async Tasks** | Celery + Redis (webhook retry queue, 5 tasks) |
@@ -269,12 +271,13 @@
 | **Multi-currency** | 10 currencies (RUB base) |
 | **CI/CD** | GitHub Actions (test, lint, build, deploy) |
 | **Deploy Targets** | 14 configs (AWS, GCP, Cloudflare, K8s, Render, Railway, Fly.io, Vercel, Netlify) |
-| **Documentation** | Swagger UI, ReDoc, 7 docs, README (308 lines), deploy/README (250 lines), START.md (336 lines) |
-| **Codebase** | 84 Python files, 10 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks |
+| **Documentation** | Swagger UI, ReDoc, 8 docs, README (308 lines), deploy/README (250 lines), START.md (336 lines), PERFORMANCE_BENCHMARKS.md |
+| **Codebase** | 88 Python files, 11 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks |
 | **Templates** | 11 Jinja2 templates (admin, payment, webhook dashboards) |
 | **Static Assets** | Logo, styles.css, scripts, startup scripts (8 files) |
 | **Alembic Migrations** | 6 migration files |
 | **Startup Scripts** | Windows (.bat), macOS/Linux (.sh), Android (Termux), Docker |
+| **Performance Benchmarks** | Load testing tests + documentation |
 
 ### Technical Debt
 - [x] Webhook security middleware - ✅ app/middleware/webhook_security.py
