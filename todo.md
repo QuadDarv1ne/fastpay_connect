@@ -5,7 +5,7 @@
 > **Test Coverage**: 40 test files (~60%+ coverage)  
 > **Payment Gateways**: 8 integrated  
 > **CI/CD**: GitHub Actions (multi-platform deploy)  
-> **Codebase**: 79 Python files (app/), 8 routes, 5 middleware, 5 models, 6 repositories, 4 services, 3 websocket
+> **Codebase**: 79 Python files (app/), 8 routes, 5 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 5 schemas, 10 payment gateways, 2 tasks
 
 ## Completed
 
@@ -41,7 +41,9 @@
 - [x] WebhookEvent model - ✅ app/models/webhook_event.py
 - [x] SQLAlchemy Base - ✅ app/database.py (Base, SessionLocal, engine)
 
-### Payment Gateways (8 total)
+### Payment Gateways (10 files, 8 integrations)
+- [x] Base gateway - ✅ app/payment_gateways/base.py
+- [x] Exceptions - ✅ app/payment_gateways/exceptions.py
 - [x] YooKassa - ✅ app/payment_gateways/yookassa.py + tests/test_yookassa.py
 - [x] Tinkoff - ✅ app/payment_gateways/tinkoff.py + tests/test_tinkoff.py
 - [x] CloudPayments - ✅ app/payment_gateways/cloudpayments.py + tests/test_cloudpayments.py
@@ -49,6 +51,7 @@
 - [x] RoboKassa - ✅ app/payment_gateways/robokassa.py + tests/test_robokassa.py
 - [x] RuStore - ✅ app/payment_gateways/rustore.py + tests/test_rustore.py (13 тестов)
 - [x] SBP - ✅ app/payment_gateways/sbp.py + tests/test_sbp.py (28 тестов)
+- [x] Package exports - ✅ app/payment_gateways/__init__.py
 
 ### Features
 - [x] **Webhook retry queue (Celery + Redis)** - ✅ Dec 2025
@@ -84,7 +87,7 @@
 - [x] **Services package** - ✅ app/services/__init__.py (4 services total)
 - [x] **GraphQL API** - ✅ Strawberry GraphQL with resolvers (app/graphql/)
   - GraphQL schema: app/graphql/schema.py (Payment, PaymentConnection types)
-  - GraphQL resolvers: app/graphql/resolvers.py
+  - GraphQL resolvers: app/graphql/resolvers.py (213 lines)
   - PaymentStatus enum
 - [x] **OAuth2/JWT Authentication** - ✅ JWT auth, refresh tokens, password reset
 - [x] **WebSocket Notifications** - ✅ app/websocket/ (real-time payment updates)
@@ -97,6 +100,20 @@
 - [x] **Rate limiting per API key** - ✅ app/middleware/rate_limiter.py (slowapi)
 - [x] **IP Validator** - ✅ app/utils/ip_validator.py
 - [x] **Metrics utility** - ✅ app/utils/metrics.py
+
+### Schemas (5 total)
+- [x] Auth schemas - ✅ app/schemas/auth.py
+- [x] Payment schemas - ✅ app/schemas/payment.py
+- [x] SBP schemas - ✅ app/schemas/sbp.py
+- [x] Tenant schemas - ✅ app/schemas/tenant.py
+- [x] Package exports - ✅ app/schemas/__init__.py
+
+### Tasks (2 total)
+- [x] Celery webhook tasks - ✅ app/tasks/webhook_tasks.py (5 tasks)
+- [x] Package exports - ✅ app/tasks/__init__.py
+
+### Dependencies
+- [x] Database dependencies - ✅ app/dependencies.py (get_db, get_payment_repository, verify_db_connection)
 
 ### Deploy Configurations (14 files)
 - [x] Dockerfile (multi-stage) - ✅ Dockerfile
@@ -232,7 +249,7 @@
 | **CI/CD** | GitHub Actions (test, lint, build, deploy) |
 | **Deploy Targets** | 14 configs (AWS, GCP, Cloudflare, K8s, Render, Railway, Fly.io, Vercel, Netlify) |
 | **Documentation** | Swagger UI, ReDoc, 7 docs, README (308 lines), deploy/README (250 lines) |
-| **Codebase** | 79 Python files, 8 routes, 5 middleware, 5 models, 6 repositories, 4 services, 3 websocket |
+| **Codebase** | 79 Python files, 8 routes, 5 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 5 schemas, 10 payment gateways, 2 tasks |
 | **Static Assets** | Logo, templates (Jinja2), static files, scripts |
 
 ### Technical Debt
