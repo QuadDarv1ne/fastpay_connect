@@ -169,6 +169,10 @@ app.include_router(webhook_management_router, prefix="/api/webhooks", tags=["Web
 from app.routes.payment_export_routes import router as payment_export_router
 app.include_router(payment_export_router, prefix="/api/payments", tags=["Payment Export"])
 
+# Payment Analytics routes
+from app.routes.payment_analytics_routes import router as payment_analytics_router
+app.include_router(payment_analytics_router, prefix="/api/payments", tags=["Payment Analytics"])
+
 # API Versioning
 app.include_router(v1_router, prefix="/api/v1", tags=["API v1"])
 app.include_router(v2_router, prefix="/api/v2", tags=["API v2"])
