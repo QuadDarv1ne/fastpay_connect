@@ -1,11 +1,11 @@
 # FastPay Connect - TODO
 
-> **Last Updated**: Mar 20, 2026 (Latest: GraphQL Relay improvements)
+> **Last Updated**: Mar 20, 2026 (Latest: 2FA Implementation)
 > **Current Branch**: main & dev (synced)
-> **Test Coverage**: 42 test files (~60%+ coverage)
+> **Test Coverage**: 43 test files (~65%+ coverage)
 > **Payment Gateways**: 10 integrated (YooKassa, Tinkoff, CloudPayments, UnitPay, RoboKassa, RuStore, SBP, Apple Pay, Google Pay)
 > **CI/CD**: GitHub Actions (multi-platform deploy)
-> **Codebase**: 92 Python files (app/), 42 test files, 11 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 10 schemas, 10 payment gateways, 2 tasks
+> **Codebase**: 92 Python files (app/), 43 test files, 12 routes, 7 middleware, 5 models, 6 repositories, 5 services, 3 websocket, 10 schemas, 10 payment gateways, 2 tasks
 > **Redis Integration**: Rate limiting persistence, Celery broker/backend
 > **PostgreSQL**: dev environment ready (docker-compose.dev.yml, alembic.ini, DEVELOPMENT.md)
 > **Webhook Management**: API endpoints with retry, filters, pagination
@@ -19,6 +19,7 @@
 > **Performance Benchmarks**: Load testing documentation + tests
 > **PWA**: Progressive Web App with offline support, push notifications, install prompt
 > **GraphQL**: Relay-style pagination, Tenant/WebhookEvent types, cursor-based queries
+> **2FA**: TOTP-based two-factor authentication with Google Authenticator, backup codes
 >
 > ## Recent Improvements (Mar 2026)
 > ✅ Rate limiting with Redis persistence
@@ -35,7 +36,8 @@
 > ✅ **PWA Implementation** (manifest.json, service-worker.js, offline page, push notifications)
 > ✅ **Apple Pay Integration** (payment gateway + schemas + routes + tests)
 > ✅ **Google Pay Integration** (payment gateway + schemas + tests)
-> ✅ **GraphQL Improvements** (Relay pagination, Tenant/WebhookEvent types, cursor-based queries, enhanced statistics)
+> ✅ **GraphQL Improvements** (Relay pagination, Tenant/WebhookEvent types, cursor queries, enhanced statistics)
+> ✅ **2FA Implementation** (TOTP, Google Authenticator, backup codes, 28 tests)
 
 ## Completed
 
@@ -267,7 +269,7 @@
 - [x] Export payment data (CSV, Excel, PDF) - ✅ CSV + JSON export endpoints
 - [x] Comprehensive error codes documentation - ✅ docs/ERROR_CODES.md (400+ lines)
 - [ ] Admin dashboard with analytics
-- [ ] Multi-factor authentication (2FA)
+- [x] Multi-factor authentication (2FA) - ✅ app/services/mfa_service.py, app/routes/mfa_routes.py, tests/test_2fa.py (28 tests)
 - [ ] Audit logging for admin actions
 - [ ] Background task monitoring dashboard (Flower integration)
 - [ ] Additional deploy scripts for remaining platforms
@@ -280,20 +282,20 @@
 | Metric | Value |
 |--------|-------|
 | **Payment Gateways** | 10 (YooKassa, Tinkoff, CloudPayments, UnitPay, RoboKassa, RuStore, SBP, Apple Pay, Google Pay) |
-| **Test Files** | 42 files (~60%+ coverage) |
+| **Test Files** | 43 files (~65%+ coverage) |
 | **API Version** | v1 (stable), v2 (health endpoints ready) |
 | **Database** | SQLite (dev) / PostgreSQL (prod via Docker) |
 | **Async Tasks** | Celery + Redis (webhook retry queue, 5 tasks) |
 | **GraphQL** | ✅ Relay pagination, Tenant/WebhookEvent types, cursor queries, enhanced statistics |
 | **WebSocket** | Real-time notifications |
-| **Auth** | OAuth2/JWT with refresh tokens |
+| **Auth** | OAuth2/JWT with refresh tokens + 2FA (TOTP) |
 | **Multi-tenant** | X-API-Key isolation |
 | **Multi-currency** | 10 currencies (RUB base) |
 | **PWA** | ✅ manifest.json, service-worker.js, offline page, install prompt, push notifications |
 | **CI/CD** | GitHub Actions (test, lint, build, deploy) |
 | **Deploy Targets** | 14 configs (AWS, GCP, Cloudflare, K8s, Render, Railway, Fly.io, Vercel, Netlify) |
 | **Documentation** | Swagger UI, ReDoc, 9 docs (incl. PWA.md), README (330 lines), deploy/README (250 lines), START.md (336 lines), PERFORMANCE_BENCHMARKS.md |
-| **Codebase** | 92 Python files, 11 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 10 schemas, 10 payment gateways, 2 tasks |
+| **Codebase** | 92 Python files, 12 routes, 7 middleware, 5 models, 6 repositories, 5 services, 3 websocket, 10 schemas, 10 payment gateways, 2 tasks |
 | **Templates** | 14 Jinja2 templates (admin, payment, webhook dashboards, PWA, offline) |
 | **Static Assets** | Logo, styles.css, scripts, startup scripts (8 files), PWA icons (16 files) |
 | **Alembic Migrations** | 6 migration files |
@@ -333,6 +335,22 @@
   - Relay cursor pagination (encode_cursor, decode_cursor)
   - Enhanced statistics (by_currency, daily_revenue, average_payment)
 
+### Authentication & Security
+- [x] **OAuth2/JWT Authentication** - ✅ app/routes/auth_routes.py
+  - Access token + Refresh token
+  - Password hashing (bcrypt)
+  - Role-based access control (RBAC)
+- [x] **2FA (Two-Factor Authentication)** - ✅ app/services/mfa_service.py, app/routes/mfa_routes.py
+  - TOTP (Time-based One-Time Password) via pyotp
+  - Google Authenticator compatibility
+  - QR code setup
+  - Backup codes (10 codes per user)
+  - 28 tests for 2FA functionality
+- [x] **Webhook Signature Verification** - ✅ app/utils/webhook_signature.py
+  - HMAC-SHA256 signature validation
+  - Timestamp verification
+  - Tests for all payment gateways
+
 ### Future Enhancements
 - [ ] Recurring payments / subscriptions API
 - [ ] Split payments / marketplace support
@@ -340,5 +358,5 @@
 - [ ] Mobile SDK (iOS/Android)
 - [ ] Multi-language support (i18n)
 - [ ] Admin dashboard with analytics
-- [ ] Multi-factor authentication (2FA)
 - [ ] Audit logging for admin actions
+- [ ] Background task monitoring dashboard (Flower integration)

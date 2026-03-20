@@ -1,8 +1,9 @@
 """
-User model for OAuth2 authentication.
+User model for OAuth2 authentication with 2FA support.
+Автор: Dupley Maxim Igorevich
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum as SQLEnum, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum as SQLEnum, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from typing import Optional, List
@@ -19,7 +20,7 @@ class UserRole(enum.Enum):
 
 
 class User(Base):
-    """Модель пользователя для аутентификации."""
+    """Модель пользователя для аутентификации с поддержкой 2FA."""
 
     __tablename__ = 'users'
 
@@ -31,6 +32,13 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
     roles = Column(String(255), default="viewer")  # JSON список ролей
+    
+    # 2FA поля
+    mfa_enabled = Column(Boolean, default=False)
+    mfa_secret = Column(String(255), nullable=True)  # Зашифрованный TOTP секрет
+    mfa_backup_codes = Column(Text, nullable=True)  # JSON список backup кодов (hashed)
+    mfa_last_verified = Column(DateTime, nullable=True)
+    
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
         DateTime,
@@ -38,13 +46,13 @@ class User(Base):
         onupdate=lambda: datetime.now(timezone.utc)
     )
     last_login = Column(DateTime, nullable=True)
-    
+
     # Связь с tenant
     tenant = relationship("Tenant", backref="users")
 
     def __repr__(self) -> str:
         return f"<User(username={self.username}, email={self.email})>"
-    
+
     def get_roles(self) -> List[str]:
         """Получить список ролей пользователя."""
         if not self.roles:
@@ -54,12 +62,23 @@ class User(Base):
             return json.loads(self.roles)
         except (json.JSONDecodeError, TypeError):
             return [self.roles] if self.roles else ["viewer"]
-    
+
     def has_role(self, role: str) -> bool:
         """Проверить наличие роли."""
         return role in self.get_roles() or self.is_superuser
-    
+
     def has_any_role(self, roles: List[str]) -> bool:
         """Проверить наличие любой из указанных ролей."""
         user_roles = self.get_roles()
         return any(role in user_roles for role in roles) or self.is_superuser
+
+    def get_backup_codes_count(self) -> int:
+        """Получить количество оставшихся backup кодов."""
+        if not self.mfa_backup_codes:
+            return 0
+        import json
+        try:
+            codes = json.loads(self.mfa_backup_codes)
+            return len(codes) if codes else 0
+        except (json.JSONDecodeError, TypeError):
+            return 0

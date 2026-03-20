@@ -40,6 +40,9 @@ from app.routes.websocket_routes import router as websocket_router
 # Dashboard
 from app.routes.dashboard_routes import router as dashboard_router
 
+# 2FA
+from app.routes.mfa_routes import router as mfa_router
+
 setup_logging(level=settings.log_level, json_logs=settings.json_logs)
 logger = logging.getLogger(__name__)
 
@@ -219,6 +222,9 @@ app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
 
 # Dashboard
 app.include_router(dashboard_router, prefix="/api/dashboard", tags=["Dashboard"])
+
+# 2FA
+app.include_router(mfa_router, prefix="/api/auth", tags=["2FA"])
 
 
 @app.get("/", response_class=HTMLResponse)
