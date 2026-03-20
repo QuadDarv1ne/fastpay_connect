@@ -14,6 +14,7 @@
 > **Startup Scripts**: Windows, macOS, Linux, Android, Docker (8 files)
 > **Flower Dashboard**: Celery monitoring with auth, persistent storage
 > **Webhook Security**: Signature verification for all gateways (HMAC-SHA256)
+> **Error Documentation**: 400+ lines covering all error codes
 >
 > ## Recent Improvements (Mar 2026)
 > ✅ Rate limiting with Redis persistence
@@ -24,6 +25,7 @@
 > ✅ Flower Dashboard deployment (auth, docs)
 > ✅ Webhook signature verification (all gateways)
 > ✅ Payment Analytics API (6 endpoints)
+> ✅ Error Codes Documentation (400+ lines)
 
 ## Completed
 
@@ -239,10 +241,10 @@
 - [x] Payment statistics dashboard (basic dashboard exists: routes/dashboard_routes.py) - ✅ Webhook management API added
 - [x] Webhook management UI (retry, view history) - ✅ app/routes/webhook_management_routes.py + schemas
 - [x] Export payment data (CSV, Excel, PDF) - ✅ CSV + JSON export endpoints
+- [x] Comprehensive error codes documentation - ✅ docs/ERROR_CODES.md (400+ lines)
 - [ ] Admin dashboard with analytics
 - [ ] Multi-factor authentication (2FA)
 - [ ] Audit logging for admin actions
-- [ ] Comprehensive error codes documentation
 - [ ] Background task monitoring dashboard (Flower integration)
 - [ ] Additional deploy scripts for remaining platforms
 
@@ -283,7 +285,7 @@
 - [x] CI/CD pipeline - ✅ .github/workflows/ci.yml
 - [x] Multi-platform deploy configs - ✅ 14 deployment configurations
 - [ ] Distributed tracing (OpenTelemetry)
-- [ ] Comprehensive error codes documentation
+- [x] Comprehensive error codes documentation - ✅ docs/ERROR_CODES.md
 - [ ] API v2 endpoints implementation (payments, webhooks, admin, etc.)
 - [x] PostgreSQL migration (alembic.ini switched to PostgreSQL) - ✅ + docker-compose.dev.yml, DEVELOPMENT.md
 - [x] Flower dashboard deployment (configured but needs deployment) - ✅ Auth, persistent storage, docs/FLOWER_DEPLOYMENT.md
