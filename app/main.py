@@ -161,6 +161,10 @@ app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 # Monitoring routes
 app.include_router(webhook_monitor_router, prefix="/api/monitoring/webhooks", tags=["Webhook Monitoring"])
 
+# Webhook Management routes (admin UI)
+from app.routes.webhook_management_routes import router as webhook_management_router
+app.include_router(webhook_management_router, prefix="/api/webhooks", tags=["Webhook Management"])
+
 # API Versioning
 app.include_router(v1_router, prefix="/api/v1", tags=["API v1"])
 app.include_router(v2_router, prefix="/api/v2", tags=["API v2"])
