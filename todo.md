@@ -88,28 +88,6 @@
   - HMAC-SHA256 подпись запросов с timestamp verification
   - Справочник банков: SBPBank (20 банков с BIC кодами)
   - API endpoints: /api/v1/sbp/* (8 endpoints)
-- [x] **Cache Service** - ✅ app/services/cache_service.py
-  - LRUCache implementation (max 1000 entries)
-  - TTL support for cache entries
-  - Cache statistics (hits/misses)
-- [x] **Email Service** - ✅ app/services/email_service.py
-- [x] **Payment Service** - ✅ app/services/payment_service.py
-- [x] **Services package** - ✅ app/services/__init__.py (4 services total)
-- [x] **GraphQL API** - ✅ Strawberry GraphQL with resolvers (app/graphql/)
-  - GraphQL schema: app/graphql/schema.py (Payment, PaymentConnection types)
-  - GraphQL resolvers: app/graphql/resolvers.py (213 lines)
-  - PaymentStatus enum
-- [x] **OAuth2/JWT Authentication** - ✅ JWT auth, refresh tokens, password reset
-- [x] **WebSocket Notifications** - ✅ app/websocket/ (real-time payment updates)
-  - WebSocket router: app/routes/websocket_routes.py
-  - Connection manager: app/websocket/manager.py
-  - Notifications: app/websocket/notifications.py
-  - Package: app/websocket/__init__.py (3 files total)
-- [x] **API Versioning** - ✅ v1/v2 structure (app/api/v1/, app/api/v2/)
-- [x] **Webhook Security Middleware** - ✅ app/middleware/webhook_security.py
-- [x] **Rate limiting per API key** - ✅ app/middleware/rate_limiter.py (slowapi)
-- [x] **IP Validator** - ✅ app/utils/ip_validator.py
-- [x] **Metrics utility** - ✅ app/utils/metrics.py
 
 ### Schemas (5 total)
 - [x] Auth schemas - ✅ app/schemas/auth.py
