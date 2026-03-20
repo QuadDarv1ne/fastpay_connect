@@ -7,6 +7,7 @@
 > **CI/CD**: GitHub Actions (multi-platform deploy)
 > **Codebase**: 81 Python files (app/), 40 test files, 8 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 5 schemas, 10 payment gateways, 2 tasks
 > **Redis Integration**: Rate limiting persistence, Celery broker/backend
+> **PostgreSQL**: dev environment ready (docker-compose.dev.yml, alembic.ini)
 
 ## Completed
 
@@ -220,7 +221,7 @@
 - [ ] Mobile SDK (iOS/Android)
 - [ ] Performance benchmarks and load testing
 - [ ] GraphQL schema improvements (currently basic Strawberry setup)
-- [ ] PostgreSQL migration scripts (alembic.ini uses SQLite for tests)
+- [x] PostgreSQL migration scripts (alembic.ini uses SQLite for tests) - ✅ alembic.ini switched to PostgreSQL + docker-compose.dev.yml
 
 ### Medium Priority
 - [ ] Payment analytics and reporting API
@@ -280,7 +281,7 @@
 - [ ] Distributed tracing (OpenTelemetry)
 - [ ] Comprehensive error codes documentation
 - [ ] API v2 endpoints implementation (payments, webhooks, admin, etc.)
-- [ ] PostgreSQL migration (alembic.ini defaults to SQLite for dev)
+- [x] PostgreSQL migration (alembic.ini switched to PostgreSQL) - ✅ + docker-compose.dev.yml, DEVELOPMENT.md
 - [ ] Flower dashboard deployment (configured but needs deployment)
 
 ### Future Enhancements

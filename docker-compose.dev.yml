@@ -1,0 +1,139 @@
+# Docker Compose для локальной разработки с PostgreSQL
+# Использование: docker-compose -f docker-compose.dev.yml up -d
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: fastpay-db-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fastpay_connect
+      POSTGRES_USER: fastpay_user
+      POSTGRES_PASSWORD: fastpay_pass
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fastpay_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fastpay-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: fastpay-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fastpay-network
+
+  # Application
+  app:
+    build: .
+    container_name: fastpay-app-dev
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - ENV=development
+      - DEBUG=true
+      - DATABASE_URL=postgresql://fastpay_user:fastpay_pass@db:5432/fastpay_connect
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - SECRET_KEY=dev_secret_key_change_in_production
+      - LOG_LEVEL=DEBUG
+      - DISABLE_RATE_LIMITING=false
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - fastpay-network
+
+  # Celery Worker
+  celery_worker:
+    build: .
+    container_name: fastpay-celery-worker-dev
+    command: celery -A app.tasks.celery_app worker --loglevel=debug --pool=solo
+    environment:
+      - DATABASE_URL=postgresql://fastpay_user:fastpay_pass@db:5432/fastpay_connect
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - SECRET_KEY=dev_secret_key_change_in_production
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - fastpay-network
+
+  # Celery Beat
+  celery_beat:
+    build: .
+    container_name: fastpay-celery-beat-dev
+    command: celery -A app.tasks.celery_app beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://fastpay_user:fastpay_pass@db:5432/fastpay_connect
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - fastpay-network
+
+  # Flower (Celery Monitoring)
+  flower:
+    build: .
+    container_name: fastpay-flower-dev
+    command: celery -A app.tasks.celery_app flower --port=5555
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    ports:
+      - "5555:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - fastpay-network
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+
+networks:
+  fastpay-network:
+    driver: bridge
