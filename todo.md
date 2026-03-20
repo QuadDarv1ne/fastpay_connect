@@ -1,7 +1,7 @@
 # FastPay Connect - TODO
 
-> **Last Updated**: Mar 20, 2026
-> **Current Branch**: main (dev ready for improvements)
+> **Last Updated**: Mar 20, 2026 (Latest: GraphQL Relay improvements)
+> **Current Branch**: main & dev (synced)
 > **Test Coverage**: 42 test files (~60%+ coverage)
 > **Payment Gateways**: 10 integrated (YooKassa, Tinkoff, CloudPayments, UnitPay, RoboKassa, RuStore, SBP, Apple Pay, Google Pay)
 > **CI/CD**: GitHub Actions (multi-platform deploy)
@@ -18,6 +18,7 @@
 > **OpenTelemetry**: Distributed tracing with Jaeger/Zipkin/OTLP support
 > **Performance Benchmarks**: Load testing documentation + tests
 > **PWA**: Progressive Web App with offline support, push notifications, install prompt
+> **GraphQL**: Relay-style pagination, Tenant/WebhookEvent types, cursor-based queries
 >
 > ## Recent Improvements (Mar 2026)
 > ✅ Rate limiting with Redis persistence
@@ -34,6 +35,7 @@
 > ✅ **PWA Implementation** (manifest.json, service-worker.js, offline page, push notifications)
 > ✅ **Apple Pay Integration** (payment gateway + schemas + routes + tests)
 > ✅ **Google Pay Integration** (payment gateway + schemas + tests)
+> ✅ **GraphQL Improvements** (Relay pagination, Tenant/WebhookEvent types, cursor-based queries, enhanced statistics)
 
 ## Completed
 
@@ -247,7 +249,7 @@
 - [x] Apple Pay / Google Pay integration - ✅ app/payment_gateways/apple_pay.py, google_pay.py + schemas + routes
 - [ ] Mobile SDK (iOS/Android)
 - [x] Performance benchmarks and load testing - ✅ tests/test_benchmarks.py + docs/PERFORMANCE_BENCHMARKS.md
-- [ ] GraphQL schema improvements (currently basic Strawberry setup)
+- [x] GraphQL schema improvements - ✅ Relay pagination, Tenant/WebhookEvent types, cursor queries, enhanced statistics
 - [x] PostgreSQL migration scripts (alembic.ini uses SQLite for tests) - ✅ alembic.ini switched to PostgreSQL + docker-compose.dev.yml
 
 ### Medium Priority
@@ -282,7 +284,7 @@
 | **API Version** | v1 (stable), v2 (health endpoints ready) |
 | **Database** | SQLite (dev) / PostgreSQL (prod via Docker) |
 | **Async Tasks** | Celery + Redis (webhook retry queue, 5 tasks) |
-| **GraphQL** | Strawberry GraphQL API (Payment, PaymentConnection types) |
+| **GraphQL** | ✅ Relay pagination, Tenant/WebhookEvent types, cursor queries, enhanced statistics |
 | **WebSocket** | Real-time notifications |
 | **Auth** | OAuth2/JWT with refresh tokens |
 | **Multi-tenant** | X-API-Key isolation |
@@ -315,6 +317,21 @@
 - [x] Flower dashboard deployment (configured but needs deployment) - ✅ Auth, persistent storage, docs/FLOWER_DEPLOYMENT.md
 - [x] Webhook signature verification - ✅ app/utils/webhook_signature.py + tests (21 tests)
 - [x] Apple Pay / Google Pay integration - ✅ payment_gateways + schemas + routes
+- [x] GraphQL improvements - ✅ schema.py + resolvers.py (Relay pagination, new types)
+
+### GraphQL (Relay-style API)
+- [x] **GraphQL Schema** - ✅ app/graphql/schema.py
+  - Payment, PaymentEdge, PaymentConnection types
+  - Tenant, TenantConnection types
+  - WebhookEvent, WebhookEventConnection types
+  - PaymentStatusEnum, CurrencyEnum, WebhookEventType, WebhookEventStatus enums
+  - PaymentFilterInput, PaginationInput inputs
+- [x] **GraphQL Resolvers** - ✅ app/graphql/resolvers.py
+  - Payment queries (payment, payment_by_id, payments, payments_by_cursor, statistics)
+  - Tenant queries (tenant, tenant_by_api_key, tenants)
+  - WebhookEvent queries (webhook_event, webhook_events)
+  - Relay cursor pagination (encode_cursor, decode_cursor)
+  - Enhanced statistics (by_currency, daily_revenue, average_payment)
 
 ### Future Enhancements
 - [ ] Recurring payments / subscriptions API
