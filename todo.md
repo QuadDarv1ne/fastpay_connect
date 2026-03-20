@@ -5,7 +5,7 @@
 > **Test Coverage**: 40 test files (~60%+ coverage)  
 > **Payment Gateways**: 8 integrated  
 > **CI/CD**: GitHub Actions (multi-platform deploy)  
-> **Codebase**: 79 Python files (app/), 8 route files, 5 middleware files, 5 models
+> **Codebase**: 79 Python files (app/), 8 routes, 5 middleware, 5 models, 6 repositories, 4 services, 3 websocket
 
 ## Completed
 
@@ -25,13 +25,14 @@
 - [x] Lifespan events (startup/shutdown) - ✅ app/main.py
 - [x] Multi-platform deploy configs - ✅ deploy/ (14 files: AWS, GCP, Cloudflare, K8s, etc.)
 
-### Repositories & Data Layer
+### Repositories & Data Layer (6 total)
 - [x] PaymentRepository with error handling - ✅ app/repositories/payment_repository.py
 - [x] AsyncRepository pattern - ✅ app/repositories/async_payment_repository.py
 - [x] TenantRepository - ✅ app/repositories/tenant_repository.py
 - [x] UserRepository - ✅ app/repositories/user_repository.py
 - [x] WebhookEventRepository - ✅ app/repositories/webhook_event_repository.py
 - [x] Webhook idempotency via webhook_event_id - ✅ WebhookEvent model
+- [x] Repository exports - ✅ app/repositories/__init__.py
 
 ### Models (5 total)
 - [x] Payment model - ✅ app/models/payment.py
@@ -80,6 +81,7 @@
   - Cache statistics (hits/misses)
 - [x] **Email Service** - ✅ app/services/email_service.py
 - [x] **Payment Service** - ✅ app/services/payment_service.py
+- [x] **Services package** - ✅ app/services/__init__.py (4 services total)
 - [x] **GraphQL API** - ✅ Strawberry GraphQL with resolvers (app/graphql/)
   - GraphQL schema: app/graphql/schema.py (Payment, PaymentConnection types)
   - GraphQL resolvers: app/graphql/resolvers.py
@@ -87,7 +89,9 @@
 - [x] **OAuth2/JWT Authentication** - ✅ JWT auth, refresh tokens, password reset
 - [x] **WebSocket Notifications** - ✅ app/websocket/ (real-time payment updates)
   - WebSocket router: app/routes/websocket_routes.py
-  - Connection manager: app/websocket/
+  - Connection manager: app/websocket/manager.py
+  - Notifications: app/websocket/notifications.py
+  - Package: app/websocket/__init__.py (3 files total)
 - [x] **API Versioning** - ✅ v1/v2 structure (app/api/v1/, app/api/v2/)
 - [x] **Webhook Security Middleware** - ✅ app/middleware/webhook_security.py
 - [x] **Rate limiting per API key** - ✅ app/middleware/rate_limiter.py (slowapi)
@@ -228,7 +232,7 @@
 | **CI/CD** | GitHub Actions (test, lint, build, deploy) |
 | **Deploy Targets** | 14 configs (AWS, GCP, Cloudflare, K8s, Render, Railway, Fly.io, Vercel, Netlify) |
 | **Documentation** | Swagger UI, ReDoc, 7 docs, README (308 lines), deploy/README (250 lines) |
-| **Codebase** | 79 Python files, 8 routes, 5 middleware, 5 models |
+| **Codebase** | 79 Python files, 8 routes, 5 middleware, 5 models, 6 repositories, 4 services, 3 websocket |
 | **Static Assets** | Logo, templates (Jinja2), static files, scripts |
 
 ### Technical Debt
