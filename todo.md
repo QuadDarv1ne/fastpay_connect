@@ -11,6 +11,7 @@
 > **Webhook Management**: API endpoints with retry, filters, pagination
 > **Payment Export**: CSV + JSON export with filters
 > **Startup Scripts**: Windows, macOS, Linux, Android, Docker (8 files)
+> **Flower Dashboard**: Celery monitoring with auth, persistent storage
 >
 > ## Recent Improvements (Mar 2026)
 > ✅ Rate limiting with Redis persistence
@@ -18,6 +19,7 @@
 > ✅ Webhook Management API (retry, filters, pagination)
 > ✅ Payment Export API (CSV/JSON)
 > ✅ Cross-platform startup scripts (8 files)
+> ✅ Flower Dashboard deployment (auth, docs)
 
 ## Completed
 
@@ -227,7 +229,7 @@
 - [x] Rate limiting persistence (currently in-memory) - ✅ app/middleware/rate_limiter.py with Redis backend
 - [ ] Distributed tracing (OpenTelemetry)
 - [ ] Webhook signature verification for all gateways (some implemented)
-- [ ] Flower dashboard deployment (configured in docker-compose.prod.yml)
+- [x] Flower dashboard deployment (configured in docker-compose.prod.yml) - ✅ Auth + docs/FLOWER_DEPLOYMENT.md
 
 ### Low Priority
 - [x] Payment statistics dashboard (basic dashboard exists: routes/dashboard_routes.py) - ✅ Webhook management API added
@@ -280,7 +282,7 @@
 - [ ] Comprehensive error codes documentation
 - [ ] API v2 endpoints implementation (payments, webhooks, admin, etc.)
 - [x] PostgreSQL migration (alembic.ini switched to PostgreSQL) - ✅ + docker-compose.dev.yml, DEVELOPMENT.md
-- [ ] Flower dashboard deployment (configured but needs deployment)
+- [x] Flower dashboard deployment (configured but needs deployment) - ✅ Auth, persistent storage, docs/FLOWER_DEPLOYMENT.md
 
 ### Future Enhancements
 - [ ] Recurring payments / subscriptions API
