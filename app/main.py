@@ -19,7 +19,7 @@ from app.routes.admin_routes import router as admin_router
 from app.routes.auth_routes import router as auth_router
 from app.routes.webhook_monitor_routes import router as webhook_monitor_router
 from app.database import init_db, engine, Base
-from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler
+from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler, rate_limiter_middleware
 from app.utils.logger import setup_logging
 from app.utils.settings_validator import settings_validator
 from app.settings import settings
@@ -110,6 +110,11 @@ app.add_middleware(
 
 app.add_middleware(PrometheusMiddleware)
 
+# Rate Limiter Middleware (SlowAPI с Redis backend)
+if rate_limiter_middleware:
+    app.add_middleware(rate_limiter_middleware.__class__, limiter=rate_limiter_middleware.limiter)
+    logger.info("Rate limiter middleware enabled")
+
 # API Versioning Middleware
 from app.middleware.api_versioning import APIVersionMiddleware
 app.add_middleware(APIVersionMiddleware)
@@ -155,6 +160,14 @@ app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 
 # Monitoring routes
 app.include_router(webhook_monitor_router, prefix="/api/monitoring/webhooks", tags=["Webhook Monitoring"])
+
+# Webhook Management routes (admin UI)
+from app.routes.webhook_management_routes import router as webhook_management_router
+app.include_router(webhook_management_router, prefix="/api/webhooks", tags=["Webhook Management"])
+
+# Payment Export routes
+from app.routes.payment_export_routes import router as payment_export_router
+app.include_router(payment_export_router, prefix="/api/payments", tags=["Payment Export"])
 
 # API Versioning
 app.include_router(v1_router, prefix="/api/v1", tags=["API v1"])

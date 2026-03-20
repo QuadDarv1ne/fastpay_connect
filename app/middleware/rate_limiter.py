@@ -1,10 +1,17 @@
 import os
+import logging
 from typing import Optional
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from fastapi import Request, status, Header
 from fastapi.responses import JSONResponse
+import redis
+
+from app.settings import settings
+
+logger = logging.getLogger(__name__)
 
 # Отключаем rate limiting для тестов
 DISABLE_RATE_LIMITING = os.getenv("DISABLE_RATE_LIMITING", "false").lower() == "true"
@@ -27,6 +34,17 @@ def get_rate_limit_key(request: Request) -> str:
     return f"ip:{get_remote_address(request)}"
 
 
+def get_redis_client():
+    """Получить Redis клиент для rate limiting."""
+    try:
+        redis_client = redis.from_url(settings.redis_url)
+        redis_client.ping()
+        return redis_client
+    except redis.RedisError as e:
+        logger.warning(f"Redis connection failed, falling back to memory: {e}")
+        return None
+
+
 if DISABLE_RATE_LIMITING:
     # Пустой limiter для тестов
     class DummyLimiter:
@@ -40,8 +58,28 @@ if DISABLE_RATE_LIMITING:
                 return func
             return decorator
     limiter = DummyLimiter()
+    rate_limiter_middleware = None
 else:
-    limiter = Limiter(key_func=get_rate_limit_key)
+    # Пробуем использовать Redis для персистентности rate limiting
+    redis_client = get_redis_client()
+    
+    if redis_client:
+        logger.info("Rate limiting: Using Redis backend")
+        limiter = Limiter(
+            key_func=get_rate_limit_key,
+            storage_uri=settings.redis_url,
+            default_limits=[DEFAULT_RATE_LIMIT],
+        )
+    else:
+        # Fallback на in-memory
+        logger.warning("Rate limiting: Using in-memory backend (Redis unavailable)")
+        limiter = Limiter(
+            key_func=get_rate_limit_key,
+            default_limits=[DEFAULT_RATE_LIMIT],
+        )
+    
+    # Создаём middleware для автоматического применения лимитов
+    rate_limiter_middleware = SlowAPIMiddleware(limiter)
 
 
 async def rate_limit_exceeded_handler(

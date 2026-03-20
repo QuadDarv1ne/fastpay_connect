@@ -21,6 +21,13 @@ from app.schemas.payment import (
     CurrencyEnum,
 )
 
+from app.schemas.webhook import (
+    WebhookEventResponse,
+    WebhookEventListResponse,
+    WebhookStatsResponse,
+    WebhookRetryRequest,
+)
+
 __all__ = [
     # Auth schemas
     "Token",
@@ -39,4 +46,9 @@ __all__ = [
     "WebhookPayload",
     "BulkPaymentRequest",
     "CurrencyEnum",
+    # Webhook schemas
+    "WebhookEventResponse",
+    "WebhookEventListResponse",
+    "WebhookStatsResponse",
+    "WebhookRetryRequest",
 ]

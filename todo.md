@@ -5,7 +5,11 @@
 > **Test Coverage**: 40 test files (~60%+ coverage)
 > **Payment Gateways**: 8 integrated
 > **CI/CD**: GitHub Actions (multi-platform deploy)
-> **Codebase**: 81 Python files (app/), 40 test files, 8 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 5 schemas, 10 payment gateways, 2 tasks
+> **Codebase**: 85 Python files (app/), 40 test files, 9 routes, 7 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 6 schemas, 10 payment gateways, 2 tasks
+> **Redis Integration**: Rate limiting persistence, Celery broker/backend
+> **PostgreSQL**: dev environment ready (docker-compose.dev.yml, alembic.ini)
+> **Webhook Management**: API endpoints with retry, filters, pagination
+> **Payment Export**: CSV + JSON export with filters
 
 ## Completed
 
@@ -219,22 +223,22 @@
 - [ ] Mobile SDK (iOS/Android)
 - [ ] Performance benchmarks and load testing
 - [ ] GraphQL schema improvements (currently basic Strawberry setup)
-- [ ] PostgreSQL migration scripts (alembic.ini uses SQLite for tests)
+- [x] PostgreSQL migration scripts (alembic.ini uses SQLite for tests) - ✅ alembic.ini switched to PostgreSQL + docker-compose.dev.yml
 
 ### Medium Priority
 - [ ] Payment analytics and reporting API
 - [ ] Multi-language support (i18n)
-- [ ] Cache service with Redis (currently using in-memory LRUCache)
-- [ ] Rate limiting persistence (currently in-memory)
+- [x] Cache service with Redis (currently using in-memory LRUCache) - ✅ Rate limiting now uses Redis
+- [x] Rate limiting persistence (currently in-memory) - ✅ app/middleware/rate_limiter.py with Redis backend
 - [ ] Distributed tracing (OpenTelemetry)
 - [ ] Webhook signature verification for all gateways (some implemented)
 - [ ] Flower dashboard deployment (configured in docker-compose.prod.yml)
 
 ### Low Priority
-- [ ] Payment statistics dashboard (basic dashboard exists: routes/dashboard_routes.py)
+- [x] Payment statistics dashboard (basic dashboard exists: routes/dashboard_routes.py) - ✅ Webhook management API added
+- [x] Webhook management UI (retry, view history) - ✅ app/routes/webhook_management_routes.py + schemas
+- [x] Export payment data (CSV, Excel, PDF) - ✅ CSV + JSON export endpoints
 - [ ] Admin dashboard with analytics
-- [ ] Export payment data (CSV, Excel, PDF)
-- [ ] Webhook management UI (retry, view history)
 - [ ] Multi-factor authentication (2FA)
 - [ ] Audit logging for admin actions
 - [ ] Comprehensive error codes documentation
@@ -279,7 +283,7 @@
 - [ ] Distributed tracing (OpenTelemetry)
 - [ ] Comprehensive error codes documentation
 - [ ] API v2 endpoints implementation (payments, webhooks, admin, etc.)
-- [ ] PostgreSQL migration (alembic.ini defaults to SQLite for dev)
+- [x] PostgreSQL migration (alembic.ini switched to PostgreSQL) - ✅ + docker-compose.dev.yml, DEVELOPMENT.md
 - [ ] Flower dashboard deployment (configured but needs deployment)
 
 ### Future Enhancements
