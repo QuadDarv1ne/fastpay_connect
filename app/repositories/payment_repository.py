@@ -362,6 +362,108 @@ class PaymentRepository:
             "total_completed_amount": float(total_amount),
         }
 
+    def get_analytics(
+        self,
+        start_date: datetime,
+        end_date: datetime,
+        tenant_id: Optional[int] = None,
+        gateway: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Получить аналитику платежей за период.
+
+        Args:
+            start_date: Начальная дата
+            end_date: Конечная дата
+            tenant_id: Фильтр по tenant
+            gateway: Фильтр по платёжной системе
+
+        Returns:
+            Статистика за период
+        """
+        query = self._db.query(Payment).filter(
+            Payment.created_at >= start_date,
+            Payment.created_at <= end_date,
+        )
+
+        if tenant_id is not None:
+            query = query.filter(Payment.tenant_id == tenant_id)
+
+        if gateway:
+            query = query.filter(Payment.payment_gateway == gateway)
+
+        # Общая статистика
+        total = query.count()
+        total_amount = (
+            query.with_entities(func.sum(Payment.amount))
+            .filter(Payment.status == PaymentStatus.COMPLETED)
+            .scalar() or 0
+        )
+
+        # По статусам
+        by_status = dict(
+            query.with_entities(Payment.status, func.count(Payment.id))
+            .group_by(Payment.status)
+            .all()
+        )
+
+        # По шлюзам
+        by_gateway = dict(
+            query.with_entities(Payment.payment_gateway, func.count(Payment.id))
+            .group_by(Payment.payment_gateway)
+            .all()
+        )
+
+        # По валютам
+        by_currency = dict(
+            query.with_entities(Payment.currency, func.sum(Payment.amount))
+            .group_by(Payment.currency)
+            .all()
+        )
+
+        # Динамика по дням
+        daily_stats = (
+            query.with_entities(
+                func.date(Payment.created_at).label('date'),
+                Payment.status,
+                func.count(Payment.id).label('count'),
+                func.sum(Payment.amount).label('amount')
+            )
+            .filter(Payment.status == PaymentStatus.COMPLETED)
+            .group_by(func.date(Payment.created_at), Payment.status)
+            .all()
+        )
+
+        daily = {}
+        for stat in daily_stats:
+            date_str = str(stat.date)
+            if date_str not in daily:
+                daily[date_str] = {'count': 0, 'amount': 0}
+            daily[date_str]['count'] += stat.count
+            daily[date_str]['amount'] = float(stat.amount or 0)
+
+        # Средний чек
+        avg_check = (
+            query.with_entities(func.avg(Payment.amount))
+            .filter(Payment.status == PaymentStatus.COMPLETED)
+            .scalar() or 0
+        )
+
+        return {
+            "period": {
+                "start": start_date.isoformat(),
+                "end": end_date.isoformat(),
+            },
+            "summary": {
+                "total_transactions": total,
+                "total_amount": float(total_amount),
+                "average_check": round(float(avg_check), 2),
+            },
+            "by_status": {s.value: c for s, c in by_status.items()},
+            "by_gateway": by_gateway,
+            "by_currency": {c: float(a or 0) for c, a in by_currency.items()},
+            "daily_stats": daily,
+        }
+
     def get_dashboard_stats(self, limit: int = 10, tenant_id: Optional[int] = None) -> Dict[str, Any]:
         """Получить расширенную статистику для дашборда."""
         from datetime import timedelta
