@@ -173,7 +173,7 @@
   - Multi-platform deploy (Cloudflare, Render, Railway, Fly.io, K8s, VPS)
   - Notifications (Telegram, Slack)
 - [x] Prometheus metrics export - ✅ app/utils/metrics.py
-- [x] Health check endpoints - ✅ /health, /health/celery, /health/db, /health/redis
+- [x] Health check endpoints - ✅ /health, /health/celery (v1: /health, /ready, /celery; v2: /health, /ready, /live)
 - [x] pytest.ini configured - ✅ pytest.ini
 - [x] conftest.py with fixtures - ✅ tests/conftest.py (db_engine, db_session, client)
 - [x] Test database setup (SQLite for tests) - ✅ tests/conftest.py
