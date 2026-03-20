@@ -4,7 +4,8 @@
 > **Current Branch**: main & dev (synced)  
 > **Test Coverage**: 40 test files (~60%+ coverage)  
 > **Payment Gateways**: 8 integrated  
-> **CI/CD**: GitHub Actions (multi-platform deploy)
+> **CI/CD**: GitHub Actions (multi-platform deploy)  
+> **Codebase**: 79 Python files (app/)
 
 ## Completed
 
@@ -18,6 +19,8 @@
 - [x] Async payment gateways with retry logic
 - [x] Input validation with Pydantic v2
 - [x] Structured JSON logging (structlog)
+- [x] Environment settings validation - ✅ app/settings.py (Pydantic Settings)
+- [x] Settings validator - ✅ app/utils/settings_validator.py
 
 ### Repositories & Data Layer
 - [x] PaymentRepository with error handling - ✅ app/repositories/payment_repository.py
@@ -38,15 +41,15 @@
 
 ### Features
 - [x] **Webhook retry queue (Celery + Redis)** - ✅ Dec 2025
-  - Celery tasks для асинхронной обработки webhook
+  - Celery tasks: app/tasks/webhook_tasks.py (5 задач)
   - Redis в качестве брокера сообщений
   - Экспоненциальная задержка между попытками (60s, 120s, 240s, 480s, 960s)
   - Максимум 5 попыток обработки
   - Идемпотентность через webhook_event_id
   - Flower для мониторинга задач (docker-compose.prod.yml)
   - Docker Compose конфигурация (redis, celery_worker, celery_beat)
-  - Health check endpoint для Celery
-  - Документация: docs/webhook_retry_queue.md
+  - Health check endpoint: /health/celery
+  - Документация: docs/webhook_retry_queue.md (309 строк)
   - Тесты: tests/test_celery_webhook.py (21 тест)
 - [x] **RuStore Pay SDK Integration** - ✅ Mar 2026
 - [x] **Multi-Tenant Support** - ✅ Mar 2026
@@ -73,6 +76,8 @@
 - [x] **API Versioning** - ✅ v1/v2 structure (app/api/v1/, app/api/v2/)
 - [x] **Webhook Security Middleware** - ✅ app/middleware/webhook_security.py
 - [x] **Rate limiting per API key** - ✅ app/middleware/rate_limiter.py (slowapi)
+- [x] **IP Validator** - ✅ app/utils/ip_validator.py
+- [x] **Metrics utility** - ✅ app/utils/metrics.py
 
 ### Testing & CI/CD
 - [x] Integration tests with mocked payment gateways - ✅ 40 test files
@@ -82,13 +87,25 @@
   - Alembic migrations
   - Multi-platform deploy (Cloudflare, Render, Railway, Fly.io, K8s, VPS)
   - Notifications (Telegram, Slack)
-- [x] Prometheus metrics export
-- [x] Health check endpoints
+- [x] Prometheus metrics export - ✅ app/utils/metrics.py
+- [x] Health check endpoints - ✅ /health, /health/celery, /health/db, /health/redis
+- [x] pytest.ini configured - ✅ pytest.ini
+- [x] conftest.py with fixtures - ✅ tests/conftest.py
+
+### Utilities & Helpers
+- [x] Currency utils - ✅ app/utils/currency.py
+- [x] Security utils (JWT, hashing) - ✅ app/utils/security.py
+- [x] Logger utils - ✅ app/utils/logger.py
+- [x] Helpers - ✅ app/utils/helpers.py
+- [x] Tenant utils - ✅ app/utils/tenant.py
+- [x] IP Validator - ✅ app/utils/ip_validator.py
+- [x] Metrics - ✅ app/utils/metrics.py
+- [x] Settings validator - ✅ app/utils/settings_validator.py
 
 ### Documentation
 - [x] Swagger UI (/docs), ReDoc (/redoc)
-- [x] docs/webhook_retry_queue.md
-- [x] docs/webhook_monitoring_dashboard.md
+- [x] docs/webhook_retry_queue.md (309 строк)
+- [x] docs/webhook_monitoring_dashboard.md (360 строк)
 - [x] docs/websocket_notifications.md
 - [x] docs/oauth2_authentication.md
 - [x] docs/api_versioning.md
@@ -98,23 +115,26 @@
 ## Pending
 
 ### High Priority
+- [ ] API v2 endpoints implementation (structure ready: app/api/v2/)
 - [ ] Apple Pay / Google Pay integration
 - [ ] Mobile SDK (iOS/Android)
-- [ ] API v2 endpoints implementation (structure ready, needs endpoints)
+- [ ] Performance benchmarks and load testing
 
 ### Medium Priority
 - [ ] Payment analytics and reporting API
 - [ ] Multi-language support (i18n)
 - [ ] Cache service with Redis (currently using in-memory LRUCache)
 - [ ] Rate limiting persistence (currently in-memory)
+- [ ] Distributed tracing (OpenTelemetry)
 
 ### Low Priority
-- [ ] Payment statistics dashboard (basic dashboard exists)
+- [ ] Payment statistics dashboard (basic dashboard exists: routes/dashboard_routes.py)
 - [ ] Admin dashboard with analytics
 - [ ] Export payment data (CSV, Excel, PDF)
 - [ ] Webhook management UI (retry, view history)
 - [ ] Multi-factor authentication (2FA)
 - [ ] Audit logging for admin actions
+- [ ] Comprehensive error codes documentation
 
 ---
 
@@ -142,10 +162,9 @@
 - [x] Async SQLAlchemy support - ✅ app/repositories/async_payment_repository.py
 - [x] Integration tests for all payment gateways
   - ✅ YooKassa, Tinkoff, RoboKassa, RuStore, SBP, CloudPayments, UnitPay
-- [x] API v2 structure - ✅ app/api/v2/ + middleware
+- [x] API v2 structure - ✅ app/api/v2/ + middleware/api_versioning.py
 - [x] OpenAPI/Swagger documentation - ✅ /docs, /redoc
 - [x] CI/CD pipeline - ✅ .github/workflows/ci.yml
-- [ ] Performance benchmarks and load testing
 - [ ] Distributed tracing (OpenTelemetry)
 - [ ] Comprehensive error codes documentation
 - [ ] API v2 endpoints implementation
