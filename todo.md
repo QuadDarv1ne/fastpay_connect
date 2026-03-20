@@ -1,11 +1,11 @@
 # FastPay Connect - TODO
 
-> **Last Updated**: Mar 2026  
-> **Current Branch**: main & dev (synced)  
-> **Test Coverage**: 38 test files (~60%+ coverage)  
-> **Payment Gateways**: 8 integrated  
-> **CI/CD**: GitHub Actions (multi-platform deploy)  
-> **Codebase**: 79 Python files (app/), 8 routes, 5 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 5 schemas, 10 payment gateways, 2 tasks
+> **Last Updated**: Mar 20, 2026
+> **Current Branch**: main & dev (synced)
+> **Test Coverage**: 40 test files (~60%+ coverage)
+> **Payment Gateways**: 8 integrated
+> **CI/CD**: GitHub Actions (multi-platform deploy)
+> **Codebase**: 81 Python files (app/), 8 routes, 5 middleware, 5 models, 6 repositories, 4 services, 3 websocket, 5 schemas, 10 payment gateways, 2 tasks
 
 ## Completed
 
@@ -149,8 +149,9 @@
 - [x] Dashboard routes - ✅ app/routes/dashboard_routes.py
 - [x] Webhook monitor routes - ✅ app/routes/webhook_monitor_routes.py
 - [x] WebSocket routes - ✅ app/routes/websocket_routes.py
-- [x] API v1 router - ✅ app/api/v1/__init__.py (payments, webhooks, admin, auth, health)
-- [x] API v2 router - ✅ app/api/v2/__init__.py (development status)
+- [x] API v1 router - ✅ app/api/v1/__init__.py (payments, webhooks, admin, auth, health, currencies, rustore, sbp, tenants)
+- [x] API v2 router - ✅ app/api/v2/__init__.py (health v2 endpoint)
+- [x] API v2 routes structure - ✅ app/api/v2/routes/ (health.py with /health, /ready, /live)
 
 ### Middleware (5 total)
 - [x] API Versioning Middleware - ✅ app/middleware/api_versioning.py
@@ -207,12 +208,12 @@
 ## Pending
 
 ### High Priority
-- [ ] API v2 endpoints implementation (structure ready: app/api/v2/)
+- [x] API v2 endpoints implementation (health endpoints done: /health, /ready, /live) - ✅ app/api/v2/routes/health.py (3 endpoints)
 - [ ] Apple Pay / Google Pay integration
 - [ ] Mobile SDK (iOS/Android)
 - [ ] Performance benchmarks and load testing
 - [ ] GraphQL schema improvements (currently basic Strawberry setup)
-- [ ] PostgreSQL migration scripts (alembic.ini uses SQLite for dev)
+- [ ] PostgreSQL migration scripts (alembic.ini uses SQLite for tests)
 
 ### Medium Priority
 - [ ] Payment analytics and reporting API
@@ -263,12 +264,13 @@
 - [x] Integration tests for all payment gateways
   - ✅ YooKassa, Tinkoff, RoboKassa, RuStore, SBP, CloudPayments, UnitPay
 - [x] API v2 structure - ✅ app/api/v2/ + middleware/api_versioning.py
+- [x] API v2 health endpoints - ✅ app/api/v2/routes/health.py (/health, /ready, /live)
 - [x] OpenAPI/Swagger documentation - ✅ /docs, /redoc
 - [x] CI/CD pipeline - ✅ .github/workflows/ci.yml
 - [x] Multi-platform deploy configs - ✅ 14 deployment configurations
 - [ ] Distributed tracing (OpenTelemetry)
 - [ ] Comprehensive error codes documentation
-- [ ] API v2 endpoints implementation
+- [ ] API v2 endpoints implementation (payments, webhooks, admin, etc.)
 - [ ] PostgreSQL migration (alembic.ini defaults to SQLite for dev)
 - [ ] Flower dashboard deployment (configured but needs deployment)
 
