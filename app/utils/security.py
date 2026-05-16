@@ -19,7 +19,12 @@ from app.settings import settings
 logger = logging.getLogger(__name__)
 
 # Конфигурация
-SECRET_KEY = settings.secret_key or "change-me-in-production-min-32-chars!"
+if not settings.secret_key:
+    raise RuntimeError(
+        "SECRET_KEY environment variable is not set. "
+        "Set a strong secret key before starting the application."
+    )
+SECRET_KEY = settings.secret_key
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 REFRESH_TOKEN_EXPIRE_DAYS = 7

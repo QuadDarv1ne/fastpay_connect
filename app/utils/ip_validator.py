@@ -26,7 +26,11 @@ async def verify_webhook_ip(request: Request, whitelist: List[str]) -> None:
     """Проверка IP запроса. Выбрасывает 403 если IP не в whitelist."""
     client_ip: Optional[str] = request.client.host if request.client else None
 
-    if not client_ip or client_ip in ("127.0.0.1", "localhost"):
+    if not client_ip:
+        return
+
+    # Skip check only if whitelist is empty (development mode)
+    if not whitelist:
         return
 
     if not is_ip_in_whitelist(client_ip, whitelist):

@@ -16,26 +16,26 @@ class CloudPaymentsGateway(BasePaymentGateway):
     def __init__(self):
         super().__init__(
             api_key=settings.cloudpayments_api_key,
-            secret_key=settings.secret_key,
+            secret_key=settings.cloudpayments_secret_key,
             return_url=settings.cloudpayments_return_url,
             base_url="https://api.cloudpayments.ru",
         )
 
     def generate_token(self, order_id: str) -> str:
         """Генерация токена для платежа."""
-        if not settings.secret_key:
-            logger.warning("SECRET_KEY not configured")
+        if not settings.cloudpayments_secret_key:
+            logger.warning("CLOUDPAYMENTS_SECRET_KEY not configured")
             return ""
 
-        message = f"{order_id}{settings.secret_key}"
+        message = f"{order_id}{settings.cloudpayments_secret_key}"
         return hmac.new(
-            settings.secret_key.encode(), message.encode(), hashlib.sha256
+            settings.cloudpayments_secret_key.encode(), message.encode(), hashlib.sha256
         ).hexdigest()
 
     def verify_token(self, order_id: str, token: str) -> bool:
         """Проверка токена."""
-        if not settings.secret_key:
-            logger.warning("SECRET_KEY not configured, skipping token verification")
+        if not settings.cloudpayments_secret_key:
+            logger.warning("CLOUDPAYMENTS_SECRET_KEY not configured, skipping token verification")
             return True
 
         expected_token = self.generate_token(order_id)

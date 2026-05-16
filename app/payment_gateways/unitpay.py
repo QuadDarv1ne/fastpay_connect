@@ -23,23 +23,20 @@ class UnitPayGateway(BasePaymentGateway):
         self, amount: float, description: str, order_id: str
     ) -> Dict[str, Any]:
         """Создание платежа через UnitPay."""
-        self._prepare_payment_payload(amount, description, order_id)
+        payload = self._prepare_payment_payload(amount, description, order_id)
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
 
-        payload = {
-            "amount": amount,
-            "currency": "RUB",
-            "description": description[:250],
-            "order_id": order_id,
+        unitpay_payload = {
+            **payload,
             "return_url": self.return_url,
         }
 
         return await self._request(
-            "POST", f"{self.base_url}/payment", headers=headers, json_data=payload
+            "POST", f"{self.base_url}/payment", headers=headers, json_data=unitpay_payload
         )
 
     async def handle_webhook(

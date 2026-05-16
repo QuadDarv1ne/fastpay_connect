@@ -59,7 +59,7 @@ GATEWAY_CONFIGS: Dict[str, Dict[str, Any]] = {
 
 def generate_order_id() -> str:
     """Генерация уникального order_id."""
-    return str(uuid.uuid4()).replace("-", "")[:12]
+    return str(uuid.uuid4())
 
 
 def extract_nested_value(data: Dict[str, Any], path: str) -> Optional[Any]:
