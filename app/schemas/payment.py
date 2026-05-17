@@ -34,6 +34,7 @@ class PaymentRequest(BaseModel):
     order_id: Optional[str] = Field(None, max_length=50, description="ID заказа (опционально)")
     email: Optional[EmailStr] = Field(None, description="Email для уведомлений")
     currency: Optional[CurrencyEnum] = Field(default=CurrencyEnum.RUB, description="Валюта платежа")
+    gateway: Optional[str] = Field(default="yookassa", description="Платёжный шлюз (yookassa, tinkoff, cloudpayments, unitpay, robokassa)")
 
     @field_validator('amount')
     @classmethod

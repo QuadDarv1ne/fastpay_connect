@@ -1,14 +1,17 @@
 """Payments routes for API v1."""
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from typing import Dict, Any
 
 from app.dependencies import get_payment_repository
 from app.repositories.payment_repository import PaymentRepository
 from app.schemas import PaymentRequest, PaymentResponse
 from app.middleware.rate_limiter import limiter
+from app.services.payment_service import PaymentService, PaymentServiceError
 
 router = APIRouter()
+
+VALID_GATEWAYS = ("yookassa", "tinkoff", "cloudpayments", "unitpay", "robokassa")
 
 
 @router.post("/create", response_model=PaymentResponse)
@@ -19,11 +22,25 @@ async def create_payment_v1(
     repository: PaymentRepository = Depends(get_payment_repository),
 ) -> PaymentResponse:
     """Create a new payment (v1)."""
-    from app.services.payment_service import PaymentService
-    from app.settings import settings
-    
-    service = PaymentService(repository, settings)
-    return await service.create_payment(payment_data)
+    gateway = payment_data.gateway or "yookassa"
+    if gateway not in VALID_GATEWAYS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown gateway: {gateway}. Valid options: {', '.join(VALID_GATEWAYS)}",
+        )
+
+    service = PaymentService(repository)
+    try:
+        return await service.create_payment(payment_data)
+    except PaymentServiceError as e:
+        error_msg = str(e)
+        if "not configured" in error_msg:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_msg)
+        elif "timeout" in error_msg.lower():
+            raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=error_msg)
+        elif "unavailable" in error_msg.lower():
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=error_msg)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
 
 
 @router.get("/status/{order_id}")
