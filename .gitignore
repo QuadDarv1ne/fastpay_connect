@@ -65,3 +65,6 @@ deploy/cloudflare/.wrangler/
 deploy/cloudflare/public/
 deploy/cloudflare/dist/
 deploy/cloudflare/build/
+
+# Duplicate integration package
+rustore_integration_package/

@@ -13,19 +13,19 @@ if database_url.startswith("sqlite+aiosqlite"):
     database_url = database_url.replace("sqlite+aiosqlite", "sqlite")
 
 # Конфигурация pool для SQLite
-connect_args = {"check_same_thread": False}
 if "sqlite" in database_url:
-    poolclass = StaticPool
+    connect_args = {"check_same_thread": False}
+    pool_kwargs: dict = {"poolclass": StaticPool}
 else:
-    poolclass = None
     connect_args = {}
+    pool_kwargs = {}
 
 engine = create_engine(
     database_url,
     connect_args=connect_args,
-    poolclass=poolclass,
     pool_pre_ping=True,
     pool_recycle=3600,
+    **pool_kwargs,
 )
 
 Base = declarative_base()

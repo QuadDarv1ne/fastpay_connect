@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     json_logs: bool = False
     secret_key: Optional[str] = None
-    database_url: str = "sqlite+aiosqlite:///./fastpay_connect.db"
+    database_url: str = "sqlite:///./fastpay_connect.db"
     allowed_hosts: List[str] = Field(default_factory=lambda: ["localhost"])
     allowed_origins: List[str] = Field(default_factory=lambda: ["http://localhost"])
 

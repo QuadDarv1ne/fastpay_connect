@@ -1,6 +1,8 @@
 """Интеграция с платёжной системой YooKassa."""
 
+import hashlib
 import logging
+import uuid
 from typing import Any, Dict, Optional
 from app.payment_gateways.base import BasePaymentGateway
 from app.settings import settings
@@ -28,7 +30,7 @@ class YooKassaGateway(BasePaymentGateway):
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
-            "Idempotence-Key": order_id or f"req_{hash(f'{amount}{description}')}",
+            "Idempotence-Key": order_id or f"req_{uuid.uuid4().hex}",
         }
 
         yookassa_payload = {
