@@ -15,6 +15,16 @@ from app.models.payment import Payment as PaymentModel, PaymentStatus
 from app.models.tenant import Tenant as TenantModel
 from app.models.webhook_event import WebhookEvent as WebhookEventModel
 from app.database import SessionLocal
+from app.graphql.schema import (
+    Payment as PaymentType,
+    Tenant as TenantType,
+    WebhookEvent as WebhookEventType,
+    PaymentEdge as PaymentTypeEdge,
+    PaymentConnection as PaymentTypeConnection,
+    PaymentStatistics as PaymentTypeStatistics,
+    TenantConnection as TenantTypeConnection,
+    WebhookEventConnection as WebhookEventTypeConnection,
+)
 
 
 def get_db() -> Session:
@@ -42,7 +52,7 @@ def decode_cursor(cursor: str) -> Optional[int]:
     return None
 
 
-def payment_model_to_graphql(payment: PaymentModel) -> strawberry.types.types.Payment:
+def payment_model_to_graphql(payment: PaymentModel) -> PaymentType:
     """Конвертация модели Payment в GraphQL тип."""
     from app.graphql.schema import Payment, PaymentStatusEnum
     
@@ -67,7 +77,7 @@ def payment_model_to_graphql(payment: PaymentModel) -> strawberry.types.types.Pa
     )
 
 
-def tenant_model_to_graphql(tenant: TenantModel) -> strawberry.types.types.Tenant:
+def tenant_model_to_graphql(tenant: TenantModel) -> TenantType:
     """Конвертация модели Tenant в GraphQL тип."""
     from app.graphql.schema import Tenant
     
@@ -83,7 +93,7 @@ def tenant_model_to_graphql(tenant: TenantModel) -> strawberry.types.types.Tenan
     )
 
 
-def webhook_model_to_graphql(webhook: WebhookEventModel) -> strawberry.types.types.WebhookEvent:
+def webhook_model_to_graphql(webhook: WebhookEventModel) -> WebhookEventType:
     """Конвертация модели WebhookEvent в GraphQL тип."""
     from app.graphql.schema import WebhookEvent, WebhookEventType, WebhookEventStatus
     
@@ -110,7 +120,7 @@ class PaymentQuery:
     """Query resolver для платежей."""
 
     @strawberry.field
-    def payment(self, order_id: str) -> Optional[strawberry.types.types.Payment]:
+    def payment(self, order_id: str) -> Optional[PaymentType]:
         """Получить платёж по order_id."""
         db = get_db()
         payment = db.query(PaymentModel).filter(PaymentModel.order_id == order_id).first()
@@ -122,7 +132,7 @@ class PaymentQuery:
         return payment_model_to_graphql(payment)
 
     @strawberry.field
-    def payment_by_id(self, payment_id: int) -> Optional[strawberry.types.types.Payment]:
+    def payment_by_id(self, payment_id: int) -> Optional[PaymentType]:
         """Получить платёж по ID."""
         db = get_db()
         payment = db.query(PaymentModel).filter(PaymentModel.id == payment_id).first()
@@ -147,7 +157,7 @@ class PaymentQuery:
         search: Optional[str] = None,
         sort_by: str = "created_at",
         sort_order: str = "desc",
-    ) -> strawberry.types.types.PaymentConnection:
+    ) -> PaymentTypeConnection:
         """Получить список платежей с пагинацией и фильтрами."""
         db = get_db()
 
@@ -173,11 +183,13 @@ class PaymentQuery:
             query = query.filter(PaymentModel.amount <= max_amount)
 
         if search:
+            # Escape special LIKE characters to prevent SQL injection
+            escaped_search = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
             query = query.filter(
                 or_(
-                    PaymentModel.order_id.ilike(f"%{search}%"),
-                    PaymentModel.payment_id.ilike(f"%{search}%"),
-                    PaymentModel.transaction_id.ilike(f"%{search}%"),
+                    PaymentModel.order_id.ilike(f"%{escaped_search}%", escape="\\"),
+                    PaymentModel.payment_id.ilike(f"%{escaped_search}%", escape="\\"),
+                    PaymentModel.transaction_id.ilike(f"%{escaped_search}%", escape="\\"),
                 )
             )
 
@@ -200,11 +212,11 @@ class PaymentQuery:
         
         # Создаём edges для Relay пагинации
         edges = [
-            strawberry.types.types.PaymentEdge(cursor=encode_cursor(p.id), node=payment_model_to_graphql(p))
+            PaymentTypeEdge(cursor=encode_cursor(p.id), node=payment_model_to_graphql(p))
             for p in payments
         ]
 
-        return strawberry.types.types.PaymentConnection(
+        return PaymentTypeConnection(
             items=[payment_model_to_graphql(p) for p in payments],
             edges=edges,
             total=total,
@@ -222,7 +234,7 @@ class PaymentQuery:
         after: Optional[str] = None,
         last: Optional[int] = None,
         before: Optional[str] = None,
-    ) -> strawberry.types.types.PaymentConnection:
+    ) -> PaymentTypeConnection:
         """Получить платежи с cursor-based пагинацией (Relay style)."""
         db = get_db()
         query = db.query(PaymentModel).order_by(PaymentModel.id.asc())
@@ -246,14 +258,14 @@ class PaymentQuery:
             payments = payments[:-1]
 
         edges = [
-            strawberry.types.types.PaymentEdge(cursor=encode_cursor(p.id), node=payment_model_to_graphql(p))
+            PaymentTypeEdge(cursor=encode_cursor(p.id), node=payment_model_to_graphql(p))
             for p in payments
         ]
 
         # Получаем общий count
         total = db.query(PaymentModel).count()
 
-        return strawberry.types.types.PaymentConnection(
+        return PaymentTypeConnection(
             items=[payment_model_to_graphql(p) for p in payments],
             edges=edges,
             total=total,
@@ -271,7 +283,7 @@ class PaymentQuery:
         tenant_id: Optional[str] = None,
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
-    ) -> strawberry.types.types.PaymentStatistics:
+    ) -> PaymentTypeStatistics:
         """Получить расширенную статистику по платежам."""
         db = get_db()
 
@@ -324,7 +336,7 @@ class PaymentQuery:
 
         db.close()
 
-        return strawberry.types.types.PaymentStatistics(
+        return PaymentTypeStatistics(
             total_payments=total,
             total_amount=float(total_amount_result),
             by_status={status: count for status, count in by_status_query},
@@ -340,7 +352,7 @@ class TenantQuery:
     """Query resolver для тенантов."""
 
     @strawberry.field
-    def tenant(self, tenant_id: int) -> Optional[strawberry.types.types.Tenant]:
+    def tenant(self, tenant_id: int) -> Optional[TenantType]:
         """Получить тенанта по ID."""
         db = get_db()
         tenant = db.query(TenantModel).filter(TenantModel.id == tenant_id).first()
@@ -352,7 +364,7 @@ class TenantQuery:
         return tenant_model_to_graphql(tenant)
 
     @strawberry.field
-    def tenant_by_api_key(self, api_key: str) -> Optional[strawberry.types.types.Tenant]:
+    def tenant_by_api_key(self, api_key: str) -> Optional[TenantType]:
         """Получить тенанта по API ключу."""
         db = get_db()
         tenant = db.query(TenantModel).filter(TenantModel.api_key == api_key).first()
@@ -370,7 +382,7 @@ class TenantQuery:
         page_size: int = 20,
         is_active: Optional[bool] = None,
         search: Optional[str] = None,
-    ) -> strawberry.types.types.TenantConnection:
+    ) -> TenantTypeConnection:
         """Получить список тенантов."""
         db = get_db()
 
@@ -380,10 +392,12 @@ class TenantQuery:
             query = query.filter(TenantModel.is_active == is_active)
 
         if search:
+            # Escape special LIKE characters to prevent SQL injection
+            escaped_search = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
             query = query.filter(
                 or_(
-                    TenantModel.name.ilike(f"%{search}%"),
-                    TenantModel.api_key.ilike(f"%{search}%"),
+                    TenantModel.name.ilike(f"%{escaped_search}%", escape="\\"),
+                    TenantModel.api_key.ilike(f"%{escaped_search}%", escape="\\"),
                 )
             )
 
@@ -394,7 +408,7 @@ class TenantQuery:
 
         pages = (total + page_size - 1) // page_size if page_size > 0 else 0
 
-        return strawberry.types.types.TenantConnection(
+        return TenantTypeConnection(
             items=[tenant_model_to_graphql(t) for t in tenants],
             total=total,
             page=page,
@@ -408,7 +422,7 @@ class WebhookQuery:
     """Query resolver для webhook событий."""
 
     @strawberry.field
-    def webhook_event(self, event_id: int) -> Optional[strawberry.types.types.WebhookEvent]:
+    def webhook_event(self, event_id: int) -> Optional[WebhookEventType]:
         """Получить webhook событие по ID."""
         db = get_db()
         event = db.query(WebhookEventModel).filter(WebhookEventModel.id == event_id).first()
@@ -428,7 +442,7 @@ class WebhookQuery:
         event_status: Optional[str] = None,
         processed: Optional[bool] = None,
         tenant_id: Optional[int] = None,
-    ) -> strawberry.types.types.WebhookEventConnection:
+    ) -> WebhookEventTypeConnection:
         """Получить список webhook событий."""
         db = get_db()
 
@@ -453,7 +467,7 @@ class WebhookQuery:
 
         pages = (total + page_size - 1) // page_size if page_size > 0 else 0
 
-        return strawberry.types.types.WebhookEventConnection(
+        return WebhookEventTypeConnection(
             items=[webhook_model_to_graphql(e) for e in events],
             total=total,
             page=page,

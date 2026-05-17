@@ -162,7 +162,7 @@ if not DISABLE_RATE_LIMITING and settings.allowed_hosts:
 app.state.limiter = limiter
 
 # Добавляем обработчик только для настоящего limiter
-if not os.getenv("DISABLE_RATE_LIMITING", "false").lower() == "true":
+if not DISABLE_RATE_LIMITING:
     app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 if TEMPLATES_DIR.exists():
@@ -240,93 +240,6 @@ async def root(request: Request):
     except Exception as e:
         logger.exception(f"Error rendering home page: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
-@app.get("/health", tags=["Health"])
-async def health_check():
-    """Проверка здоровья приложения."""
-    from app.database import engine
-    import time
-    
-    start_time = time.time()
-    db_status = "ok"
-    try:
-        with engine.connect() as conn:
-            conn.execute(Base.metadata.tables["payments"].select().limit(1))
-    except Exception as e:
-        db_status = f"error: {str(e)}"
-    
-    return {
-        "status": "healthy",
-        "debug": settings.debug,
-        "checks": {
-            "database": db_status,
-            "response_time_ms": round((time.time() - start_time) * 1000, 2)
-        }
-    }
-
-
-@app.get("/ready", tags=["Health"])
-async def readiness_check():
-    """Проверка готовности приложения."""
-    readiness_status = {
-        "status": "ready",
-        "checks": {
-            "database": "ok",
-            "configuration": "ok",
-            "celery": "ok" if settings.celery_enabled else "disabled",
-        },
-    }
-
-    try:
-        from app.database import engine, Base
-        with engine.connect() as conn:
-            conn.execute(Base.metadata.tables["payments"].select().limit(1))
-    except Exception as e:
-        readiness_status["status"] = "not_ready"
-        readiness_status["checks"]["database"] = f"error: {str(e)}"
-        logger.warning(f"Database readiness check failed: {e}")
-
-    if not settings_validator.validate_all(
-        yookassa_key=settings.yookassa_api_key,
-        yookassa_secret=settings.yookassa_secret_key,
-        tinkoff_key=settings.tinkoff_api_key,
-        tinkoff_secret=settings.tinkoff_secret_key,
-        cloudpayments_key=settings.cloudpayments_api_key,
-        cloudpayments_secret=settings.cloudpayments_secret_key,
-        unitpay_key=settings.unitpay_api_key,
-        unitpay_secret=settings.unitpay_secret_key,
-        robokassa_key=settings.robokassa_api_key,
-        robokassa_secret=settings.robokassa_secret_key,
-        secret_key=settings.secret_key,
-        database_url=settings.database_url,
-    ):
-        readiness_status["status"] = "not_ready"
-        readiness_status["checks"]["configuration"] = "missing_required_settings"
-
-    # Проверка подключения к Redis для Celery
-    if settings.celery_enabled:
-        try:
-            import redis
-            from redis.exceptions import RedisError
-            redis_client = redis.from_url(settings.redis_url)
-            redis_client.ping()
-            readiness_status["checks"]["redis"] = "ok"
-        except ImportError:
-            readiness_status["checks"]["redis"] = "redis package not installed"
-            readiness_status["status"] = "degraded"
-        except RedisError as e:
-            readiness_status["checks"]["redis"] = f"error: {str(e)}"
-            readiness_status["status"] = "degraded"
-            logger.warning(f"Redis connection check failed: {e}")
-
-    if readiness_status["status"] == "ready":
-        return readiness_status
-
-    return JSONResponse(
-        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        content=readiness_status,
-    )
 
 
 @app.get("/health/celery", tags=["Health"])

@@ -16,14 +16,15 @@ from app.payment_gateways.tinkoff import handle_tinkoff_webhook
 from app.payment_gateways.cloudpayments import handle_cloudpayments_webhook
 from app.payment_gateways.unitpay import handle_unitpay_webhook
 from app.payment_gateways.robokassa import handle_robokassa_webhook
+from app.settings import settings
 
 logger = logging.getLogger(__name__)
 
 # Инициализация Celery
 celery_app = Celery(
     'fastpay_connect',
-    broker='redis://localhost:6379/0',
-    backend='redis://localhost:6379/1',
+    broker=settings.celery_broker_url,
+    backend=settings.celery_result_backend,
     include=['app.tasks.webhook_tasks']
 )
 

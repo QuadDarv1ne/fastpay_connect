@@ -278,10 +278,12 @@ class PaymentRepository:
             query = query.filter(Payment.payment_gateway == gateway)
 
         if search:
+            # Escape special LIKE characters to prevent SQL injection
+            escaped_search = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
             query = query.filter(
                 or_(
-                    Payment.order_id.ilike(f"%{search}%"),
-                    Payment.payment_id.ilike(f"%{search}%"),
+                    Payment.order_id.ilike(f"%{escaped_search}%", escape="\\"),
+                    Payment.payment_id.ilike(f"%{escaped_search}%", escape="\\"),
                 )
             )
 

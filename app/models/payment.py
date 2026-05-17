@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Enum, Index, ForeignKey
+from sqlalchemy import Column, Integer, String, Numeric, DateTime, Enum, Index, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
@@ -34,7 +34,7 @@ class Payment(Base):
     payment_id = Column(String, index=True)
     transaction_id = Column(String, index=True)
     payment_gateway = Column(String, nullable=False, index=True)
-    amount = Column(Float, nullable=False)
+    amount = Column(Numeric(10, 2), nullable=False)
     currency = Column(String, default="RUB")
     status = Column(Enum(PaymentStatus, values_callable=lambda x: [e.value for e in x]), default=PaymentStatus.PENDING, index=True)
     description = Column(String)
