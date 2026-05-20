@@ -324,7 +324,8 @@ app.add_route("/metrics", MetricsEndpoint.metrics)
 
 
 @app.get("/health", tags=["Health"])
-async def health_check():
+@limiter.limit("60/minute")
+async def health_check(request: Request):
     """Root-level health check endpoint."""
     from app.database import engine, Base
     import time
@@ -342,7 +343,6 @@ async def health_check():
 
     return {
         "status": "healthy",
-        "debug": settings.debug,
         "checks": {
             "database": db_status,
             "response_time_ms": response_time_ms,

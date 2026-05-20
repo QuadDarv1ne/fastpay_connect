@@ -102,7 +102,11 @@ def verify_unitpay_signature(
 
     UnitPay использует MD5 хэш от параметров + secret key.
     Формат: md5(account + amount + secret + command + order_id + purse + test_mode)
+    
+    SECURITY WARNING: MD5 is cryptographically broken. This is required by UnitPay protocol.
+    Ensure IP whitelist enforcement is always applied for UnitPay webhooks.
     """
+    logger.warning("UnitPay uses MD5 for signatures - ensure IP whitelist is enforced")
     try:
         # Сортируем параметры для консистентности
         account = str(params.get('account', ''))
@@ -135,7 +139,11 @@ def verify_robokassa_signature(
 
     RoboKassa использует MD5 хэш.
     Для Result: md5(MerchantLogin:Amount:OrderID:Password1)
+    
+    SECURITY WARNING: MD5 is cryptographically broken. This is required by RoboKassa protocol.
+    Ensure IP whitelist enforcement is always applied for RoboKassa webhooks.
     """
+    logger.warning("RoboKassa uses MD5 for signatures - ensure IP whitelist is enforced")
     try:
         merchant_login = str(params.get('MerchantLogin', ''))
         amount = str(params.get('OutSum', ''))
@@ -255,7 +263,7 @@ class WebhookSignatureVerifier:
 
         try:
             if gateway in ('unitpay', 'robokassa'):
-                return verifier(payload, params or {}, secret_key, signature)
+                return verifier(params or {}, secret_key, signature)
             elif gateway == 'sbp':
                 if not timestamp:
                     logger.error("SBP webhook requires timestamp")

@@ -66,9 +66,11 @@ class TestWebhookRoutes:
         data = response.json()
         assert data["status"] == "success"
 
+    @patch("app.middleware.webhook_security.signature_verifier")
     @patch("app.routes.webhook_routes.process_webhook")
     @patch("app.routes.webhook_routes.verify_webhook_ip")
-    def test_unitpay_webhook(self, mock_verify, mock_process, test_client):
+    def test_unitpay_webhook(self, mock_verify, mock_process, mock_sig, test_client):
+        mock_sig.verify.return_value = True
         mock_process.return_value = (
             {"status": "processed", "message": "Payment successful"},
             "order_abc",
@@ -84,9 +86,11 @@ class TestWebhookRoutes:
         data = response.json()
         assert data["status"] == "success"
 
+    @patch("app.middleware.webhook_security.signature_verifier")
     @patch("app.routes.webhook_routes.process_webhook")
     @patch("app.routes.webhook_routes.verify_webhook_ip")
-    def test_robokassa_webhook(self, mock_verify, mock_process, test_client):
+    def test_robokassa_webhook(self, mock_verify, mock_process, mock_sig, test_client):
+        mock_sig.verify.return_value = True
         mock_process.return_value = (
             {"status": "processed", "message": "Payment successful"},
             "order_xyz",

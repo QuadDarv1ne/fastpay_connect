@@ -230,8 +230,9 @@ class WebhookSecurityMiddleware(BaseHTTPMiddleware):
             logger.warning(f"No secret key configured for {gateway_name}")
             return
 
-        # Получаем тело запроса
+        # Получаем тело запроса и кэшируем для downstream handlers
         body = await request.body()
+        request.state._cached_body = body
 
         # Получаем подпись из заголовка
         signature = request.headers.get("X-Signature", "")

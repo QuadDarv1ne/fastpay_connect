@@ -1,5 +1,6 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from fastapi import APIRouter, HTTPException, Request, Depends, status
+import json
 from app.database import get_db
 from app.repositories.payment_repository import PaymentRepository
 from app.dependencies import get_payment_repository
@@ -119,7 +120,12 @@ def create_webhook_endpoint(webhook_key: str):
         repository: PaymentRepository = Depends(get_payment_repository),
     ) -> Dict[str, Any]:
         await verify_webhook_ip(request, config.ip_whitelist)
-        payload = await request.json()
+        
+        # Use cached body from middleware if available to avoid re-reading stream
+        if hasattr(request.state, "_cached_body"):
+            payload = json.loads(request.state._cached_body)
+        else:
+            payload = await request.json()
 
         if config.token_field:
             auth_value = payload.get(
