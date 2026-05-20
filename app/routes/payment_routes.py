@@ -1,157 +1,66 @@
 """Роуты для работы с платежами."""
 
-from typing import Any, Dict, Optional
-from fastapi import APIRouter, HTTPException, Depends, Request, status
-from app.payment_gateways.exceptions import (
-    PaymentGatewayError,
-    PaymentGatewayConfigError,
-    PaymentGatewayTimeoutError,
-    PaymentGatewayConnectionError,
-)
+from fastapi import APIRouter, Depends, Request, HTTPException, status
 from app.schemas import PaymentRequest, PaymentResponse
 from app.dependencies import get_payment_repository
 from app.repositories.payment_repository import PaymentRepository
 from app.middleware.rate_limiter import limiter
-from app.models.payment import PaymentStatus
-from app.utils.gateway_registry import (
-    GATEWAY_CONFIGS,
-    extract_nested_value,
-    generate_order_id,
-)
-import logging
+from app.services.payment_service import PaymentService, PaymentServiceError
 
-logger = logging.getLogger(__name__)
+logger = __import__("logging").getLogger(__name__)
 
 router = APIRouter()
 
 
-async def process_payment(
-    gateway_config: Dict[str, Any],
-    repository: PaymentRepository,
-    amount: float,
-    description: str,
-    order_id: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Обработка создания платежа."""
-    order_id = order_id or generate_order_id()
-    gateway_name = gateway_config["name"]
-
-    db_payment = repository.create(
-        order_id=order_id,
-        payment_gateway=gateway_name,
-        amount=amount,
-        description=description,
-    )
-
-    create_func = gateway_config["create_func"]
-    try:
-        result = await create_func(amount, description, order_id)
-    except PaymentGatewayConfigError as e:
-        logger.error(f"Gateway config error: {e.message}")
-        repository.update_status(
-            order_id=order_id, status=PaymentStatus.FAILED, metadata={"error": e.message}
-        )
-        raise HTTPException(
-            status_code=500,
-            detail={"error": "Payment gateway not configured", "order_id": order_id},
-        ) from e
-    except PaymentGatewayTimeoutError as e:
-        logger.error(f"Gateway timeout: {e.message}")
-        repository.update_status(
-            order_id=order_id, status=PaymentStatus.FAILED, metadata={"error": "Gateway timeout"}
-        )
-        raise HTTPException(
-            status_code=504,
-            detail={"error": "Payment gateway timeout", "order_id": order_id},
-        ) from e
-    except PaymentGatewayConnectionError as e:
-        logger.error(f"Gateway connection error: {e.message}")
-        repository.update_status(
-            order_id=order_id, status=PaymentStatus.FAILED, metadata={"error": "Gateway connection failed"}
-        )
-        raise HTTPException(
-            status_code=503,
-            detail={"error": "Payment gateway unavailable", "order_id": order_id},
-        ) from e
-    except PaymentGatewayError as e:
-        logger.error(f"Gateway error: {e.message}")
-        repository.update_status(
-            order_id=order_id, status=PaymentStatus.FAILED, metadata={"error": e.message}
-        )
-        raise HTTPException(
-            status_code=400,
-            detail={"error": e.message, "order_id": order_id},
-        ) from e
-
-    if "error" in result:
-        repository.update_status(
-            order_id=order_id, status=PaymentStatus.FAILED, metadata={"error": result["error"]}
-        )
-        raise HTTPException(
-            status_code=400,
-            detail={"error": result["error"], "order_id": order_id},
-        )
-
-    payment_id = result.get(gateway_config["payment_id_field"])
-    payment_url = None
-    if gateway_config.get("payment_url_field"):
-        payment_url = extract_nested_value(result, gateway_config["payment_url_field"])
-
-    repository.update_status(
-        order_id=order_id,
-        status=PaymentStatus.PROCESSING,
-        metadata={"payment_id": payment_id, "payment_url": payment_url},
-    )
-
-    return {
-        "payment_id": payment_id,
-        "payment_url": payment_url,
-        "order_id": order_id,
-        "amount": amount,
-    }
-
-
-def create_payment_endpoint(gateway_key: str):
-    """Создание endpoint для платёжного шлюза."""
-    gateway_config = GATEWAY_CONFIGS[gateway_key]
+def _create_payment_handler(gateway: str):
+    """Создание обработчика для конкретного платёжного шлюза."""
 
     async def handler(
         request: Request,
         payment_request: PaymentRequest,
         repository: PaymentRepository = Depends(get_payment_repository),
     ) -> PaymentResponse:
-        result = await process_payment(
-            gateway_config=gateway_config,
-            repository=repository,
-            amount=payment_request.amount,
-            description=payment_request.description,
-            order_id=payment_request.order_id,
-        )
-
-        return PaymentResponse(
-            success=True,
-            payment_id=result["payment_id"],
-            payment_url=result["payment_url"],
-            order_id=result["order_id"],
-            amount=result["amount"],
-            message="Платёж успешно создан",
-        )
+        service = PaymentService(repository)
+        try:
+            return await service.create_payment(payment_request, gateway_key=gateway)
+        except PaymentServiceError as e:
+            error_msg = str(e)
+            order_id = getattr(e, "order_id", None) or payment_request.order_id or "unknown"
+            if "not configured" in error_msg:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail={"error": error_msg, "order_id": order_id},
+                )
+            elif "timeout" in error_msg.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                    detail={"error": error_msg, "order_id": order_id},
+                )
+            elif "unavailable" in error_msg.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail={"error": error_msg, "order_id": order_id},
+                )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"error": error_msg, "order_id": order_id},
+            )
 
     return limiter.limit("10/minute")(handler)
 
 
 router.post("/yookassa", response_model=PaymentResponse)(
-    create_payment_endpoint("yookassa")
+    _create_payment_handler("yookassa")
 )
 router.post("/tinkoff", response_model=PaymentResponse)(
-    create_payment_endpoint("tinkoff")
+    _create_payment_handler("tinkoff")
 )
 router.post("/cloudpayments", response_model=PaymentResponse)(
-    create_payment_endpoint("cloudpayments")
+    _create_payment_handler("cloudpayments")
 )
 router.post("/unitpay", response_model=PaymentResponse)(
-    create_payment_endpoint("unitpay")
+    _create_payment_handler("unitpay")
 )
 router.post("/robokassa", response_model=PaymentResponse)(
-    create_payment_endpoint("robokassa")
+    _create_payment_handler("robokassa")
 )

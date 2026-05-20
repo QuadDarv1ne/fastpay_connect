@@ -49,13 +49,16 @@ class PaymentService:
     def __init__(self, repository: PaymentRepository) -> None:
         self.repository = repository
 
-    async def create_payment(self, payment_data: PaymentRequest) -> PaymentResponse:
+    async def create_payment(
+        self, payment_data: PaymentRequest, gateway_key: Optional[str] = None
+    ) -> PaymentResponse:
         """Create a new payment via the appropriate gateway.
 
-        Determines the gateway from the payment_data (or defaults to yookassa),
-        creates a DB record, calls the gateway, and returns a structured response.
+        Determines the gateway from gateway_key (if provided), then payment_data,
+        or defaults to yookassa. Creates a DB record, calls the gateway, and
+        returns a structured response.
         """
-        gateway_key = getattr(payment_data, "gateway", None) or "yookassa"
+        gateway_key = gateway_key or getattr(payment_data, "gateway", None) or "yookassa"
         config = GATEWAY_CONFIGS.get(gateway_key)
         if not config:
             raise PaymentServiceError(f"Unknown payment gateway: {gateway_key}")

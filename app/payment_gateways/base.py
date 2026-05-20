@@ -197,7 +197,8 @@ class BasePaymentGateway(ABC):
             logger.error(f"{self.__class__.__name__}: API key not configured")
             return False
         if not self.secret_key:
-            logger.warning(f"{self.__class__.__name__}: secret key not configured")
+            logger.error(f"{self.__class__.__name__}: secret key not configured")
+            return False
         return True
 
     @abstractmethod
