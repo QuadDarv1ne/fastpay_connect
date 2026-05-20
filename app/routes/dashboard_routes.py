@@ -82,17 +82,17 @@ async def get_dashboard_summary(
     new_payments = len([p for p in period_payments if p.created_at >= date_from])
     
     # Конверсия (completed / total)
-    completed = len([p for p in period_payments if p.status == PaymentStatus.COMPLETED.value])
+    completed = len([p for p in period_payments if p.status == PaymentStatus.COMPLETED])
     conversion_rate = (completed / len(period_payments) * 100) if period_payments else 0
     
     # Средний чек
-    avg_check = sum(p.amount for p in period_payments if p.status == PaymentStatus.COMPLETED.value)
+    avg_check = sum(p.amount for p in period_payments if p.status == PaymentStatus.COMPLETED)
     avg_check = avg_check / completed if completed > 0 else 0
     
     # Топ gateway по сумме
     gateway_amounts = {}
     for p in period_payments:
-        if p.status == PaymentStatus.COMPLETED.value:
+        if p.status == PaymentStatus.COMPLETED:
             gateway_amounts[p.payment_gateway] = gateway_amounts.get(p.payment_gateway, 0) + p.amount
     
     top_gateway = max(gateway_amounts.items(), key=lambda x: x[1]) if gateway_amounts else (None, 0)
@@ -236,7 +236,7 @@ async def get_gateway_statistics(
                 gateway_data["by_status"][status_stat.status] = status_stat.count
         
         # Success rate
-        success = gateway_data["by_status"].get(PaymentStatus.COMPLETED.value, 0)
+        success = gateway_data["by_status"].get(PaymentStatus.COMPLETED, 0)
         gateway_data["success_rate"] = round(success / stat.total * 100, 2) if stat.total > 0 else 0
         
         result.append(gateway_data)
