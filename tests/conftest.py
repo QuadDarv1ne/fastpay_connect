@@ -4,6 +4,7 @@ import os
 os.environ["APP_ENV"] = "testing"
 os.environ["DISABLE_CELERY"] = "true"
 os.environ["DISABLE_RATE_LIMITING"] = "true"
+os.environ["DISABLE_WEBHOOK_SECURITY"] = "true"
 
 import pytest
 from sqlalchemy import create_engine

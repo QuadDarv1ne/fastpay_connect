@@ -20,7 +20,7 @@ from app.settings import settings
 logger = logging.getLogger(__name__)
 
 # Отключаем проверки безопасности для тестов
-DISABLE_SECURITY = os.getenv("DISABLE_RATE_LIMITING", "false").lower() == "true"
+DISABLE_SECURITY = os.getenv("DISABLE_WEBHOOK_SECURITY", "false").lower() == "true"
 
 
 class WebhookSecurityMiddleware(BaseHTTPMiddleware):

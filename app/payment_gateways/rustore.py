@@ -18,7 +18,7 @@ import hashlib
 import hmac
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -131,7 +131,8 @@ class RuStoreGateway(BasePaymentGateway):
             logger.error("RuStore: API key not configured")
             return False
         if not self.secret_key:
-            logger.warning("RuStore: secret key not configured")
+            logger.error("RuStore: secret key not configured")
+            return False
         return True
 
     async def _get_auth_token(self) -> str:
@@ -182,9 +183,9 @@ class RuStoreGateway(BasePaymentGateway):
             self._token_cache = result
             # Устанавливаем время истечения с запасом в 5 минут
             expires_in = result.get("expires_in", 3600)
-            self._token_expires_at = datetime.now(timezone.utc).replace(
-                tzinfo=timezone.utc
-            ).timestamp() + expires_in - 300
+            self._token_expires_at = datetime.now(timezone.utc) + timedelta(
+                seconds=expires_in - 300
+            )
 
             return result.get("access_token", "")
 
