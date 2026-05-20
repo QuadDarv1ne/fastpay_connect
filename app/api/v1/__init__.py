@@ -17,6 +17,7 @@ from app.api.v1.routes import (
     rustore,
     sbp,
     tenants,
+    apple_pay,
 )
 
 router = APIRouter()
@@ -31,5 +32,7 @@ router.include_router(currencies.router, prefix="/currencies", tags=["Currencies
 router.include_router(rustore.router, prefix="/rustore", tags=["RuStore v1"])
 router.include_router(sbp.router, prefix="/sbp", tags=["SBP v1"])
 router.include_router(tenants.router, prefix="/tenants", tags=["Tenants v1"])
+router.include_router(apple_pay.router, tags=["Apple Pay v1"])
+
 
 __all__ = ["router"]
