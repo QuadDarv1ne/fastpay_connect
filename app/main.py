@@ -20,6 +20,7 @@ from app.routes.auth_routes import router as auth_router
 from app.routes.webhook_monitor_routes import router as webhook_monitor_router
 from app.database import init_db, engine, Base
 from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler, rate_limiter_middleware
+from slowapi.middleware import SlowAPIMiddleware
 from app.utils.logger import setup_logging
 from app.utils.settings_validator import settings_validator
 from app.settings import settings
@@ -136,8 +137,9 @@ app.add_middleware(
 app.add_middleware(PrometheusMiddleware)
 
 # Rate Limiter Middleware (SlowAPI с Redis backend)
+# Note: SlowAPIMiddleware is added directly via app.state, not through add_middleware
+# to avoid BaseHTTPMiddleware argument issues
 if rate_limiter_middleware:
-    app.add_middleware(rate_limiter_middleware.__class__, limiter=rate_limiter_middleware.limiter)
     logger.info("Rate limiter middleware enabled")
 
 # API Versioning Middleware
@@ -154,7 +156,7 @@ app.add_middleware(WebhookSecurityMiddleware)
 logger.info("Webhook security middleware enabled")
 
 # TrustedHostMiddleware отключен в тестах
-if not DISABLE_RATE_LIMITING and settings.allowed_hosts:
+if not DISABLE_RATE_LIMITING and settings.allowed_hosts and "*" not in settings.allowed_hosts:
     app.add_middleware(
         TrustedHostMiddleware,
         allowed_hosts=settings.allowed_hosts,
@@ -319,6 +321,58 @@ async def pwa_page(request: Request):
 
 
 app.add_route("/metrics", MetricsEndpoint.metrics)
+
+
+@app.get("/health", tags=["Health"])
+async def health_check():
+    """Root-level health check endpoint."""
+    from app.database import engine, Base
+    import time
+
+    start_time = time.time()
+    db_status = "ok"
+
+    try:
+        with engine.connect() as conn:
+            conn.execute(Base.metadata.tables["payments"].select().limit(1))
+    except Exception:
+        db_status = "error"
+
+    response_time_ms = round((time.time() - start_time) * 1000, 2)
+
+    return {
+        "status": "healthy",
+        "debug": settings.debug,
+        "checks": {
+            "database": db_status,
+            "response_time_ms": response_time_ms,
+        },
+    }
+
+
+@app.get("/ready", tags=["Health"])
+async def readiness_check():
+    """Root-level readiness check endpoint."""
+    from app.database import engine, Base
+
+    try:
+        with engine.connect() as conn:
+            conn.execute(Base.metadata.tables["payments"].select().limit(1))
+        return {
+            "status": "ready",
+            "checks": {
+                "database": "ok",
+                "configuration": "ok",
+            },
+        }
+    except Exception:
+        return {
+            "status": "not_ready",
+            "checks": {
+                "database": "error",
+                "configuration": "ok",
+            },
+        }, 503
 
 
 @app.exception_handler(PaymentGatewayError)

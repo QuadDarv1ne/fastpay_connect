@@ -1,15 +1,23 @@
 """Настройки приложения с использованием Pydantic Settings."""
 
+import os
 from typing import List, Optional
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _get_env_file() -> str:
+    """Выбирает файл окружения: .env.test для тестов, иначе .env."""
+    if os.environ.get("APP_ENV") == "testing":
+        return ".env.test"
+    return ".env"
 
 
 class Settings(BaseSettings):
     """Настройки приложения."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_get_env_file(),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
