@@ -15,7 +15,6 @@ from app.schemas.auth import (
     MFAVerifyRequest,
     MFADisableRequest,
     MFAStatusResponse,
-    LoginResponse,
 )
 from app.services.mfa_service import mfa_service
 from app.utils.security import verify_password, get_password_hash

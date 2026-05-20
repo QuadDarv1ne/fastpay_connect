@@ -30,9 +30,6 @@ class CurrencyListResponse(BaseModel):
     last_updated: Optional[datetime] = None
 
 
-from pydantic import BaseModel
-
-
 class ConvertRequest(BaseModel):
     """Запрос на конвертацию валюты."""
     amount: float = Field(..., gt=0, description="Сумма для конвертации")
