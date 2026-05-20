@@ -26,7 +26,10 @@ async def create_payment_v1(
     if gateway not in VALID_GATEWAYS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unknown gateway: {gateway}. Valid options: {', '.join(VALID_GATEWAYS)}",
+            detail={
+                "error": f"Unknown gateway: {gateway}. Valid options: {', '.join(VALID_GATEWAYS)}",
+                "order_id": payment_data.order_id or "unknown",
+            },
         )
 
     service = PaymentService(repository)
@@ -67,7 +70,10 @@ async def get_payment_status_v1(
     payment = repository.get_by_order_id(order_id)
     
     if not payment:
-        return {"error": "Payment not found", "order_id": order_id}
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "Payment not found", "order_id": order_id},
+        )
     
     return {
         "order_id": payment.order_id,
