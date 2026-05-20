@@ -45,6 +45,9 @@ def get_db() -> Generator:
 def init_db():
     """Инициализация БД."""
     from app.models.payment import Payment
+    from app.models.user import User
+    from app.models.tenant import Tenant
+    from app.models.webhook_event import WebhookEvent
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created successfully")
 
