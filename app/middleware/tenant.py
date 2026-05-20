@@ -62,9 +62,14 @@ class TenantMiddleware(BaseHTTPMiddleware):
 
     async def _get_tenant_by_api_key(self, api_key: str) -> Optional[Tenant]:
         """Получить tenant по API ключу."""
+        from sqlalchemy.exc import SQLAlchemyError
+
         db = SessionLocal()
         try:
             tenant = db.query(Tenant).filter(Tenant.api_key == api_key).first()
             return tenant
+        except SQLAlchemyError:
+            db.rollback()
+            raise
         finally:
             db.close()

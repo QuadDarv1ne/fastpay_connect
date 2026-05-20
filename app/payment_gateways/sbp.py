@@ -122,7 +122,8 @@ class SBPGateway(BasePaymentGateway):
             logger.error("SBP: API key not configured")
             return False
         if not self.secret_key:
-            logger.warning("SBP: secret key not configured")
+            logger.error("SBP: secret key not configured")
+            return False
         return True
 
     def generate_signature(

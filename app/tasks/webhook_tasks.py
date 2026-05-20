@@ -122,14 +122,9 @@ def process_webhook_task(
         if not handler:
             logger.error(f"Unknown gateway: {gateway}")
             return {"status": "error", "message": f"Unknown gateway: {gateway}"}
-        
-        # Запускаем асинхронный хендлер в синхронном контексте Celery
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            result = loop.run_until_complete(handler(payload, auth_value))
-        finally:
-            loop.close()
+
+        # Run async webhook handler in a fresh event loop (Celery is sync context)
+        result = asyncio.run(handler(payload, auth_value))
         
         # Обновление статуса платежа
         order_id: Optional[str] = None

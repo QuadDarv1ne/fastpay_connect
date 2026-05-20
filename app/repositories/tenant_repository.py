@@ -146,8 +146,8 @@ class TenantRepository:
             if settings is not None:
                 tenant.settings_json = json.dumps(settings)
 
-            from datetime import timezone
-            tenant.updated_at = None  # Trigger onupdate
+            from datetime import datetime, timezone
+            tenant.updated_at = datetime.now(timezone.utc)
 
             self.db.commit()
             self.db.refresh(tenant)
