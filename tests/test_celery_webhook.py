@@ -201,14 +201,17 @@ class TestCleanupOldWebhookEvents:
     """Тесты очистки старых webhook событий."""
 
     def test_cleanup_task(self):
-        """Тест задачи очистки."""
+        """Тест задачи очистки старых webhook событий."""
         mock_db = Mock()
+        deleted_count = 5
         
         with patch('app.tasks.webhook_tasks.get_db_session', return_value=mock_db):
-            result = cleanup_old_webhook_events(days=30)
-            
-            # Пока возвращает 0 (TODO: реализовать очистку)
-            assert result == 0
+            with patch(
+                'app.repositories.webhook_event_repository.WebhookEventRepository.cleanup_old_events',
+                return_value=deleted_count,
+            ):
+                result = cleanup_old_webhook_events(days=30)
+                assert result == deleted_count
 
 
 class TestCeleryConfiguration:

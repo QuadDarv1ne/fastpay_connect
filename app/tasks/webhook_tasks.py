@@ -251,12 +251,10 @@ def cleanup_old_webhook_events(self, days: int = 30) -> int:
         Количество удалённых записей
     """
     db = get_db_session()
-    repository = PaymentRepository(db)
-    
     try:
-        # TODO: Реализовать метод очистки старых событий в репозитории
-        logger.info(f"Cleanup old webhook events older than {days} days")
-        return 0
+        from app.repositories.webhook_event_repository import WebhookEventRepository
+        repository = WebhookEventRepository(db)
+        return repository.cleanup_old_events(days=days)
     finally:
         db.close()
 
