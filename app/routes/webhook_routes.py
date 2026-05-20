@@ -1,14 +1,14 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from fastapi import APIRouter, HTTPException, Request, Depends, status
-from app.payment_gateways.yookassa import handle_yookassa_webhook
-from app.payment_gateways.tinkoff import handle_tinkoff_webhook
-from app.payment_gateways.cloudpayments import handle_cloudpayments_webhook
-from app.payment_gateways.unitpay import handle_unitpay_webhook
-from app.payment_gateways.robokassa import handle_robokassa_webhook
 from app.database import get_db
 from app.repositories.payment_repository import PaymentRepository
 from app.dependencies import get_payment_repository
 from app.utils.ip_validator import verify_webhook_ip
+from app.utils.gateway_registry import (
+    WEBHOOK_HANDLERS,
+    STATUS_MAP,
+    extract_webhook_event_id,
+)
 from app.settings import settings
 from app.tasks.webhook_tasks import process_webhook_task
 import logging
@@ -33,43 +33,31 @@ class WebhookConfig:
 WEBHOOKS: Dict[str, WebhookConfig] = {
     "yookassa": WebhookConfig(
         name="yookassa",
-        handler=handle_yookassa_webhook,
+        handler=WEBHOOK_HANDLERS["yookassa"],
         ip_whitelist=settings.yookassa_ips,
     ),
     "tinkoff": WebhookConfig(
         name="tinkoff",
-        handler=handle_tinkoff_webhook,
+        handler=WEBHOOK_HANDLERS["tinkoff"],
         ip_whitelist=settings.tinkoff_ips,
     ),
     "cloudpayments": WebhookConfig(
         name="cloudpayments",
-        handler=handle_cloudpayments_webhook,
+        handler=WEBHOOK_HANDLERS["cloudpayments"],
         ip_whitelist=settings.cloudpayments_ips,
         token_field="token",
     ),
     "unitpay": WebhookConfig(
         name="unitpay",
-        handler=handle_unitpay_webhook,
+        handler=WEBHOOK_HANDLERS["unitpay"],
         ip_whitelist=settings.unitpay_ips,
     ),
     "robokassa": WebhookConfig(
         name="robokassa",
-        handler=handle_robokassa_webhook,
+        handler=WEBHOOK_HANDLERS["robokassa"],
         ip_whitelist=settings.robokassa_ips,
     ),
 }
-
-STATUS_MAP: Dict[str, str] = {
-    "payment successful": "completed",
-    "payment canceled": "cancelled",
-    "payment failed": "failed",
-    "payment refunded": "refunded",
-}
-
-
-def _extract_webhook_event_id(payload: Dict[str, Any]) -> Optional[str]:
-    """Извлечь event_id из webhook payload для идемпотентности."""
-    return payload.get("event_id") or payload.get("id") or payload.get("transaction_id")
 
 
 async def process_webhook(
@@ -110,7 +98,7 @@ async def process_webhook(
         if order_id:
             message = result.get("message", "").lower()
             db_status = STATUS_MAP.get(message, "pending")
-            webhook_event_id = _extract_webhook_event_id(payload)
+            webhook_event_id = extract_webhook_event_id(payload)
             repository.update_status(
                 order_id=order_id,
                 status=db_status,

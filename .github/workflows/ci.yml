@@ -30,13 +30,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
           pip install -r requirements-dev.txt
           pip install pre-commit
 
       - name: Run pre-commit hooks
         run: |
-          pre-commit run --all-files || true
+          pre-commit run --all-files
 
       - name: Lint with flake8 (errors only)
         run: |
@@ -52,18 +51,18 @@ jobs:
 
       - name: Type check with mypy
         run: |
-          mypy app --ignore-missing-imports --disable-error-code=annotation-unchecked || true
+          mypy app --ignore-missing-imports --disable-error-code=annotation-unchecked
 
       - name: Test with pytest
         run: |
           pytest --cov=app --cov-report=term-missing --cov-report=xml -v
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           files: ./coverage.xml
           flags: unittests
-          fail_ci_if_error: false
+          fail_ci_if_error: true
 
   # ==================== BUILD DOCKER ====================
   build:

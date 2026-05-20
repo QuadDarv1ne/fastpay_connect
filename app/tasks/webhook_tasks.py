@@ -11,14 +11,26 @@ from celery.exceptions import Retry
 
 from app.database import SessionLocal
 from app.repositories.payment_repository import PaymentRepository
-from app.payment_gateways.yookassa import handle_yookassa_webhook
-from app.payment_gateways.tinkoff import handle_tinkoff_webhook
-from app.payment_gateways.cloudpayments import handle_cloudpayments_webhook
-from app.payment_gateways.unitpay import handle_unitpay_webhook
-from app.payment_gateways.robokassa import handle_robokassa_webhook
+from app.utils.gateway_registry import (
+    WEBHOOK_HANDLERS,
+    STATUS_MAP,
+    extract_webhook_event_id,
+)
 from app.settings import settings
 
 logger = logging.getLogger(__name__)
+
+# Re-export for backward compatibility
+__all__ = [
+    "process_webhook_task",
+    "send_webhook_retry_notification",
+    "cleanup_old_webhook_events",
+    "health_check",
+    "celery_app",
+    "WEBHOOK_HANDLERS",
+    "STATUS_MAP",
+    "extract_webhook_event_id",
+]
 
 # Инициализация Celery
 celery_app = Celery(
@@ -77,27 +89,6 @@ class DBTask(Task):
 celery_app.Task = DBTask
 
 
-WEBHOOK_HANDLERS = {
-    'yookassa': handle_yookassa_webhook,
-    'tinkoff': handle_tinkoff_webhook,
-    'cloudpayments': handle_cloudpayments_webhook,
-    'unitpay': handle_unitpay_webhook,
-    'robokassa': handle_robokassa_webhook,
-}
-
-STATUS_MAP = {
-    "payment successful": "completed",
-    "payment canceled": "cancelled",
-    "payment failed": "failed",
-    "payment refunded": "refunded",
-}
-
-
-def extract_webhook_event_id(payload: Dict[str, Any]) -> Optional[str]:
-    """Извлечь event_id из webhook payload для идемпотентности."""
-    return payload.get("event_id") or payload.get("id") or payload.get("transaction_id")
-
-
 @celery_app.task(
     bind=True,
     max_retries=5,
@@ -122,26 +113,12 @@ def process_webhook_task(
         Результат обработки webhook
     """
     import asyncio
-    from app.payment_gateways.yookassa import handle_yookassa_webhook
-    from app.payment_gateways.tinkoff import handle_tinkoff_webhook
-    from app.payment_gateways.cloudpayments import handle_cloudpayments_webhook
-    from app.payment_gateways.unitpay import handle_unitpay_webhook
-    from app.payment_gateways.robokassa import handle_robokassa_webhook
-    
-    # Импортируем хендлеры локально для избежания циклических импортов
-    handlers = {
-        'yookassa': handle_yookassa_webhook,
-        'tinkoff': handle_tinkoff_webhook,
-        'cloudpayments': handle_cloudpayments_webhook,
-        'unitpay': handle_unitpay_webhook,
-        'robokassa': handle_robokassa_webhook,
-    }
-    
+
     db = get_db_session()
     repository = PaymentRepository(db)
-    
+
     try:
-        handler = handlers.get(gateway)
+        handler = WEBHOOK_HANDLERS.get(gateway)
         if not handler:
             logger.error(f"Unknown gateway: {gateway}")
             return {"status": "error", "message": f"Unknown gateway: {gateway}"}

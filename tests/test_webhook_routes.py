@@ -105,7 +105,7 @@ class TestWebhookRoutes:
     @patch("app.routes.webhook_routes.verify_webhook_ip")
     def test_webhook_invalid_signature(self, mock_verify, test_client):
         with patch(
-            "app.routes.webhook_routes.handle_yookassa_webhook",
+            "app.utils.gateway_registry.handle_yookassa_webhook",
             return_value={"status": "failed", "message": "Invalid signature"},
         ):
             response = test_client.post(

@@ -2,11 +2,6 @@
 
 from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException, Depends, Request, status
-from app.payment_gateways.yookassa import create_payment as yookassa_create
-from app.payment_gateways.tinkoff import create_payment as tinkoff_create
-from app.payment_gateways.cloudpayments import create_payment as cloudpayments_create
-from app.payment_gateways.unitpay import create_payment as unitpay_create
-from app.payment_gateways.robokassa import create_payment as robokassa_create
 from app.payment_gateways.exceptions import (
     PaymentGatewayError,
     PaymentGatewayConfigError,
@@ -18,59 +13,16 @@ from app.dependencies import get_payment_repository
 from app.repositories.payment_repository import PaymentRepository
 from app.middleware.rate_limiter import limiter
 from app.models.payment import PaymentStatus
-import uuid
+from app.utils.gateway_registry import (
+    GATEWAY_CONFIGS,
+    extract_nested_value,
+    generate_order_id,
+)
 import logging
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-GATEWAY_CONFIGS: Dict[str, Dict[str, Any]] = {
-    "yookassa": {
-        "name": "yookassa",
-        "create_func": yookassa_create,
-        "payment_id_field": "id",
-        "payment_url_field": "confirmation.confirmation_url",
-    },
-    "tinkoff": {
-        "name": "tinkoff",
-        "create_func": tinkoff_create,
-        "payment_id_field": "payment_id",
-        "payment_url_field": "payment_url",
-    },
-    "cloudpayments": {
-        "name": "cloudpayments",
-        "create_func": cloudpayments_create,
-        "payment_id_field": "transaction_id",
-    },
-    "unitpay": {
-        "name": "unitpay",
-        "create_func": unitpay_create,
-        "payment_id_field": "payment_id",
-    },
-    "robokassa": {
-        "name": "robokassa",
-        "create_func": robokassa_create,
-        "payment_id_field": "invoice_id",
-    },
-}
-
-
-def generate_order_id() -> str:
-    """Генерация уникального order_id."""
-    return str(uuid.uuid4())
-
-
-def extract_nested_value(data: Dict[str, Any], path: str) -> Optional[Any]:
-    """Извлечение вложенного значения по пути."""
-    keys = path.split(".")
-    value = data
-    for key in keys:
-        if isinstance(value, dict) and key in value:
-            value = value[key]
-        else:
-            return None
-    return value
 
 
 async def process_payment(

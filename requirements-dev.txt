@@ -9,13 +9,12 @@ pytest-cov>=4.1.0
 pytest-asyncio>=0.21.0
 pytest-mock>=3.11.0
 pytest-benchmark>=4.0.0
-httpx>=0.24.0
 respx>=0.21.0
 
 # Load Testing
 locust>=2.20.0
 
-# Linting
+# Linting & Type Checking
 flake8>=6.1.0
 pylint>=2.17.0
 black>=23.7.0
@@ -26,14 +25,8 @@ mypy>=1.5.0
 bandit>=1.7.0
 safety>=2.3.0
 
-# Database
+# Database (PostgreSQL driver for production testing)
 psycopg2-binary>=2.9.9
-asyncpg>=0.29.0
 
-# Monitoring
-prometheus-client>=0.17.0
-
-# Celery (для фоновых задач)
-celery>=5.3.0
+# Celery Monitoring
 flower>=2.0.0
-redis>=5.0.0
