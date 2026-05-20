@@ -5,7 +5,7 @@ Routes для Payment Statistics Dashboard.
 from fastapi import APIRouter, Depends, Request, Query, HTTPException
 from fastapi.responses import HTMLResponse
 from typing import Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 
 from app.database import get_db
@@ -69,7 +69,7 @@ async def get_dashboard_summary(
     
     from app.models.payment import Payment, PaymentStatus
     
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     date_from = now - timedelta(days=days)
     
     period_payments = repository.db.query(Payment).filter(
@@ -129,7 +129,7 @@ async def get_daily_statistics(
     from app.models.payment import Payment, PaymentStatus
     from datetime import date
     
-    date_from = datetime.now() - timedelta(days=days)
+    date_from = datetime.now(timezone.utc) - timedelta(days=days)
     
     # Группировка по дням
     daily_stats = repository.db.query(
@@ -192,7 +192,7 @@ async def get_gateway_statistics(
     from sqlalchemy import func
     from app.models.payment import Payment, PaymentStatus
     
-    date_from = datetime.now() - timedelta(days=days)
+    date_from = datetime.now(timezone.utc) - timedelta(days=days)
     
     # Общая статистика по gateway
     gateway_stats = repository.db.query(
@@ -260,7 +260,7 @@ async def get_status_distribution(
     from sqlalchemy import func
     from app.models.payment import Payment
     
-    date_from = datetime.now() - timedelta(days=days)
+    date_from = datetime.now(timezone.utc) - timedelta(days=days)
     
     status_stats = repository.db.query(
         Payment.status,

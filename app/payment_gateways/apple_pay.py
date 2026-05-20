@@ -299,7 +299,7 @@ class ApplePayGateway(BasePaymentGateway):
         # В реальной реализации здесь происходит вызов процессингового API
         # для зарядки карты клиента
 
-        payment_id = f"ap_{order_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        payment_id = f"ap_{order_id}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 
         return {
             "payment_id": payment_id,

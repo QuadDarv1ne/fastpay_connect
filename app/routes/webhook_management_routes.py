@@ -179,9 +179,10 @@ async def retry_webhook_event(
             detail=f"Failed to reset event: {str(e)}",
         )
     
-    # TODO: Отправить событие в Celery для обработки
-    # from app.tasks.webhook_tasks import process_webhook_event
-    # process_webhook_event.delay(event.id)
+    # NOTE: Re-dispatching via Celery is intentionally disabled here.
+    # The existing `process_webhook_task` expects (gateway, payload, auth_value)
+    # rather than an event_id. A dedicated retry-dispatch task should be
+    # created when Celery-based reprocessing is needed.
     
     return WebhookEventResponse(**event.to_dict())
 

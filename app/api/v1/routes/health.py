@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 from typing import Dict, Any
 import time
+import asyncio
 
 router = APIRouter()
 
@@ -68,7 +69,7 @@ async def celery_health_check_v1() -> Dict[str, Any]:
     try:
         from app.tasks.webhook_tasks import health_check as celery_health_task
         result = celery_health_task.delay()
-        result_value = result.get(timeout=10)
+        result_value = await asyncio.to_thread(result.get, timeout=10)
         
         return {
             "status": "healthy",

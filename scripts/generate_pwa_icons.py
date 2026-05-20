@@ -125,7 +125,7 @@ def create_shortcut_placeholders(icons_dir):
                     x = (size - text_width) // 2
                     y = (size - text_height) // 2
                     draw.text((x, y), symbol, fill='#FFFFFF', font=font)
-                except:
+                except Exception:
                     # Без шрифта
                     pass
                 

@@ -3,7 +3,7 @@
 import json
 import logging
 from typing import List, Optional, Dict, Any, Union, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
@@ -510,7 +510,7 @@ class PaymentRepository:
             .all()
         )
 
-        seven_days_ago = datetime.now() - timedelta(days=7)
+        seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
         daily_stats = (
             query.with_entities(
                 func.date(Payment.created_at).label('date'),

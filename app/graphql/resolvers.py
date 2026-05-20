@@ -7,9 +7,10 @@ import strawberry
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import base64
+from contextlib import contextmanager
 
 from app.models.payment import Payment as PaymentModel, PaymentStatus
 from app.models.tenant import Tenant as TenantModel
@@ -27,11 +28,12 @@ from app.graphql.schema import (
 )
 
 
+@contextmanager
 def get_db() -> Session:
-    """Получить сессию БД."""
+    """Контекстный менеджер для сессии БД — гарантирует закрытие даже при исключении."""
     db = SessionLocal()
     try:
-        return db
+        yield db
     finally:
         db.close()
 
@@ -122,9 +124,8 @@ class PaymentQuery:
     @strawberry.field
     def payment(self, order_id: str) -> Optional[PaymentType]:
         """Получить платёж по order_id."""
-        db = get_db()
-        payment = db.query(PaymentModel).filter(PaymentModel.order_id == order_id).first()
-        db.close()
+        with get_db() as db:
+            payment = db.query(PaymentModel).filter(PaymentModel.order_id == order_id).first()
 
         if not payment:
             return None
@@ -134,9 +135,8 @@ class PaymentQuery:
     @strawberry.field
     def payment_by_id(self, payment_id: int) -> Optional[PaymentType]:
         """Получить платёж по ID."""
-        db = get_db()
-        payment = db.query(PaymentModel).filter(PaymentModel.id == payment_id).first()
-        db.close()
+        with get_db() as db:
+            payment = db.query(PaymentModel).filter(PaymentModel.id == payment_id).first()
 
         if not payment:
             return None
@@ -159,73 +159,71 @@ class PaymentQuery:
         sort_order: str = "desc",
     ) -> PaymentTypeConnection:
         """Получить список платежей с пагинацией и фильтрами."""
-        db = get_db()
+        with get_db() as db:
+            query = db.query(PaymentModel)
 
-        query = db.query(PaymentModel)
+            # Фильтры
+            if status:
+                query = query.filter(PaymentModel.status == status)
 
-        # Фильтры
-        if status:
-            query = query.filter(PaymentModel.status == status)
+            if gateway:
+                query = query.filter(PaymentModel.payment_gateway == gateway)
 
-        if gateway:
-            query = query.filter(PaymentModel.payment_gateway == gateway)
+            if currency:
+                query = query.filter(PaymentModel.currency == currency)
 
-        if currency:
-            query = query.filter(PaymentModel.currency == currency)
+            if tenant_id:
+                query = query.filter(PaymentModel.tenant_id == tenant_id)
 
-        if tenant_id:
-            query = query.filter(PaymentModel.tenant_id == tenant_id)
+            if min_amount is not None:
+                query = query.filter(PaymentModel.amount >= min_amount)
 
-        if min_amount is not None:
-            query = query.filter(PaymentModel.amount >= min_amount)
+            if max_amount is not None:
+                query = query.filter(PaymentModel.amount <= max_amount)
 
-        if max_amount is not None:
-            query = query.filter(PaymentModel.amount <= max_amount)
-
-        if search:
-            # Escape special LIKE characters to prevent SQL injection
-            escaped_search = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-            query = query.filter(
-                or_(
-                    PaymentModel.order_id.ilike(f"%{escaped_search}%", escape="\\"),
-                    PaymentModel.payment_id.ilike(f"%{escaped_search}%", escape="\\"),
-                    PaymentModel.transaction_id.ilike(f"%{escaped_search}%", escape="\\"),
+            if search:
+                # Escape special LIKE characters to prevent SQL injection
+                escaped_search = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                query = query.filter(
+                    or_(
+                        PaymentModel.order_id.ilike(f"%{escaped_search}%", escape="\\"),
+                        PaymentModel.payment_id.ilike(f"%{escaped_search}%", escape="\\"),
+                        PaymentModel.transaction_id.ilike(f"%{escaped_search}%", escape="\\"),
+                    )
                 )
+
+            # Общее количество
+            total = query.count()
+
+            # Сортировка
+            sort_column = getattr(PaymentModel, sort_by, PaymentModel.created_at)
+            if sort_order.lower() == "asc":
+                query = query.order_by(sort_column.asc())
+            else:
+                query = query.order_by(sort_column.desc())
+
+            # Пагинация
+            offset = (page - 1) * page_size
+            payments = query.offset(offset).limit(page_size).all()
+
+            pages = (total + page_size - 1) // page_size if page_size > 0 else 0
+            
+            # Создаём edges для Relay пагинации
+            edges = [
+                PaymentTypeEdge(cursor=encode_cursor(p.id), node=payment_model_to_graphql(p))
+                for p in payments
+            ]
+
+            return PaymentTypeConnection(
+                items=[payment_model_to_graphql(p) for p in payments],
+                edges=edges,
+                total=total,
+                page=page,
+                page_size=page_size,
+                pages=pages,
+                has_next=offset + page_size < total,
+                has_previous=page > 1,
             )
-
-        # Общее количество
-        total = query.count()
-
-        # Сортировка
-        sort_column = getattr(PaymentModel, sort_by, PaymentModel.created_at)
-        if sort_order.lower() == "asc":
-            query = query.order_by(sort_column.asc())
-        else:
-            query = query.order_by(sort_column.desc())
-
-        # Пагинация
-        offset = (page - 1) * page_size
-        payments = query.offset(offset).limit(page_size).all()
-        db.close()
-
-        pages = (total + page_size - 1) // page_size if page_size > 0 else 0
-        
-        # Создаём edges для Relay пагинации
-        edges = [
-            PaymentTypeEdge(cursor=encode_cursor(p.id), node=payment_model_to_graphql(p))
-            for p in payments
-        ]
-
-        return PaymentTypeConnection(
-            items=[payment_model_to_graphql(p) for p in payments],
-            edges=edges,
-            total=total,
-            page=page,
-            page_size=page_size,
-            pages=pages,
-            has_next=offset + page_size < total,
-            has_previous=page > 1,
-        )
 
     @strawberry.field
     def payments_by_cursor(
@@ -236,45 +234,44 @@ class PaymentQuery:
         before: Optional[str] = None,
     ) -> PaymentTypeConnection:
         """Получить платежи с cursor-based пагинацией (Relay style)."""
-        db = get_db()
-        query = db.query(PaymentModel).order_by(PaymentModel.id.asc())
+        with get_db() as db:
+            query = db.query(PaymentModel).order_by(PaymentModel.id.asc())
 
-        if after:
-            cursor_id = decode_cursor(after)
-            if cursor_id:
-                query = query.filter(PaymentModel.id > cursor_id)
+            if after:
+                cursor_id = decode_cursor(after)
+                if cursor_id:
+                    query = query.filter(PaymentModel.id > cursor_id)
 
-        if before:
-            cursor_id = decode_cursor(before)
-            if cursor_id:
-                query = query.filter(PaymentModel.id < cursor_id)
+            if before:
+                cursor_id = decode_cursor(before)
+                if cursor_id:
+                    query = query.filter(PaymentModel.id < cursor_id)
 
-        limit = first or last or 20
-        payments = query.limit(limit + 1).all()
-        db.close()
+            limit = first or last or 20
+            payments = query.limit(limit + 1).all()
 
-        has_next = len(payments) > limit
-        if has_next:
-            payments = payments[:-1]
+            has_next = len(payments) > limit
+            if has_next:
+                payments = payments[:-1]
 
-        edges = [
-            PaymentTypeEdge(cursor=encode_cursor(p.id), node=payment_model_to_graphql(p))
-            for p in payments
-        ]
+            edges = [
+                PaymentTypeEdge(cursor=encode_cursor(p.id), node=payment_model_to_graphql(p))
+                for p in payments
+            ]
 
-        # Получаем общий count
-        total = db.query(PaymentModel).count()
+            # Получаем общий count
+            total = db.query(PaymentModel).count()
 
-        return PaymentTypeConnection(
-            items=[payment_model_to_graphql(p) for p in payments],
-            edges=edges,
-            total=total,
-            page=1,
-            page_size=limit,
-            pages=(total + limit - 1) // limit,
-            has_next=has_next,
-            has_previous=after is not None or before is not None,
-        )
+            return PaymentTypeConnection(
+                items=[payment_model_to_graphql(p) for p in payments],
+                edges=edges,
+                total=total,
+                page=1,
+                page_size=limit,
+                pages=(total + limit - 1) // limit,
+                has_next=has_next,
+                has_previous=after is not None or before is not None,
+            )
 
     @strawberry.field
     def statistics(
@@ -285,66 +282,63 @@ class PaymentQuery:
         date_to: Optional[datetime] = None,
     ) -> PaymentTypeStatistics:
         """Получить расширенную статистику по платежам."""
-        db = get_db()
+        with get_db() as db:
+            base_query = db.query(PaymentModel)
 
-        base_query = db.query(PaymentModel)
+            # Применяем фильтры
+            if gateway:
+                base_query = base_query.filter(PaymentModel.payment_gateway == gateway)
 
-        # Применяем фильтры
-        if gateway:
-            base_query = base_query.filter(PaymentModel.payment_gateway == gateway)
+            if tenant_id:
+                base_query = base_query.filter(PaymentModel.tenant_id == tenant_id)
 
-        if tenant_id:
-            base_query = base_query.filter(PaymentModel.tenant_id == tenant_id)
+            if date_from:
+                base_query = base_query.filter(PaymentModel.created_at >= date_from)
 
-        if date_from:
-            base_query = base_query.filter(PaymentModel.created_at >= date_from)
+            if date_to:
+                base_query = base_query.filter(PaymentModel.created_at <= date_to)
 
-        if date_to:
-            base_query = base_query.filter(PaymentModel.created_at <= date_to)
+            total = base_query.count()
 
-        total = base_query.count()
+            by_status_query = base_query.with_entities(
+                PaymentModel.status, func.count(PaymentModel.id)
+            ).group_by(PaymentModel.status).all()
 
-        by_status_query = base_query.with_entities(
-            PaymentModel.status, func.count(PaymentModel.id)
-        ).group_by(PaymentModel.status).all()
+            by_gateway_query = base_query.with_entities(
+                PaymentModel.payment_gateway, func.count(PaymentModel.id)
+            ).group_by(PaymentModel.payment_gateway).all()
 
-        by_gateway_query = base_query.with_entities(
-            PaymentModel.payment_gateway, func.count(PaymentModel.id)
-        ).group_by(PaymentModel.payment_gateway).all()
+            by_currency_query = base_query.with_entities(
+                PaymentModel.currency, func.count(PaymentModel.id)
+            ).group_by(PaymentModel.currency).all()
 
-        by_currency_query = base_query.with_entities(
-            PaymentModel.currency, func.count(PaymentModel.id)
-        ).group_by(PaymentModel.currency).all()
+            total_amount_result = base_query.filter(
+                PaymentModel.status == PaymentStatus.COMPLETED.value
+            ).with_entities(func.sum(PaymentModel.amount)).scalar() or 0.0
 
-        total_amount_result = base_query.filter(
-            PaymentModel.status == PaymentStatus.COMPLETED.value
-        ).with_entities(func.sum(PaymentModel.amount)).scalar() or 0.0
+            average_payment = base_query.with_entities(func.avg(PaymentModel.amount)).scalar() or 0.0
 
-        average_payment = base_query.with_entities(func.avg(PaymentModel.amount)).scalar() or 0.0
+            # Daily revenue (last 7 days)
+            from sqlalchemy import extract
+            daily_revenue_query = base_query.filter(
+                PaymentModel.status == PaymentStatus.COMPLETED.value,
+                PaymentModel.created_at >= func.now() - 7
+            ).with_entities(
+                extract('day', PaymentModel.created_at).label('day'),
+                func.sum(PaymentModel.amount).label('revenue')
+            ).group_by(
+                extract('day', PaymentModel.created_at)
+            ).all()
 
-        # Daily revenue (last 7 days)
-        from sqlalchemy import extract
-        daily_revenue_query = base_query.filter(
-            PaymentModel.status == PaymentStatus.COMPLETED.value,
-            PaymentModel.created_at >= func.now() - 7
-        ).with_entities(
-            extract('day', PaymentModel.created_at).label('day'),
-            func.sum(PaymentModel.amount).label('revenue')
-        ).group_by(
-            extract('day', PaymentModel.created_at)
-        ).all()
-
-        db.close()
-
-        return PaymentTypeStatistics(
-            total_payments=total,
-            total_amount=float(total_amount_result),
-            by_status={status: count for status, count in by_status_query},
-            by_gateway={gateway: count for gateway, count in by_gateway_query},
-            by_currency={currency: count for currency, count in by_currency_query},
-            daily_revenue={str(day): float(rev) for day, rev in daily_revenue_query},
-            average_payment=float(average_payment),
-        )
+            return PaymentTypeStatistics(
+                total_payments=total,
+                total_amount=float(total_amount_result),
+                by_status={status: count for status, count in by_status_query},
+                by_gateway={gateway: count for gateway, count in by_gateway_query},
+                by_currency={currency: count for currency, count in by_currency_query},
+                daily_revenue={str(day): float(rev) for day, rev in daily_revenue_query},
+                average_payment=float(average_payment),
+            )
 
 
 @strawberry.type
@@ -354,9 +348,8 @@ class TenantQuery:
     @strawberry.field
     def tenant(self, tenant_id: int) -> Optional[TenantType]:
         """Получить тенанта по ID."""
-        db = get_db()
-        tenant = db.query(TenantModel).filter(TenantModel.id == tenant_id).first()
-        db.close()
+        with get_db() as db:
+            tenant = db.query(TenantModel).filter(TenantModel.id == tenant_id).first()
 
         if not tenant:
             return None
@@ -366,9 +359,8 @@ class TenantQuery:
     @strawberry.field
     def tenant_by_api_key(self, api_key: str) -> Optional[TenantType]:
         """Получить тенанта по API ключу."""
-        db = get_db()
-        tenant = db.query(TenantModel).filter(TenantModel.api_key == api_key).first()
-        db.close()
+        with get_db() as db:
+            tenant = db.query(TenantModel).filter(TenantModel.api_key == api_key).first()
 
         if not tenant:
             return None
@@ -384,37 +376,35 @@ class TenantQuery:
         search: Optional[str] = None,
     ) -> TenantTypeConnection:
         """Получить список тенантов."""
-        db = get_db()
+        with get_db() as db:
+            query = db.query(TenantModel)
 
-        query = db.query(TenantModel)
+            if is_active is not None:
+                query = query.filter(TenantModel.is_active == is_active)
 
-        if is_active is not None:
-            query = query.filter(TenantModel.is_active == is_active)
-
-        if search:
-            # Escape special LIKE characters to prevent SQL injection
-            escaped_search = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-            query = query.filter(
-                or_(
-                    TenantModel.name.ilike(f"%{escaped_search}%", escape="\\"),
-                    TenantModel.api_key.ilike(f"%{escaped_search}%", escape="\\"),
+            if search:
+                # Escape special LIKE characters to prevent SQL injection
+                escaped_search = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                query = query.filter(
+                    or_(
+                        TenantModel.name.ilike(f"%{escaped_search}%", escape="\\"),
+                        TenantModel.api_key.ilike(f"%{escaped_search}%", escape="\\"),
+                    )
                 )
+
+            total = query.count()
+            offset = (page - 1) * page_size
+            tenants = query.offset(offset).limit(page_size).all()
+
+            pages = (total + page_size - 1) // page_size if page_size > 0 else 0
+
+            return TenantTypeConnection(
+                items=[tenant_model_to_graphql(t) for t in tenants],
+                total=total,
+                page=page,
+                page_size=page_size,
+                pages=pages,
             )
-
-        total = query.count()
-        offset = (page - 1) * page_size
-        tenants = query.offset(offset).limit(page_size).all()
-        db.close()
-
-        pages = (total + page_size - 1) // page_size if page_size > 0 else 0
-
-        return TenantTypeConnection(
-            items=[tenant_model_to_graphql(t) for t in tenants],
-            total=total,
-            page=page,
-            page_size=page_size,
-            pages=pages,
-        )
 
 
 @strawberry.type
@@ -424,9 +414,8 @@ class WebhookQuery:
     @strawberry.field
     def webhook_event(self, event_id: int) -> Optional[WebhookEventType]:
         """Получить webhook событие по ID."""
-        db = get_db()
-        event = db.query(WebhookEventModel).filter(WebhookEventModel.id == event_id).first()
-        db.close()
+        with get_db() as db:
+            event = db.query(WebhookEventModel).filter(WebhookEventModel.id == event_id).first()
 
         if not event:
             return None
@@ -444,36 +433,34 @@ class WebhookQuery:
         tenant_id: Optional[int] = None,
     ) -> WebhookEventTypeConnection:
         """Получить список webhook событий."""
-        db = get_db()
+        with get_db() as db:
+            query = db.query(WebhookEventModel)
 
-        query = db.query(WebhookEventModel)
+            if event_type:
+                query = query.filter(WebhookEventModel.event_type == event_type)
 
-        if event_type:
-            query = query.filter(WebhookEventModel.event_type == event_type)
+            if event_status:
+                query = query.filter(WebhookEventModel.event_status == event_status)
 
-        if event_status:
-            query = query.filter(WebhookEventModel.event_status == event_status)
+            if processed is not None:
+                query = query.filter(WebhookEventModel.processed == processed)
 
-        if processed is not None:
-            query = query.filter(WebhookEventModel.processed == processed)
+            if tenant_id:
+                query = query.filter(WebhookEventModel.tenant_id == tenant_id)
 
-        if tenant_id:
-            query = query.filter(WebhookEventModel.tenant_id == tenant_id)
+            total = query.count()
+            offset = (page - 1) * page_size
+            events = query.offset(offset).limit(page_size).all()
 
-        total = query.count()
-        offset = (page - 1) * page_size
-        events = query.offset(offset).limit(page_size).all()
-        db.close()
+            pages = (total + page_size - 1) // page_size if page_size > 0 else 0
 
-        pages = (total + page_size - 1) // page_size if page_size > 0 else 0
-
-        return WebhookEventTypeConnection(
-            items=[webhook_model_to_graphql(e) for e in events],
-            total=total,
-            page=page,
-            page_size=page_size,
-            pages=pages,
-        )
+            return WebhookEventTypeConnection(
+                items=[webhook_model_to_graphql(e) for e in events],
+                total=total,
+                page=page,
+                page_size=page_size,
+                pages=pages,
+            )
 
 
 @strawberry.type

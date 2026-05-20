@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncGenerator
@@ -256,7 +257,9 @@ async def celery_health_check():
 
         # Отправляем задачу проверки здоровья
         result = celery_health_task.delay()
-        result_value = result.get(timeout=10)
+        # Offload blocking Celery result.get() to a thread to avoid
+        # blocking the event loop.
+        result_value = await asyncio.to_thread(result.get, timeout=10)
 
         return {
             "status": "healthy",

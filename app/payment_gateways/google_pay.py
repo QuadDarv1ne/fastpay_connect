@@ -326,7 +326,7 @@ class GooglePayGateway(BasePaymentGateway):
         # В реальной реализации здесь происходит вызов процессингового API
         # для зарядки карты клиента
 
-        payment_id = f"gp_{order_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        payment_id = f"gp_{order_id}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 
         # Парсим токен Google Pay
         payment_method_info = token_data.get("paymentMethodData", {})

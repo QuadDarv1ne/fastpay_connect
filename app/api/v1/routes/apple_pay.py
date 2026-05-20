@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.middleware.rate_limiter import limiter
 from app.schemas.apple_pay import (
@@ -191,8 +191,8 @@ async def get_apple_pay_payment(
         status=ApplePayStatusEnum.COMPLETED,
         card_network="visa",
         transaction_id=f"txn_{payment_id}",
-        created_at=datetime.now().isoformat(),
-        processed_at=datetime.now().isoformat(),
+        created_at=datetime.now(timezone.utc).isoformat(),
+        processed_at=datetime.now(timezone.utc).isoformat(),
     )
 
 
@@ -218,7 +218,7 @@ async def refund_apple_pay_payment(
         gateway = get_gateway()
         # В реальной реализации здесь вызывается API для refund
 
-        refund_id = f"ref_{payment_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        refund_id = f"ref_{payment_id}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
         amount = refund_data.amount or 1000.0  # Полная сумма по умолчанию
 
         return ApplePayRefundResponse(
