@@ -49,8 +49,9 @@ async def webhook_dashboard_ui(
     templates = Jinja2Templates(directory=str(templates_dir))
     
     return templates.TemplateResponse(
+        request,
         "webhook_dashboard.html",
-        {"request": request}
+        {}
     )
 
 

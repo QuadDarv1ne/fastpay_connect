@@ -2,7 +2,7 @@
 
 import pytest
 import pytest_asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 
@@ -250,7 +250,7 @@ class TestAsyncPaymentRepositoryCleanup:
     async def test_cleanup_old_payments(self, async_repo, async_db_session):
         """Проверка очистки старых платежей."""
         from sqlalchemy import update
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
         # Создаём старый отменённый платёж
         payment = await async_repo.create(
@@ -261,7 +261,7 @@ class TestAsyncPaymentRepositoryCleanup:
         )
 
         # Делаем его старым и отменённым
-        old_date = datetime.utcnow() - timedelta(days=100)
+        old_date = datetime.now(timezone.utc) - timedelta(days=100)
         stmt = (
             update(Payment)
             .where(Payment.id == payment.id)

@@ -48,8 +48,9 @@ async def payment_dashboard_ui(
     templates = Jinja2Templates(directory=str(templates_dir))
     
     return templates.TemplateResponse(
+        request,
         "payment_dashboard.html",
-        {"request": request}
+        {}
     )
 
 

@@ -6,7 +6,7 @@
 import json
 import logging
 from typing import List, Optional, Dict, Any, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select, update, delete
@@ -138,7 +138,7 @@ class AsyncPaymentRepository:
     ) -> Payment:
         """Обновить статус платежа."""
         payment.status = status
-        payment.updated_at = datetime.utcnow()
+        payment.updated_at = datetime.now(timezone.utc)
         await self._db.commit()
         await self._db.refresh(payment)
         return payment
@@ -148,7 +148,7 @@ class AsyncPaymentRepository:
     ) -> Payment:
         """Обновить метаданные платежа."""
         payment.metadata_json = json.dumps(metadata)
-        payment.updated_at = datetime.utcnow()
+        payment.updated_at = datetime.now(timezone.utc)
         await self._db.commit()
         await self._db.refresh(payment)
         return payment
@@ -158,7 +158,7 @@ class AsyncPaymentRepository:
     ) -> Payment:
         """Отметить webhook событие как обработанное."""
         payment.mark_webhook_processed(event_id)
-        payment.updated_at = datetime.utcnow()
+        payment.updated_at = datetime.now(timezone.utc)
         await self._db.commit()
         await self._db.refresh(payment)
         return payment
@@ -177,7 +177,7 @@ class AsyncPaymentRepository:
         stmt = select(Payment).where(Payment.status == PaymentStatus.PENDING)
 
         if older_than:
-            cutoff_time = datetime.utcnow() - older_than
+            cutoff_time = datetime.now(timezone.utc) - older_than
             stmt = stmt.where(Payment.created_at < cutoff_time)
 
         result = await self._db.execute(stmt)
@@ -277,7 +277,7 @@ class AsyncPaymentRepository:
         Returns:
             Количество удалённых записей
         """
-        cutoff_date = datetime.utcnow() - timedelta(days=older_than_days)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=older_than_days)
 
         stmt = delete(Payment).where(
             Payment.status.in_([PaymentStatus.CANCELLED, PaymentStatus.FAILED]),

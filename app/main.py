@@ -239,7 +239,7 @@ async def root(request: Request):
             detail="Templates not available",
         )
     try:
-        return templates.TemplateResponse("home.html", {"request": request})
+        return templates.TemplateResponse(request, "home.html", {})
     except Exception as e:
         logger.exception(f"Error rendering home page: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
@@ -303,7 +303,7 @@ async def offline_page(request: Request):
     if not templates:
         return HTMLResponse(content="<h1>Нет подключения к интернету</h1>", status_code=503)
     try:
-        return templates.TemplateResponse("offline.html", {"request": request})
+        return templates.TemplateResponse(request, "offline.html", {})
     except Exception:
         return HTMLResponse(content="<h1>Нет подключения к интернету</h1>", status_code=503)
 
@@ -314,7 +314,7 @@ async def pwa_page(request: Request):
     if not templates:
         raise HTTPException(status_code=503, detail="Templates not available")
     try:
-        return templates.TemplateResponse("pwa.html", {"request": request})
+        return templates.TemplateResponse(request, "pwa.html", {})
     except Exception as e:
         logger.exception(f"Error rendering PWA page: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

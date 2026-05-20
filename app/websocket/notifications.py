@@ -2,6 +2,7 @@
 WebSocket уведомления для платежей.
 """
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
@@ -9,6 +10,15 @@ from typing import Optional, Dict, Any
 from app.websocket.manager import websocket_manager
 
 logger = logging.getLogger(__name__)
+
+
+def _schedule_async(coro):
+    """Запустить async coroutine в фоне, не блокируя вызывающий код."""
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(coro)
+    except RuntimeError:
+        asyncio.run(coro)
 
 
 def send_payment_notification(
@@ -22,7 +32,7 @@ def send_payment_notification(
 ) -> int:
     """
     Отправить уведомление об изменении статуса платежа.
-    
+
     Args:
         order_id: ID заказа
         payment_id: ID платежа
@@ -31,9 +41,9 @@ def send_payment_notification(
         currency: Валюта
         gateway: Платёжная система
         payment_data: Дополнительные данные
-        
+
     Returns:
-        Количество отправленных уведомлений
+        Количество отправленных уведомлений (всегда 0, т.к. отправка асинхронная)
     """
     message = {
         "type": "payment_updated",
@@ -49,19 +59,13 @@ def send_payment_notification(
         },
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-    
-    sent_count = 0
-    
-    # Отправляем подписчикам заказа
-    sent_count += websocket_manager.broadcast_to_order_subscribers(message, order_id)
-    
-    # Отправляем подписчикам gateway
-    sent_count += websocket_manager.broadcast_to_gateway_subscribers(message, gateway)
-    
-    if sent_count > 0:
-        logger.info(f"Sent {sent_count} WebSocket notifications for payment {order_id}")
-    
-    return sent_count
+
+    # Отправляем подписчикам заказа и gateway (асинхронно)
+    _schedule_async(websocket_manager.broadcast_to_order_subscribers(message, order_id))
+    _schedule_async(websocket_manager.broadcast_to_gateway_subscribers(message, gateway))
+
+    logger.info(f"Scheduled WebSocket notifications for payment {order_id}")
+    return 0
 
 
 def send_payment_created_notification(
@@ -74,7 +78,7 @@ def send_payment_created_notification(
 ) -> int:
     """
     Отправить уведомление о создании платежа.
-    
+
     Args:
         order_id: ID заказа
         payment_id: ID платежа
@@ -82,9 +86,9 @@ def send_payment_created_notification(
         currency: Валюта
         gateway: Платёжная система
         payment_url: URL для оплаты
-        
+
     Returns:
-        Количество отправленных уведомлений
+        Количество отправленных уведомлений (всегда 0, т.к. отправка асинхронная)
     """
     message = {
         "type": "payment_created",
@@ -99,19 +103,13 @@ def send_payment_created_notification(
         },
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-    
-    sent_count = 0
-    
-    # Отправляем подписчикам заказа
-    sent_count += websocket_manager.broadcast_to_order_subscribers(message, order_id)
-    
-    # Отправляем подписчикам gateway
-    sent_count += websocket_manager.broadcast_to_gateway_subscribers(message, gateway)
-    
-    if sent_count > 0:
-        logger.info(f"Sent {sent_count} WebSocket notifications for new payment {order_id}")
-    
-    return sent_count
+
+    # Отправляем подписчикам заказа и gateway (асинхронно)
+    _schedule_async(websocket_manager.broadcast_to_order_subscribers(message, order_id))
+    _schedule_async(websocket_manager.broadcast_to_gateway_subscribers(message, gateway))
+
+    logger.info(f"Scheduled WebSocket notifications for new payment {order_id}")
+    return 0
 
 
 def send_payment_error_notification(
@@ -121,14 +119,14 @@ def send_payment_error_notification(
 ) -> int:
     """
     Отправить уведомление об ошибке платежа.
-    
+
     Args:
         order_id: ID заказа
         error_message: Сообщение об ошибке
         gateway: Платёжная система
-        
+
     Returns:
-        Количество отправленных уведомлений
+        Количество отправленных уведомлений (всегда 0, т.к. отправка асинхронная)
     """
     message = {
         "type": "payment_error",
@@ -140,13 +138,9 @@ def send_payment_error_notification(
         },
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-    
-    sent_count = 0
-    
-    # Отправляем подписчикам заказа
-    sent_count += websocket_manager.broadcast_to_order_subscribers(message, order_id)
-    
-    if sent_count > 0:
-        logger.warning(f"Sent {sent_count} WebSocket error notifications for payment {order_id}")
-    
-    return sent_count
+
+    # Отправляем подписчикам заказа (асинхронно)
+    _schedule_async(websocket_manager.broadcast_to_order_subscribers(message, order_id))
+
+    logger.warning(f"Scheduled WebSocket error notifications for payment {order_id}")
+    return 0
