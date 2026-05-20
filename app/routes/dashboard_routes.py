@@ -64,8 +64,6 @@ async def get_dashboard_summary(
     """
     Получить сводную статистику для дашборда.
     """
-    from app.repositories.payment_repository import PaymentRepository
-    
     stats = repository.get_statistics()
     
     # Дополнительная статистика

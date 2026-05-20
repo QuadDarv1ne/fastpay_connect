@@ -18,6 +18,7 @@ from app.dependencies import get_payment_repository
 from app.repositories.payment_repository import PaymentRepository
 from app.middleware.rate_limiter import limiter
 from app.models.payment import PaymentStatus
+import uuid
 import logging
 
 logger = logging.getLogger(__name__)

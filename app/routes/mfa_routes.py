@@ -4,10 +4,8 @@
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from typing import List
-import json
 
 from app.database import get_db
 from app.models.user import User
@@ -34,7 +32,7 @@ def get_current_user(
 ) -> User:
     """Получить текущего пользователя из токена."""
     from jose import JWTError, jwt
-    from app.settings import settings
+    from app.utils.security import SECRET_KEY, ALGORITHM
     
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -43,7 +41,7 @@ def get_current_user(
     )
     
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception

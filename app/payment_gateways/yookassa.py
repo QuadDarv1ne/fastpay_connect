@@ -1,6 +1,5 @@
 """Интеграция с платёжной системой YooKassa."""
 
-import hashlib
 import logging
 import uuid
 from typing import Any, Dict, Optional
