@@ -205,8 +205,8 @@ class SBPGateway(BasePaymentGateway):
     async def create_payment(
         self,
         amount: float,
-        order_id: str,
         description: str,
+        order_id: str,
         phone: Optional[str] = None,
         bank_bic: Optional[str] = None,
         expiration_minutes: int = 30,
@@ -215,8 +215,8 @@ class SBPGateway(BasePaymentGateway):
 
         Args:
             amount: Сумма платежа в рублях
-            order_id: Уникальный идентификатор заказа
             description: Описание платежа
+            order_id: Уникальный идентификатор заказа
             phone: Номер телефона получателя (опционально)
             bank_bic: BIC код банка получателя (опционально)
             expiration_minutes: Время действия ссылки (минуты)
