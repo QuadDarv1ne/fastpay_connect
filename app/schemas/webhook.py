@@ -1,12 +1,14 @@
 """Webhook management schemas."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 
 class WebhookEventResponse(BaseModel):
     """Ответ с деталями webhook события."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     event_id: str
     order_id: str
@@ -19,9 +21,6 @@ class WebhookEventResponse(BaseModel):
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     processed_at: Optional[str] = None
-
-    class Config:
-        from_attributes = True
 
 
 class WebhookEventListResponse(BaseModel):

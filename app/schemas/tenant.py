@@ -2,7 +2,7 @@
 Schemas for tenant management.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -41,6 +41,7 @@ class TenantUpdate(BaseModel):
 
 class TenantResponse(TenantBase):
     """Схема ответа tenant."""
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     api_key: str
@@ -49,6 +50,3 @@ class TenantResponse(TenantBase):
     settings: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
