@@ -34,13 +34,26 @@ async def create_payment_v1(
         return await service.create_payment(payment_data)
     except PaymentServiceError as e:
         error_msg = str(e)
+        order_id = getattr(e, "order_id", None) or payment_data.order_id or "unknown"
         if "not configured" in error_msg:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_msg)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={"error": error_msg, "order_id": order_id},
+            )
         elif "timeout" in error_msg.lower():
-            raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=error_msg)
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail={"error": error_msg, "order_id": order_id},
+            )
         elif "unavailable" in error_msg.lower():
-            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=error_msg)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={"error": error_msg, "order_id": order_id},
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": error_msg, "order_id": order_id},
+        )
 
 
 @router.get("/status/{order_id}")

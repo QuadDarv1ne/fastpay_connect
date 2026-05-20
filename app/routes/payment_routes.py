@@ -18,8 +18,6 @@ from app.dependencies import get_payment_repository
 from app.repositories.payment_repository import PaymentRepository
 from app.middleware.rate_limiter import limiter
 from app.models.payment import PaymentStatus
-import uuid
-import json
 import logging
 
 logger = logging.getLogger(__name__)
@@ -100,31 +98,46 @@ async def process_payment(
         repository.update_status(
             order_id=order_id, status=PaymentStatus.FAILED, metadata={"error": e.message}
         )
-        raise HTTPException(status_code=500, detail="Payment gateway not configured") from e
+        raise HTTPException(
+            status_code=500,
+            detail={"error": "Payment gateway not configured", "order_id": order_id},
+        ) from e
     except PaymentGatewayTimeoutError as e:
         logger.error(f"Gateway timeout: {e.message}")
         repository.update_status(
             order_id=order_id, status=PaymentStatus.FAILED, metadata={"error": "Gateway timeout"}
         )
-        raise HTTPException(status_code=504, detail="Payment gateway timeout") from e
+        raise HTTPException(
+            status_code=504,
+            detail={"error": "Payment gateway timeout", "order_id": order_id},
+        ) from e
     except PaymentGatewayConnectionError as e:
         logger.error(f"Gateway connection error: {e.message}")
         repository.update_status(
             order_id=order_id, status=PaymentStatus.FAILED, metadata={"error": "Gateway connection failed"}
         )
-        raise HTTPException(status_code=503, detail="Payment gateway unavailable") from e
+        raise HTTPException(
+            status_code=503,
+            detail={"error": "Payment gateway unavailable", "order_id": order_id},
+        ) from e
     except PaymentGatewayError as e:
         logger.error(f"Gateway error: {e.message}")
         repository.update_status(
             order_id=order_id, status=PaymentStatus.FAILED, metadata={"error": e.message}
         )
-        raise HTTPException(status_code=400, detail=e.message) from e
+        raise HTTPException(
+            status_code=400,
+            detail={"error": e.message, "order_id": order_id},
+        ) from e
 
     if "error" in result:
         repository.update_status(
             order_id=order_id, status=PaymentStatus.FAILED, metadata={"error": result["error"]}
         )
-        raise HTTPException(status_code=400, detail=result["error"])
+        raise HTTPException(
+            status_code=400,
+            detail={"error": result["error"], "order_id": order_id},
+        )
 
     payment_id = result.get(gateway_config["payment_id_field"])
     payment_url = None

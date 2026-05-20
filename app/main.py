@@ -24,6 +24,7 @@ from app.utils.logger import setup_logging
 from app.utils.settings_validator import settings_validator
 from app.settings import settings
 from app.payment_gateways.exceptions import PaymentGatewayError
+from app.services.payment_service import PaymentServiceError
 from app.utils.metrics import PrometheusMiddleware, MetricsEndpoint
 
 # API Versioning
@@ -327,6 +328,20 @@ async def payment_gateway_error_handler(request: Request, exc: PaymentGatewayErr
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
         content={"error": exc.message, "details": exc.details},
+    )
+
+
+@app.exception_handler(PaymentServiceError)
+async def payment_service_error_handler(request: Request, exc: PaymentServiceError):
+    """Обработчик исключений сервиса платежей — всегда возвращает order_id."""
+    logger.warning(f"Payment service error: {exc}")
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "success": False,
+            "order_id": exc.order_id or "unknown",
+            "error": str(exc),
+        },
     )
 
 

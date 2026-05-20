@@ -15,6 +15,7 @@ from app.schemas.auth import (
 from app.schemas.payment import (
     PaymentRequest,
     PaymentResponse,
+    PaymentErrorResponse,
     PaymentStatusEnum,
     WebhookPayload,
     BulkPaymentRequest,
@@ -76,6 +77,7 @@ __all__ = [
     # Payment schemas
     "PaymentRequest",
     "PaymentResponse",
+    "PaymentErrorResponse",
     "PaymentStatusEnum",
     "WebhookPayload",
     "BulkPaymentRequest",

@@ -63,6 +63,13 @@ class PaymentResponse(BaseModel):
     message: str
 
 
+class PaymentErrorResponse(BaseModel):
+    """Модель ответа об ошибке платежа."""
+    success: bool = False
+    order_id: str
+    error: str
+
+
 class WebhookPayload(BaseModel):
     """Модель для webhook уведомления."""
     payment_id: Optional[str] = None

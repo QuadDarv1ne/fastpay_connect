@@ -27,7 +27,9 @@ logger = logging.getLogger(__name__)
 class PaymentServiceError(Exception):
     """Базовое исключение сервиса платежей."""
 
-    pass
+    def __init__(self, message: str, order_id: Optional[str] = None) -> None:
+        super().__init__(message)
+        self.order_id = order_id
 
 
 class PaymentNotFoundError(PaymentServiceError):
@@ -132,7 +134,9 @@ class PaymentService:
                 status=PaymentStatus.FAILED,
                 metadata={"error": e.message},
             )
-            raise PaymentServiceError("Payment gateway not configured") from e
+            raise PaymentServiceError(
+                "Payment gateway not configured", order_id=order_id
+            ) from e
         except PaymentGatewayTimeoutError as e:
             logger.error(f"Gateway timeout: {e.message}")
             self.repository.update_status(
@@ -140,7 +144,9 @@ class PaymentService:
                 status=PaymentStatus.FAILED,
                 metadata={"error": "Gateway timeout"},
             )
-            raise PaymentServiceError("Payment gateway timeout") from e
+            raise PaymentServiceError(
+                "Payment gateway timeout", order_id=order_id
+            ) from e
         except PaymentGatewayConnectionError as e:
             logger.error(f"Gateway connection error: {e.message}")
             self.repository.update_status(
@@ -148,7 +154,9 @@ class PaymentService:
                 status=PaymentStatus.FAILED,
                 metadata={"error": "Gateway connection failed"},
             )
-            raise PaymentServiceError("Payment gateway unavailable") from e
+            raise PaymentServiceError(
+                "Payment gateway unavailable", order_id=order_id
+            ) from e
         except PaymentGatewayError as e:
             logger.error(f"Gateway error: {e.message}")
             self.repository.update_status(
@@ -156,7 +164,7 @@ class PaymentService:
                 status=PaymentStatus.FAILED,
                 metadata={"error": e.message},
             )
-            raise PaymentServiceError(e.message) from e
+            raise PaymentServiceError(e.message, order_id=order_id) from e
 
         if "error" in result:
             self.repository.update_status(
@@ -164,7 +172,7 @@ class PaymentService:
                 status=PaymentStatus.FAILED,
                 metadata={"error": result["error"]},
             )
-            raise PaymentServiceError(result["error"])
+            raise PaymentServiceError(result["error"], order_id=order_id)
 
         payment_id = result.get(config["payment_id_field"])
         payment_url = None
