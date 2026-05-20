@@ -318,15 +318,14 @@ class PaymentQuery:
             average_payment = base_query.with_entities(func.avg(PaymentModel.amount)).scalar() or 0.0
 
             # Daily revenue (last 7 days)
-            from sqlalchemy import extract
             daily_revenue_query = base_query.filter(
                 PaymentModel.status == PaymentStatus.COMPLETED.value,
                 PaymentModel.created_at >= func.now() - 7
             ).with_entities(
-                extract('day', PaymentModel.created_at).label('day'),
+                func.date(PaymentModel.created_at).label('day'),
                 func.sum(PaymentModel.amount).label('revenue')
             ).group_by(
-                extract('day', PaymentModel.created_at)
+                func.date(PaymentModel.created_at)
             ).all()
 
             return PaymentTypeStatistics(

@@ -237,6 +237,24 @@ async def refund_payment(
             status_code=400, detail="order_id or payment_id is required"
         )
 
+    # Check current status before refunding
+    existing = (
+        repository.get_by_order_id(refund_request.order_id)
+        if refund_request.order_id
+        else repository.get_by_payment_id(refund_request.payment_id)
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    status_val = existing.status.value if hasattr(existing.status, "value") else str(existing.status)
+    if status_val == PaymentStatus.REFUNDED.value:
+        raise HTTPException(status_code=400, detail="Payment already refunded")
+    if status_val not in (PaymentStatus.COMPLETED.value, PaymentStatus.PROCESSING.value):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot refund payment in status: {status_val}",
+        )
+
     payment = repository.update_status(
         order_id=refund_request.order_id,
         payment_id=refund_request.payment_id,

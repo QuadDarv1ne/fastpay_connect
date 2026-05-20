@@ -50,9 +50,9 @@ async def register_v1(
         username=user_data.username,
         email=user_data.email,
         password=user_data.password,
-        is_active=user_data.is_active,
-        is_superuser=user_data.is_superuser,
-        roles=user_data.roles if user_data.roles else ["viewer"],
+        is_active=True,
+        is_superuser=False,
+        roles=["viewer"],
     )
     
     if not user:

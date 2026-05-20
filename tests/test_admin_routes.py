@@ -62,7 +62,7 @@ def create_mock_repository():
     mock_payment.payment_gateway = "yookassa"
     mock_payment.amount = 1000.0
     mock_payment.currency = "RUB"
-    mock_payment.status = "pending"
+    mock_payment.status = "completed"
     mock_payment.description = "Test"
     mock_payment.created_at = datetime.now(timezone.utc)
     mock_payment.updated_at = datetime.now(timezone.utc)
@@ -164,7 +164,7 @@ class TestAdminRoutes:
 
     def test_refund_payment_not_found(self, db_client, admin_headers):
         mock_repo = create_mock_repository()
-        mock_repo.update_status.return_value = None
+        mock_repo.get_by_order_id.return_value = None
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
         response = db_client.post(

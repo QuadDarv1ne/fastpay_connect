@@ -114,8 +114,7 @@ def process_webhook_task(
     """
     import asyncio
 
-    db = get_db_session()
-    repository = PaymentRepository(db)
+    repository = PaymentRepository(self.db)
 
     try:
         handler = WEBHOOK_HANDLERS.get(gateway)
@@ -180,9 +179,6 @@ def process_webhook_task(
                 logger.error(f"Failed to save webhook error to DB: {db_exc}")
             
             return {"status": "error", "message": f"Webhook processing failed: {exc}"}
-    
-    finally:
-        db.close()
 
 
 @celery_app.task(
