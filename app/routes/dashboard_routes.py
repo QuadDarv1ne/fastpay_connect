@@ -66,15 +66,12 @@ async def get_dashboard_summary(
     """
     stats = repository.get_statistics()
     
-    # Дополнительная статистика
-    db = repository._db
     from app.models.payment import Payment, PaymentStatus
     
     now = datetime.now()
     date_from = now - timedelta(days=days)
     
-    # Платежи за период
-    period_payments = db.query(Payment).filter(
+    period_payments = repository.db.query(Payment).filter(
         Payment.created_at >= date_from
     ).all()
     
@@ -131,11 +128,10 @@ async def get_daily_statistics(
     from app.models.payment import Payment, PaymentStatus
     from datetime import date
     
-    db = repository._db
     date_from = datetime.now() - timedelta(days=days)
     
     # Группировка по дням
-    daily_stats = db.query(
+    daily_stats = repository.db.query(
         func.date(Payment.created_at).label('date'),
         func.count(Payment.id).label('total'),
         func.sum(Payment.amount).label('amount'),
@@ -148,7 +144,7 @@ async def get_daily_statistics(
     ).all()
     
     # Статусы по дням
-    daily_status_stats = db.query(
+    daily_status_stats = repository.db.query(
         func.date(Payment.created_at).label('date'),
         Payment.status,
         func.count(Payment.id).label('count'),
@@ -195,11 +191,10 @@ async def get_gateway_statistics(
     from sqlalchemy import func
     from app.models.payment import Payment, PaymentStatus
     
-    db = repository._db
     date_from = datetime.now() - timedelta(days=days)
     
     # Общая статистика по gateway
-    gateway_stats = db.query(
+    gateway_stats = repository.db.query(
         Payment.payment_gateway,
         func.count(Payment.id).label('total'),
         func.sum(Payment.amount).label('amount'),
@@ -210,7 +205,7 @@ async def get_gateway_statistics(
     ).all()
     
     # Статусы по gateway
-    gateway_status_stats = db.query(
+    gateway_status_stats = repository.db.query(
         Payment.payment_gateway,
         Payment.status,
         func.count(Payment.id).label('count'),
@@ -264,10 +259,9 @@ async def get_status_distribution(
     from sqlalchemy import func
     from app.models.payment import Payment
     
-    db = repository._db
     date_from = datetime.now() - timedelta(days=days)
     
-    status_stats = db.query(
+    status_stats = repository.db.query(
         Payment.status,
         func.count(Payment.id).label('count'),
         func.sum(Payment.amount).label('amount'),

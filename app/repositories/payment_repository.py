@@ -33,6 +33,10 @@ class PaymentRepository:
     def __init__(self, db: Session):
         self._db = db
 
+    @property
+    def db(self) -> Session:
+        return self._db
+
     def create(
         self,
         order_id: str,

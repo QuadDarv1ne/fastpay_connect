@@ -107,28 +107,13 @@ async def export_payments_csv(
         end_dt = datetime.now(timezone.utc)
         start_dt = end_dt - timedelta(days=days)
     
-    # Получаем платежи из репозитория
-    try:
-        payments = repository.get_payments_by_period(
-            start_date=start_dt,
-            end_date=end_dt,
-            gateway=gateway,
-            status=status_filter,
-            tenant_id=tenant_id,
-        )
-    except AttributeError:
-        # Fallback если метод не существует
-        payments = repository._db.query(Payment).filter(
-            Payment.created_at >= start_dt,
-            Payment.created_at <= end_dt,
-        ).all()
-        
-        if gateway:
-            payments = [p for p in payments if p.payment_gateway == gateway]
-        if status_filter:
-            payments = [p for p in payments if p.status.value == status_filter]
-        if tenant_id:
-            payments = [p for p in payments if p.tenant_id == tenant_id]
+    payments = repository.get_payments_by_period(
+        start_date=start_dt,
+        end_date=end_dt,
+        gateway=gateway,
+        status=status_filter,
+        tenant_id=tenant_id,
+    )
     
     # Создаём CSV в памяти
     output = io.StringIO()
@@ -237,27 +222,13 @@ async def export_payments_json(
         end_dt = datetime.now(timezone.utc)
         start_dt = end_dt - timedelta(days=days)
     
-    # Получаем платежи
-    try:
-        payments = repository.get_payments_by_period(
-            start_date=start_dt,
-            end_date=end_dt,
-            gateway=gateway,
-            status=status_filter,
-            tenant_id=tenant_id,
-        )
-    except AttributeError:
-        payments = repository._db.query(Payment).filter(
-            Payment.created_at >= start_dt,
-            Payment.created_at <= end_dt,
-        ).all()
-        
-        if gateway:
-            payments = [p for p in payments if p.payment_gateway == gateway]
-        if status_filter:
-            payments = [p for p in payments if p.status.value == status_filter]
-        if tenant_id:
-            payments = [p for p in payments if p.tenant_id == tenant_id]
+    payments = repository.get_payments_by_period(
+        start_date=start_dt,
+        end_date=end_dt,
+        gateway=gateway,
+        status=status_filter,
+        tenant_id=tenant_id,
+    )
     
     # Считаем статистику
     total_amount = sum(p.amount for p in payments)
