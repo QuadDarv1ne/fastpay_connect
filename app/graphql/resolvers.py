@@ -57,7 +57,7 @@ def decode_cursor(cursor: str) -> Optional[int]:
 def payment_model_to_graphql(payment: PaymentModel) -> PaymentType:
     """Конвертация модели Payment в GraphQL тип."""
     from app.graphql.schema import Payment, PaymentStatusEnum
-    
+
     return Payment(
         id=payment.id,
         order_id=payment.order_id,
@@ -69,29 +69,28 @@ def payment_model_to_graphql(payment: PaymentModel) -> PaymentType:
         status=PaymentStatusEnum(payment.status),
         description=payment.description,
         payment_url=payment.payment_url,
-        customer_email=payment.customer_email,
-        customer_ip=payment.customer_ip,
         tenant_id=payment.tenant_id,
         created_at=payment.created_at,
         updated_at=payment.updated_at,
-        refunded_amount=payment.refunded_amount,
-        metadata=payment.metadata,
+        metadata=payment.metadata_json,
     )
 
 
 def tenant_model_to_graphql(tenant: TenantModel) -> TenantType:
     """Конвертация модели Tenant в GraphQL тип."""
     from app.graphql.schema import Tenant
-    
+
     return Tenant(
         id=tenant.id,
         name=tenant.name,
+        slug=tenant.slug,
         api_key=tenant.api_key,
-        is_active=tenant.is_active,
+        status=tenant.status,
         created_at=tenant.created_at,
         updated_at=tenant.updated_at,
-        webhook_url=tenant.webhook_url,
-        settings=tenant.settings,
+        settings_json=tenant.settings_json,
+        description=tenant.description,
+        contact_email=tenant.contact_email,
     )
 
 

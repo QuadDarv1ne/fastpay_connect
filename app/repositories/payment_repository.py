@@ -128,7 +128,30 @@ class PaymentRepository:
         webhook_event_id: Optional[str] = None,
     ) -> Optional[Payment]:
         """Обновить статус платежа."""
-        payment = self._get_by_any(order_id, payment_id, transaction_id)
+        if order_id:
+            payment = (
+                self._db.query(Payment)
+                .filter(Payment.order_id == order_id)
+                .with_for_update()
+                .first()
+            )
+        elif payment_id:
+            payment = (
+                self._db.query(Payment)
+                .filter(Payment.payment_id == payment_id)
+                .with_for_update()
+                .first()
+            )
+        elif transaction_id:
+            payment = (
+                self._db.query(Payment)
+                .filter(Payment.transaction_id == transaction_id)
+                .with_for_update()
+                .first()
+            )
+        else:
+            return None
+
         if not payment:
             return None
 
@@ -300,8 +323,12 @@ class PaymentRepository:
         # Общее количество
         total = query.count()
 
-        # Сортировка
-        sort_column = getattr(Payment, sort_by, Payment.created_at)
+        # Сортировка с whitelist
+        ALLOWED_SORT = {"created_at", "amount", "status", "payment_gateway", "order_id"}
+        if sort_by in ALLOWED_SORT:
+            sort_column = getattr(Payment, sort_by)
+        else:
+            sort_column = Payment.created_at
         if sort_order.lower() == "asc":
             query = query.order_by(sort_column.asc())
         else:
@@ -583,7 +610,12 @@ class PaymentRepository:
             query = query.filter(Payment.payment_gateway == gateway)
         
         if status:
-            query = query.filter(Payment.status == PaymentStatus(status))
+            try:
+                status_enum = PaymentStatus(status) if not isinstance(status, PaymentStatus) else status
+                query = query.filter(Payment.status == status_enum)
+            except ValueError:
+                logger.warning(f"Invalid payment status filter: {status}")
+                return []
         
         if tenant_id:
             query = query.filter(Payment.tenant_id == tenant_id)

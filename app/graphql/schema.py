@@ -48,12 +48,9 @@ class Payment:
     status: PaymentStatusEnum
     description: Optional[str]
     payment_url: Optional[str]
-    customer_email: Optional[str]
-    customer_ip: Optional[str]
-    tenant_id: Optional[str]
-    created_at: datetime
-    updated_at: datetime
-    refunded_amount: Optional[float]
+    tenant_id: Optional[int]
+    created_at: Optional[datetime]
+    updated_at: Optional[datetime]
     metadata: Optional[str]
 
 
@@ -94,12 +91,14 @@ class Tenant:
     """Тип тенанта GraphQL."""
     id: int
     name: str
+    slug: str
     api_key: str
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-    webhook_url: Optional[str]
-    settings: Optional[str]
+    status: str
+    created_at: Optional[datetime]
+    updated_at: Optional[datetime]
+    settings_json: Optional[str]
+    description: Optional[str]
+    contact_email: Optional[str]
 
 
 @strawberry.type
