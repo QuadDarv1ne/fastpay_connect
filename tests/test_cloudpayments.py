@@ -48,7 +48,7 @@ class TestCloudPaymentsWebhook:
     @pytest.mark.asyncio
     async def test_payment_succeeded(self, mocker):
         """Тест успешного платежа."""
-        mocker.patch.object(gateway, "verify_signature", return_value=True)
+        mocker.patch.object(gateway, "verify_token", return_value=True)
         payload = {"event": "payment.succeeded", "payment_id": "123"}
         result = await handle_cloudpayments_webhook(payload, "sig")
         assert result["status"] == "processed"
@@ -57,7 +57,7 @@ class TestCloudPaymentsWebhook:
     @pytest.mark.asyncio
     async def test_payment_canceled(self, mocker):
         """Тест отмены платежа."""
-        mocker.patch.object(gateway, "verify_signature", return_value=True)
+        mocker.patch.object(gateway, "verify_token", return_value=True)
         payload = {"event": "payment.canceled", "payment_id": "123"}
         result = await handle_cloudpayments_webhook(payload, "sig")
         assert result["status"] == "processed"
@@ -66,7 +66,7 @@ class TestCloudPaymentsWebhook:
     @pytest.mark.asyncio
     async def test_payment_refunded(self, mocker):
         """Тест возврата платежа."""
-        mocker.patch.object(gateway, "verify_signature", return_value=True)
+        mocker.patch.object(gateway, "verify_token", return_value=True)
         payload = {"event": "payment.refunded", "payment_id": "123"}
         result = await handle_cloudpayments_webhook(payload, "sig")
         assert result["status"] == "processed"
@@ -75,16 +75,16 @@ class TestCloudPaymentsWebhook:
     @pytest.mark.asyncio
     async def test_invalid_signature(self, mocker):
         """Тест невалидной подписи."""
-        mocker.patch.object(gateway, "verify_signature", return_value=False)
+        mocker.patch.object(gateway, "verify_token", return_value=False)
         payload = {"event": "payment.succeeded"}
         result = await handle_cloudpayments_webhook(payload, "sig")
         assert result["status"] == "failed"
-        assert result["message"] == "Invalid signature"
+        assert result["message"] == "Invalid token"
 
     @pytest.mark.asyncio
     async def test_unknown_event(self, mocker):
         """Тест неизвестного события."""
-        mocker.patch.object(gateway, "verify_signature", return_value=True)
+        mocker.patch.object(gateway, "verify_token", return_value=True)
         payload = {"event": "payment.unknown", "payment_id": "123"}
         result = await handle_cloudpayments_webhook(payload, "sig")
         assert result["status"] == "ignored"
@@ -93,7 +93,7 @@ class TestCloudPaymentsWebhook:
     @pytest.mark.asyncio
     async def test_missing_event(self, mocker):
         """Тест отсутствия события."""
-        mocker.patch.object(gateway, "verify_signature", return_value=True)
+        mocker.patch.object(gateway, "verify_token", return_value=True)
         payload = {"payment_id": "123"}
         result = await handle_cloudpayments_webhook(payload, "sig")
         assert result["status"] == "ignored"
