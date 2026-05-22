@@ -72,12 +72,18 @@ def test_user_with_mfa(db_session: Session):
     db_session.commit()
 
 
-def get_token(api_client, username: str, password: str) -> str:
+def get_token(api_client, username: str, password: str, mfa_code: str = None) -> str:
     """Получение токена для аутентифицированных запросов."""
-    response = api_client.post(
-        "/api/auth/login",
-        data={"username": username, "password": password}
-    )
+    if mfa_code:
+        response = api_client.post(
+            "/api/auth/login/json",
+            json={"username": username, "password": password, "mfa_code": mfa_code}
+        )
+    else:
+        response = api_client.post(
+            "/api/auth/login",
+            data={"username": username, "password": password}
+        )
     assert response.status_code == 200
     return response.json()["access_token"]
 
@@ -125,7 +131,11 @@ class TestMFASetup:
 
     def test_setup_mfa_already_enabled(self, test_user_with_mfa, db_session: Session, api_client):
         """Тест: настройка 2FA когда он уже включён."""
-        token = get_token(api_client, "mfauser", "testpassword123")
+        # Generate valid TOTP code for MFA user
+        import pyotp
+        totp = pyotp.TOTP(test_user_with_mfa.mfa_secret)
+        mfa_code = totp.now()
+        token = get_token(api_client, "mfauser", "testpassword123", mfa_code=mfa_code)
 
         response = api_client.post(
             "/api/auth/mfa/setup",
@@ -208,11 +218,12 @@ class TestMFADisable:
 
     def test_disable_mfa_success(self, test_user_with_mfa, db_session: Session, api_client):
         """Тест: успешное отключение 2FA."""
-        token = get_token(api_client, "mfauser", "testpassword123")
-
-        # Генерируем правильный TOTP код
         import pyotp
         totp = pyotp.TOTP(test_user_with_mfa.mfa_secret)
+        mfa_code = totp.now()
+        token = get_token(api_client, "mfauser", "testpassword123", mfa_code=mfa_code)
+
+        # Генерируем правильный TOTP код
         code = totp.now()
 
         response = api_client.post(
@@ -230,7 +241,10 @@ class TestMFADisable:
 
     def test_disable_mfa_with_backup_code(self, test_user_with_mfa, db_session: Session, api_client):
         """Тест: отключение 2FA с backup кодом."""
-        token = get_token(api_client, "mfauser", "testpassword123")
+        import pyotp
+        totp = pyotp.TOTP(test_user_with_mfa.mfa_secret)
+        mfa_code = totp.now()
+        token = get_token(api_client, "mfauser", "testpassword123", mfa_code=mfa_code)
 
         # Получаем backup код
         hashed_codes = json.loads(test_user_with_mfa.mfa_backup_codes)
@@ -264,7 +278,10 @@ class TestMFAStatus:
 
     def test_get_mfa_status_enabled(self, test_user_with_mfa, db_session: Session, api_client):
         """Тест: статус 2FA когда включён."""
-        token = get_token(api_client, "mfauser", "testpassword123")
+        import pyotp
+        totp = pyotp.TOTP(test_user_with_mfa.mfa_secret)
+        mfa_code = totp.now()
+        token = get_token(api_client, "mfauser", "testpassword123", mfa_code=mfa_code)
 
         response = api_client.get(
             "/api/auth/mfa/status",
@@ -282,7 +299,10 @@ class TestMFABackupCodes:
 
     def test_regenerate_backup_codes_success(self, test_user_with_mfa, db_session: Session, api_client):
         """Тест: перегенерация backup кодов."""
-        token = get_token(api_client, "mfauser", "testpassword123")
+        import pyotp
+        totp = pyotp.TOTP(test_user_with_mfa.mfa_secret)
+        mfa_code = totp.now()
+        token = get_token(api_client, "mfauser", "testpassword123", mfa_code=mfa_code)
 
         response = api_client.post(
             "/api/auth/mfa/backup-codes",

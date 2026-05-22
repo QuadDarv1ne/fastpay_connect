@@ -18,6 +18,8 @@ from app.schemas.split_payment import (
 )
 from app.services.split_payment_service import SplitPaymentService, SplitPaymentError
 from app.middleware.rate_limiter import limiter
+from app.utils.security import get_current_user
+from app.models.user import User
 
 router = APIRouter()
 
@@ -28,6 +30,7 @@ async def create_split_payment(
     request: Request,
     split_data: SplitPaymentCreateRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """Create a split payment for marketplace distribution.
 
@@ -60,6 +63,7 @@ async def get_split_payment_status(
     request: Request,
     order_id: str,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """Get split payment status and distribution details."""
     service = SplitPaymentService(db)
@@ -84,6 +88,7 @@ async def refund_split_payment(
     split_id: int,
     refund_data: SplitPaymentRefundRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """Refund a specific split payment distribution."""
     service = SplitPaymentService(db)
@@ -112,6 +117,7 @@ async def get_splits_by_recipient(
     request: Request,
     recipient_id: str,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """Get all split payments for a specific recipient."""
     service = SplitPaymentService(db)
@@ -129,6 +135,7 @@ async def get_splits_by_recipient(
 async def get_pending_splits(
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """Get all pending split payments (for processing)."""
     service = SplitPaymentService(db)

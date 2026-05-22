@@ -92,7 +92,7 @@ class Tenant:
     id: int
     name: str
     slug: str
-    api_key: str
+    masked_api_key: str
     status: str
     created_at: Optional[datetime]
     updated_at: Optional[datetime]

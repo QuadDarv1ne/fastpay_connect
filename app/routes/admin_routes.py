@@ -269,6 +269,15 @@ async def refund_payment(
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
 
+    # TODO: Call the actual payment gateway's refund API based on payment_gateway
+    # Different gateways have different refund APIs. Until implemented,
+    # manual reconciliation with the gateway is required.
+    logger.warning(
+        f"Payment {payment.order_id} marked as refunded in DB, "
+        f"but gateway-level refund was not called for '{payment.payment_gateway}'. "
+        f"Manual reconciliation required."
+    )
+
     # Audit log
     log_audit_action(
         db=db,
@@ -331,6 +340,13 @@ async def cancel_payment(
 
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
+
+    # TODO: Call the actual payment gateway's cancel API based on payment_gateway
+    logger.warning(
+        f"Payment {payment.order_id} marked as cancelled in DB, "
+        f"but gateway-level cancellation was not called for '{payment.payment_gateway}'. "
+        f"Manual reconciliation required."
+    )
 
     # Audit log
     log_audit_action(

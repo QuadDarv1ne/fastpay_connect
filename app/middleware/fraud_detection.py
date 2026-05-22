@@ -13,6 +13,7 @@ Falls back to in-memory storage if Redis unavailable.
 
 import time
 import hashlib
+import json
 import logging
 from collections import defaultdict
 from typing import Optional, Dict, Any, Set
@@ -314,7 +315,10 @@ class FraudDetectionMiddleware(BaseHTTPMiddleware):
             # Run fraud checks
             amount = None
             try:
-                body = await request.json()
+                body_bytes = await request.body()
+                # Cache body for downstream handlers
+                request.state._cached_body = body_bytes
+                body = json.loads(body_bytes)
                 amount = body.get("amount")
             except Exception as e:
                 logger.debug(f"Fraud detection: could not parse request body: {e}")

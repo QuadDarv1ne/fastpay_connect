@@ -31,6 +31,7 @@ from app.utils.security import (
 )
 from app.models.user import User
 from app.middleware.rate_limiter import limiter
+from app.services.mfa_service import mfa_service
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +114,14 @@ async def login(
             detail="User account is disabled",
         )
 
+    # OAuth2 form login does not support MFA code; reject if MFA is enabled
+    if user.mfa_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="MFA required. Use /login/json with mfa_code parameter.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     update_last_login(repository.db, user)
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -149,7 +158,7 @@ async def login_json(
     login_data: LoginRequest,
     repository: UserRepository = Depends(get_user_repository),
 ) -> Token:
-    """Login via JSON payload."""
+    """Login via JSON payload with MFA support."""
     user = authenticate_user(repository.db, login_data.username, login_data.password)
 
     if not user:
@@ -164,6 +173,36 @@ async def login_json(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is disabled",
         )
+
+    # MFA verification
+    if user.mfa_enabled:
+        if not login_data.mfa_code:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="MFA code required",
+            )
+
+        if not user.mfa_secret:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="MFA misconfigured. Contact administrator.",
+            )
+
+        # Try TOTP code first
+        if not mfa_service.verify_code(user.mfa_secret, login_data.mfa_code):
+            # Try backup codes
+            backup_codes = mfa_service.deserialize_backup_codes(user.mfa_backup_codes)
+            if not mfa_service.verify_backup_code(login_data.mfa_code, backup_codes):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid MFA code",
+                )
+            # Remove used backup code
+            new_backup_codes = mfa_service.remove_used_backup_code(
+                login_data.mfa_code, backup_codes
+            )
+            user.mfa_backup_codes = mfa_service.serialize_backup_codes(new_backup_codes)
+            repository.db.commit()
 
     update_last_login(repository.db, user)
 

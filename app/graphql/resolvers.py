@@ -87,11 +87,20 @@ def tenant_model_to_graphql(tenant: TenantModel) -> TenantType:
     """Конвертация модели Tenant в GraphQL тип."""
     from app.graphql.schema import Tenant
 
+    # Mask API key for security: show only first 4 and last 4 chars
+    api_key = tenant.api_key or ""
+    if len(api_key) > 8:
+        masked_key = api_key[:4] + "..." + api_key[-4:]
+    elif api_key:
+        masked_key = "****"
+    else:
+        masked_key = ""
+
     return Tenant(
         id=tenant.id,
         name=tenant.name,
         slug=tenant.slug,
-        api_key=tenant.api_key,
+        masked_api_key=masked_key,
         status=tenant.status,
         created_at=tenant.created_at,
         updated_at=tenant.updated_at,
@@ -366,17 +375,6 @@ class TenantQuery:
         return tenant_model_to_graphql(tenant)
 
     @strawberry.field
-    def tenant_by_api_key(self, api_key: str) -> Optional[TenantType]:
-        """Получить тенанта по API ключу."""
-        with get_db() as db:
-            tenant = db.query(TenantModel).filter(TenantModel.api_key == api_key).first()
-
-        if not tenant:
-            return None
-
-        return tenant_model_to_graphql(tenant)
-
-    @strawberry.field
     def tenants(
         self,
         page: int = 1,
@@ -397,7 +395,7 @@ class TenantQuery:
                 query = query.filter(
                     or_(
                         TenantModel.name.ilike(f"%{escaped_search}%", escape="\\"),
-                        TenantModel.api_key.ilike(f"%{escaped_search}%", escape="\\"),
+                        TenantModel.slug.ilike(f"%{escaped_search}%", escape="\\"),
                     )
                 )
 
