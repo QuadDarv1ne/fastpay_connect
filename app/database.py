@@ -48,6 +48,9 @@ def init_db():
     from app.models.user import User
     from app.models.tenant import Tenant
     from app.models.webhook_event import WebhookEvent
+    from app.models.audit_log import AuditLog
+    from app.models.subscription import Subscription
+    from app.models.split_payment import SplitPayment
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created successfully")
 

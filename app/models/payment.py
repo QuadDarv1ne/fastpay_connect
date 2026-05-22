@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, Enum, Index, ForeignKey
+from sqlalchemy import Column, Integer, String, Numeric, DateTime, Enum, Index, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
@@ -40,7 +40,7 @@ class Payment(Base):
     description = Column(String)
     payment_url = Column(String)
     metadata_json = Column(String)
-    webhook_processed = Column(String, default="")
+    webhook_processed = Column(Text, default="")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     

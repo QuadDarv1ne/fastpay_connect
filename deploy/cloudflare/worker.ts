@@ -17,7 +17,7 @@ export default {
     
     // CORS preflight
     if (request.method === "OPTIONS") {
-      return handleCORS(request);
+      return handleCORS(request, env);
     }
     
     // Health check endpoint
@@ -50,8 +50,8 @@ export default {
       const response = await fetch(backendRequest);
       
       // Кэширование ответов
-      if (shouldCache(response, url)) {
-        const cachedResponse = await cacheResponse(response, url);
+      if (shouldCache(url)) {
+        const cachedResponse = await cacheResponse(response, url, ctx);
         return cachedResponse;
       }
       
@@ -74,7 +74,7 @@ export default {
 /**
  * Обработка CORS preflight запросов
  */
-function handleCORS(request: Request): Response {
+function handleCORS(request: Request, env: Env): Response {
   const headers = new Headers({
     "Access-Control-Allow-Origin": env.ALLOWED_ORIGINS || "*",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -155,12 +155,7 @@ function createBackendRequest(request: Request, apiUrl: string): Request {
 /**
  * Проверка возможности кэширования
  */
-function shouldCache(response: Response, url: URL): boolean {
-  // Кэшируем только GET запросы и успешные ответы
-  if (response.method !== "GET" || response.status !== 200) {
-    return false;
-  }
-  
+function shouldCache(url: URL): boolean {
   // Не кэшируем API endpoints
   const noCachePaths = ["/payments", "/webhooks", "/admin"];
   return !noCachePaths.some(path => url.pathname.startsWith(path));
@@ -169,9 +164,9 @@ function shouldCache(response: Response, url: URL): boolean {
 /**
  * Кэширование ответа
  */
-async function cacheResponse(response: Response, url: URL): Promise<Response> {
+async function cacheResponse(response: Response, url: URL, ctx: ExecutionContext): Promise<Response> {
   const cache = caches.default;
-  const cacheKey = new Request(url.toString(), response);
+  const cacheKey = url.toString();
   
   // Клонируем ответ для кэширования
   const responseToCache = response.clone();

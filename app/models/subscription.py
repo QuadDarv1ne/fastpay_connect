@@ -1,6 +1,6 @@
 """Subscription model for recurring payments."""
 
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, Index, Text
+from sqlalchemy import Column, Integer, String, Numeric, DateTime, Boolean, Index, Text
 from datetime import datetime, timezone
 from enum import Enum as PyEnum
 
@@ -50,7 +50,7 @@ class Subscription(Base):
     current_period_start = Column(DateTime, nullable=False)
     current_period_end = Column(DateTime, nullable=False)
     next_billing_date = Column(DateTime, nullable=False, index=True)
-    cancel_at_period_end = Column(String, default="")
+    cancel_at_period_end = Column(Boolean, default=False)
     cancellation_reason = Column(Text, nullable=True)
     metadata_json = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
@@ -74,6 +74,6 @@ class Subscription(Base):
             "current_period_start": self.current_period_start.isoformat() if self.current_period_start else None,
             "current_period_end": self.current_period_end.isoformat() if self.current_period_end else None,
             "next_billing_date": self.next_billing_date.isoformat() if self.next_billing_date else None,
-            "cancel_at_period_end": bool(self.cancel_at_period_end),
+            "cancel_at_period_end": self.cancel_at_period_end,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
