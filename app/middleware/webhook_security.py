@@ -8,7 +8,7 @@ import os
 import logging
 import json
 from typing import Callable, Dict, List, Optional
-from fastapi import FastAPI, Request, HTTPException, status
+from fastapi import FastAPI, Request, HTTPException, status, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
@@ -72,7 +72,7 @@ class WebhookSecurityMiddleware(BaseHTTPMiddleware):
         """Инициализация middleware."""
         super().__init__(app)
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Request:
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Обработка запроса.
 
         Args:

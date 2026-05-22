@@ -35,14 +35,23 @@ def get_rate_limit_key(request: Request) -> str:
 
 
 def get_redis_client():
-    """Получить Redis клиент для rate limiting."""
-    try:
-        redis_client = redis.from_url(settings.redis_url)
-        redis_client.ping()
-        return redis_client
-    except redis.RedisError as e:
-        logger.warning(f"Redis connection failed, falling back to memory: {e}")
-        return None
+    """Получить Redis клиент для rate limiting (singleton with lazy init)."""
+    if not hasattr(get_redis_client, '_client'):
+        get_redis_client._client = None
+        try:
+            get_redis_client._client = redis.from_url(
+                settings.redis_url,
+                decode_responses=True,
+                socket_connect_timeout=5,
+                socket_timeout=5,
+                retry_on_timeout=True,
+            )
+            get_redis_client._client.ping()
+            logger.info("Rate limiter: Redis connection established")
+        except redis.RedisError as e:
+            logger.warning(f"Redis connection failed, falling back to memory: {e}")
+            get_redis_client._client = None
+    return get_redis_client._client
 
 
 if DISABLE_RATE_LIMITING:

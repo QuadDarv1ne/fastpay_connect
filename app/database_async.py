@@ -4,8 +4,8 @@
 в асинхронном FastAPI приложении.
 """
 
-from typing import AsyncGenerator
-from sqlalchemy import create_engine
+from typing import AsyncGenerator, Generator
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     AsyncEngine,
@@ -40,7 +40,7 @@ SyncSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_eng
 Base = declarative_base()
 
 
-def get_sync_db() -> AsyncGenerator:
+def get_sync_db() -> Generator:
     """Получение синхронной сессии БД (для обратной совместимости)."""
     db = SyncSessionLocal()
     try:
@@ -113,9 +113,7 @@ async def check_async_db_connection() -> bool:
     """Проверка асинхронного подключения к БД."""
     try:
         async with async_engine.connect() as conn:
-            await conn.execute(async_engine.dialect.statement_compiler(
-                async_engine.dialect, None
-            ).string if hasattr(async_engine.dialect, 'statement_compiler') else "SELECT 1")
+            await conn.execute(text("SELECT 1"))
         return True
     except Exception as e:
         logger.error(f"Async database connection check failed: {e}")

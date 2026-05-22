@@ -357,8 +357,7 @@ async def health_check(request: Request):
     db_status = "ok"
 
     try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
+        await asyncio.to_thread(_check_db_connection)
     except Exception as e:
         logger.warning(f"Health check database connection failed: {e}")
         db_status = "error"
@@ -374,12 +373,17 @@ async def health_check(request: Request):
     }
 
 
+def _check_db_connection():
+    """Synchronous database connection check."""
+    with engine.connect() as conn:
+        conn.execute(text("SELECT 1"))
+
+
 @app.get("/ready", tags=["Health"])
 async def readiness_check():
     """Root-level readiness check endpoint."""
     try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
+        await asyncio.to_thread(_check_db_connection)
         return {
             "status": "ready",
             "checks": {

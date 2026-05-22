@@ -199,7 +199,7 @@ class FraudDetector:
                 # Sum all amounts
                 entries = pipe.zrangebyscore(key, 0, now)
                 pipe.expire(key, day_window + 60)
-                _, entries_list, _ = pipe.execute()
+                _, _, entries_list, _ = pipe.execute()
                 total = sum(float(e.split(":")[1]) for e in entries_list)
                 if total > self.config.max_daily_amount_per_ip:
                     return f"Daily amount limit exceeded: {total}"

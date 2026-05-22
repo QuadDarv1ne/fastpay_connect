@@ -202,7 +202,15 @@ async def login_json(
                 login_data.mfa_code, backup_codes
             )
             user.mfa_backup_codes = mfa_service.serialize_backup_codes(new_backup_codes)
-            repository.db.commit()
+            try:
+                repository.db.commit()
+            except Exception as e:
+                repository.db.rollback()
+                logger.error(f"Failed to commit MFA backup code update: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to update MFA backup codes",
+                )
 
     update_last_login(repository.db, user)
 
