@@ -347,6 +347,16 @@ async def pwa_page(request: Request):
 app.add_route("/metrics", MetricsEndpoint.metrics)
 
 
+@app.get("/debug-info", tags=["Health"])
+async def debug_info():
+    """Debug endpoint to check current settings."""
+    return {
+        "debug": settings.debug,
+        "docs_url": "/docs" if settings.debug else None,
+        "log_level": settings.log_level,
+    }
+
+
 @app.get("/health", tags=["Health"])
 @limiter.limit("60/minute")
 async def health_check(request: Request):
