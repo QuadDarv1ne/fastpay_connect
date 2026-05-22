@@ -10,7 +10,10 @@ from sqlalchemy import func, and_, or_
 from datetime import datetime, timezone
 from enum import Enum
 import base64
+import logging
 from contextlib import contextmanager
+
+logger = logging.getLogger(__name__)
 
 from app.models.payment import Payment as PaymentModel, PaymentStatus
 from app.models.tenant import Tenant as TenantModel
@@ -45,12 +48,16 @@ def encode_cursor(value: int) -> str:
 
 def decode_cursor(cursor: str) -> Optional[int]:
     """Декодирование курсора."""
+    # Limit cursor length to prevent abuse
+    if not cursor or len(cursor) > 256:
+        logger.debug(f"Cursor rejected: invalid length ({len(cursor) if cursor else 0})")
+        return None
     try:
         decoded = base64.b64decode(cursor.encode()).decode()
         if decoded.startswith("cursor:"):
             return int(decoded[7:])
-    except (ValueError, Exception):
-        pass
+    except (ValueError, Exception) as e:
+        logger.debug(f"Failed to decode cursor '{cursor}': {e}")
     return None
 
 
