@@ -287,6 +287,24 @@ async def cancel_payment(
             status_code=400, detail="order_id or payment_id is required"
         )
 
+    # Check current status before canceling
+    existing = (
+        repository.get_by_order_id(cancel_request.order_id)
+        if cancel_request.order_id
+        else repository.get_by_payment_id(cancel_request.payment_id)
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    status_val = existing.status.value if hasattr(existing.status, "value") else str(existing.status)
+    if status_val == PaymentStatus.CANCELLED.value:
+        raise HTTPException(status_code=400, detail="Payment already cancelled")
+    if status_val in (PaymentStatus.COMPLETED.value, PaymentStatus.REFUNDED.value, PaymentStatus.FAILED.value):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot cancel payment in status: {status_val}",
+        )
+
     payment = repository.update_status(
         order_id=cancel_request.order_id,
         payment_id=cancel_request.payment_id,

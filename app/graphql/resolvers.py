@@ -194,8 +194,12 @@ class PaymentQuery:
             # Общее количество
             total = query.count()
 
-            # Сортировка
-            sort_column = getattr(PaymentModel, sort_by, PaymentModel.created_at)
+            # Сортировка с whitelist
+            ALLOWED_SORT = {"created_at", "amount", "status", "payment_gateway", "order_id", "id"}
+            if sort_by in ALLOWED_SORT:
+                sort_column = getattr(PaymentModel, sort_by)
+            else:
+                sort_column = PaymentModel.created_at
             if sort_order.lower() == "asc":
                 query = query.order_by(sort_column.asc())
             else:

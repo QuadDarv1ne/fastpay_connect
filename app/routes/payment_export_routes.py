@@ -142,7 +142,7 @@ async def export_payments_csv(
             'payment_gateway': payment.payment_gateway,
             'amount': f"{payment.amount:.2f}",
             'currency': payment.currency or 'RUB',
-            'status': payment.status.value,
+            'status': payment.status.value if hasattr(payment.status, 'value') else str(payment.status),
             'description': (payment.description or '').replace('\n', ' '),
             'created_at': payment.created_at.isoformat() if payment.created_at else '',
             'updated_at': payment.updated_at.isoformat() if payment.updated_at else '',
@@ -236,7 +236,7 @@ async def export_payments_json(
     by_gateway = {}
     
     for payment in payments:
-        status_val = payment.status.value
+        status_val = payment.status.value if hasattr(payment.status, 'value') else str(payment.status)
         gateway_val = payment.payment_gateway
         
         by_status[status_val] = by_status.get(status_val, 0) + 1
@@ -267,7 +267,7 @@ async def export_payments_json(
                 "payment_gateway": p.payment_gateway,
                 "amount": p.amount,
                 "currency": p.currency or "RUB",
-                "status": p.status.value,
+                "status": p.status.value if hasattr(p.status, 'value') else str(p.status),
                 "description": p.description,
                 "created_at": p.created_at.isoformat() if p.created_at else None,
                 "updated_at": p.updated_at.isoformat() if p.updated_at else None,

@@ -6,6 +6,7 @@ from app.dependencies import get_payment_repository
 from app.database import get_db
 from app.models.user import User
 from app.utils.security import get_password_hash
+from app.models.payment import PaymentStatus
 from datetime import datetime, timezone
 
 
@@ -179,6 +180,7 @@ class TestAdminRoutes:
 
     def test_cancel_payment(self, db_client, admin_headers):
         mock_repo = create_mock_repository()
+        mock_repo.get_by_order_id.return_value.status = "pending"
         app.dependency_overrides[get_payment_repository] = lambda: mock_repo
 
         response = db_client.post(
@@ -216,5 +218,116 @@ class TestAdminRoutes:
         assert response.status_code == 200
         data = response.json()
         assert data["total_payments"] == 100
+
+        app.dependency_overrides.clear()
+
+    def test_refund_payment_already_refunded(self, db_client, admin_headers):
+        mock_repo = create_mock_repository()
+        mock_repo.get_by_order_id.return_value.status = PaymentStatus.REFUNDED
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
+
+        response = db_client.post(
+            "/admin/payments/refund",
+            json={"order_id": "order_123", "reason": "Customer request"},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 400
+        assert "already refunded" in response.json()["detail"].lower()
+
+        app.dependency_overrides.clear()
+
+    def test_refund_payment_wrong_status(self, db_client, admin_headers):
+        mock_repo = create_mock_repository()
+        mock_repo.get_by_order_id.return_value.status = PaymentStatus.CANCELLED
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
+
+        response = db_client.post(
+            "/admin/payments/refund",
+            json={"order_id": "order_123", "reason": "Customer request"},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 400
+        assert "cannot refund" in response.json()["detail"].lower()
+
+        app.dependency_overrides.clear()
+
+    def test_cancel_payment_already_cancelled(self, db_client, admin_headers):
+        mock_repo = create_mock_repository()
+        mock_repo.get_by_order_id.return_value.status = PaymentStatus.CANCELLED
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
+
+        response = db_client.post(
+            "/admin/payments/cancel",
+            json={"order_id": "order_123", "reason": "Customer request"},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 400
+        assert "already cancelled" in response.json()["detail"].lower()
+
+        app.dependency_overrides.clear()
+
+    def test_cancel_payment_wrong_status_completed(self, db_client, admin_headers):
+        mock_repo = create_mock_repository()
+        mock_repo.get_by_order_id.return_value.status = PaymentStatus.COMPLETED
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
+
+        response = db_client.post(
+            "/admin/payments/cancel",
+            json={"order_id": "order_123", "reason": "Customer request"},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 400
+        assert "cannot cancel" in response.json()["detail"].lower()
+
+        app.dependency_overrides.clear()
+
+    def test_cancel_payment_wrong_status_refunded(self, db_client, admin_headers):
+        mock_repo = create_mock_repository()
+        mock_repo.get_by_order_id.return_value.status = PaymentStatus.REFUNDED
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
+
+        response = db_client.post(
+            "/admin/payments/cancel",
+            json={"order_id": "order_123", "reason": "Customer request"},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 400
+        assert "cannot cancel" in response.json()["detail"].lower()
+
+        app.dependency_overrides.clear()
+
+    def test_cancel_payment_wrong_status_failed(self, db_client, admin_headers):
+        mock_repo = create_mock_repository()
+        mock_repo.get_by_order_id.return_value.status = PaymentStatus.FAILED
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
+
+        response = db_client.post(
+            "/admin/payments/cancel",
+            json={"order_id": "order_123", "reason": "Customer request"},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 400
+        assert "cannot cancel" in response.json()["detail"].lower()
+
+        app.dependency_overrides.clear()
+
+    def test_cancel_payment_not_found(self, db_client, admin_headers):
+        mock_repo = create_mock_repository()
+        mock_repo.get_by_order_id.return_value = None
+        app.dependency_overrides[get_payment_repository] = lambda: mock_repo
+
+        response = db_client.post(
+            "/admin/payments/cancel",
+            json={"order_id": "nonexistent"},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 404
 
         app.dependency_overrides.clear()
