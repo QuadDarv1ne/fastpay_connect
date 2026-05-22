@@ -34,7 +34,7 @@ router = APIRouter()
 
 
 def get_user_repository(db: Any = Depends(get_db)) -> UserRepository:
-    """Dependency для получения UserRepository."""
+    """Dependency for UserRepository."""
     return UserRepository(db)
 
 
@@ -48,7 +48,7 @@ async def register_v1(
     """Register a new user (v1)."""
     if len(user_data.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
-    
+
     user = repository.create(
         username=user_data.username,
         email=user_data.email,
@@ -57,10 +57,10 @@ async def register_v1(
         is_superuser=False,
         roles=["viewer"],
     )
-    
+
     if not user:
         raise HTTPException(status_code=400, detail="Username or email already registered")
-    
+
     return UserResponse(
         id=user.id,
         username=user.username,
@@ -81,35 +81,34 @@ async def login_v1(
     repository: UserRepository = Depends(get_user_repository),
 ) -> Token:
     """Login and get access token (v1)."""
-    # Получаем данные из form-data
     form = await request.form()
     username = form.get("username")
     password = form.get("password")
-    
+
     user = authenticate_user(repository.db, username, password)
-    
+
     if not user:
         raise HTTPException(
             status_code=401,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
         raise HTTPException(status_code=403, detail="User account is disabled")
-    
+
     update_last_login(repository.db, user)
-    
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username, "user_id": user.id, "roles": user.get_roles()},
         expires_delta=access_token_expires,
     )
-    
+
     refresh_token = create_refresh_token(
         data={"sub": user.username, "user_id": user.id},
     )
-    
+
     return Token(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -127,29 +126,29 @@ async def login_json_v1(
 ) -> Token:
     """Login via JSON payload (v1)."""
     user = authenticate_user(repository.db, login_data.username, login_data.password)
-    
+
     if not user:
         raise HTTPException(
             status_code=401,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
         raise HTTPException(status_code=403, detail="User account is disabled")
-    
+
     update_last_login(repository.db, user)
-    
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username, "user_id": user.id, "roles": user.get_roles()},
         expires_delta=access_token_expires,
     )
-    
+
     refresh_token = create_refresh_token(
         data={"sub": user.username, "user_id": user.id},
     )
-    
+
     return Token(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -166,34 +165,47 @@ async def refresh_token_v1(
     repository: UserRepository = Depends(get_user_repository),
 ) -> Token:
     """Refresh access token (v1)."""
+    from app.utils.token_blacklist import is_token_blacklisted, blacklist_token
+
+    if is_token_blacklisted(token_data.refresh_token):
+        raise HTTPException(
+            status_code=401,
+            detail="Refresh token has been revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     payload = decode_token(token_data.refresh_token, expected_type="refresh")
-    
+
     if not payload:
         raise HTTPException(
             status_code=401,
             detail="Invalid or expired refresh token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
+    success = blacklist_token(token_data.refresh_token)
+    if not success:
+        logger.warning("Failed to blacklist used refresh token (Redis may be unavailable)")
+
     user = repository.get_by_id(payload.user_id)
-    
+
     if not user or not user.is_active:
         raise HTTPException(
             status_code=401,
             detail="User not found or disabled",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username, "user_id": user.id, "roles": user.get_roles()},
         expires_delta=access_token_expires,
     )
-    
+
     new_refresh_token = create_refresh_token(
         data={"sub": user.username, "user_id": user.id},
     )
-    
+
     return Token(
         access_token=access_token,
         refresh_token=new_refresh_token,
@@ -232,15 +244,15 @@ async def change_password_v1(
 ) -> Dict[str, str]:
     """Change user password (v1)."""
     from app.utils.security import verify_password
-    
+
     if not verify_password(password_data.old_password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect old password")
-    
+
     user = repository.update(user=current_user, password=password_data.new_password)
-    
+
     if not user:
         raise HTTPException(status_code=500, detail="Failed to update password")
-    
+
     return {"status": "success", "message": "Password changed successfully"}
 
 
@@ -250,10 +262,9 @@ async def logout_v1(
     request: Request,
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, str]:
-    """Logout (v1) — invalidates the current access token via Redis blacklist."""
+    """Logout (v1) - invalidates the current access token via Redis blacklist."""
     from app.utils.token_blacklist import blacklist_token
 
-    # Extract the raw token from Authorization header
     auth_header = request.headers.get("Authorization", "")
     token = None
     if auth_header.startswith("Bearer "):
