@@ -64,6 +64,9 @@ class TinkoffGateway(BasePaymentGateway):
         if not self.validate_config():
             raise PaymentGatewayConfigError("Tinkoff gateway not configured")
 
+        if amount is None or amount <= 0:
+            raise ValueError("Refund amount must be specified and positive")
+
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -72,7 +75,7 @@ class TinkoffGateway(BasePaymentGateway):
         refund_payload: Dict[str, Any] = {
             "TerminalKey": self.api_key,
             "PaymentId": payment_id,
-            "Amount": int((amount or 0) * 100),  # Tinkoff uses kopecks
+            "Amount": int(amount * 100),  # Tinkoff uses kopecks
             "Description": reason[:250] if reason else "Refund",
         }
 

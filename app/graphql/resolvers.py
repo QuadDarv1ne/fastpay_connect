@@ -165,7 +165,7 @@ class PaymentQuery:
             query = db.query(PaymentModel).filter(PaymentModel.order_id == order_id)
             # Non-admin users can only see their own tenant's payments
             if not ctx.get("is_admin"):
-                query = query.filter(PaymentModel.tenant_id == ctx["user_id"])
+                query = query.filter(PaymentModel.tenant_id == ctx.get("tenant_id"))
             payment = query.first()
 
         if not payment:
@@ -183,7 +183,7 @@ class PaymentQuery:
         with get_db() as db:
             query = db.query(PaymentModel).filter(PaymentModel.id == payment_id)
             if not ctx.get("is_admin"):
-                query = query.filter(PaymentModel.tenant_id == ctx["user_id"])
+                query = query.filter(PaymentModel.tenant_id == ctx.get("tenant_id"))
             payment = query.first()
 
         if not payment:
@@ -220,7 +220,7 @@ class PaymentQuery:
 
             # Non-admin users can only see their own tenant's payments
             if not ctx.get("is_admin"):
-                query = query.filter(PaymentModel.tenant_id == ctx.get("user_id"))
+                query = query.filter(PaymentModel.tenant_id == ctx.get("tenant_id"))
             # Admin can filter by tenant_id if provided
             elif tenant_id:
                 query = query.filter(PaymentModel.tenant_id == tenant_id)
@@ -311,7 +311,7 @@ class PaymentQuery:
         with get_db() as db:
             query = db.query(PaymentModel).order_by(PaymentModel.id.asc())
             if not ctx.get("is_admin"):
-                query = query.filter(PaymentModel.tenant_id == ctx.get("user_id"))
+                query = query.filter(PaymentModel.tenant_id == ctx.get("tenant_id"))
 
             if after:
                 cursor_id = decode_cursor(after)
@@ -371,7 +371,7 @@ class PaymentQuery:
 
             # Non-admin users can only see their own tenant's stats
             if not ctx.get("is_admin"):
-                base_query = base_query.filter(PaymentModel.tenant_id == ctx.get("user_id"))
+                base_query = base_query.filter(PaymentModel.tenant_id == ctx.get("tenant_id"))
             elif tenant_id:
                 base_query = base_query.filter(PaymentModel.tenant_id == tenant_id)
 
@@ -511,7 +511,7 @@ class WebhookQuery:
             query = db.query(WebhookEventModel).filter(WebhookEventModel.id == event_id)
             if not ctx.get("is_admin"):
                 # Non-admin users can only see their own tenant's webhooks
-                tenant_payments = db.query(PaymentModel).filter(PaymentModel.tenant_id == ctx.get("user_id")).all()
+                tenant_payments = db.query(PaymentModel).filter(PaymentModel.tenant_id == ctx.get("tenant_id")).all()
                 order_ids = [p.order_id for p in tenant_payments]
                 if order_ids:
                     query = query.filter(WebhookEventModel.order_id.in_(order_ids))
@@ -548,7 +548,7 @@ class WebhookQuery:
             if not ctx.get("is_admin"):
                 # Non-admin users can only see their own tenant's webhooks
                 # Filter by order_id matching tenant's payments
-                tenant_payments = db.query(PaymentModel).filter(PaymentModel.tenant_id == ctx.get("user_id")).all()
+                tenant_payments = db.query(PaymentModel).filter(PaymentModel.tenant_id == ctx.get("tenant_id")).all()
                 order_ids = [p.order_id for p in tenant_payments]
                 if order_ids:
                     query = query.filter(WebhookEventModel.order_id.in_(order_ids))

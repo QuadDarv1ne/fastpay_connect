@@ -123,7 +123,11 @@ def create_webhook_endpoint(webhook_key: str):
         
         # Use cached body from middleware if available to avoid re-reading stream
         if hasattr(request.state, "_cached_body"):
-            payload = json.loads(request.state._cached_body)
+            try:
+                payload = json.loads(request.state._cached_body)
+            except (json.JSONDecodeError, ValueError) as e:
+                logger.warning(f"Failed to parse cached webhook body: {e}")
+                return {"status": "error", "message": "Invalid request body"}
         else:
             payload = await request.json()
 

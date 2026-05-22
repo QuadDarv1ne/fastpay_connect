@@ -44,6 +44,7 @@ async def get_graphql_context(request: Request) -> Dict[str, Any]:
                         roles = user.get_roles()
                         return {
                             "user_id": user.id,
+                            "tenant_id": user.tenant_id,
                             "user_roles": roles,
                             "is_admin": "admin" in roles or user.is_superuser,
                         }
@@ -51,4 +52,4 @@ async def get_graphql_context(request: Request) -> Dict[str, Any]:
                     db.close()
 
     # Unauthenticated context
-    return {"user_id": None, "user_roles": None, "is_admin": False}
+    return {"user_id": None, "tenant_id": None, "user_roles": None, "is_admin": False}
