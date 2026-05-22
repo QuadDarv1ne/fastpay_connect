@@ -1,6 +1,7 @@
 """Интеграция с платёжной системой Tinkoff."""
 
 import logging
+from decimal import Decimal
 from typing import Any, Dict, Optional
 from app.payment_gateways.base import BasePaymentGateway
 from app.payment_gateways.exceptions import PaymentGatewayConfigError
@@ -75,7 +76,7 @@ class TinkoffGateway(BasePaymentGateway):
         refund_payload: Dict[str, Any] = {
             "TerminalKey": self.api_key,
             "PaymentId": payment_id,
-            "Amount": int(amount * 100),  # Tinkoff uses kopecks
+            "Amount": int(Decimal(str(amount)) * 100),  # Tinkoff uses kopecks; Decimal avoids float imprecision
             "Description": reason[:250] if reason else "Refund",
         }
 

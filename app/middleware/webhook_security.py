@@ -232,7 +232,7 @@ class WebhookSecurityMiddleware(BaseHTTPMiddleware):
                 "signature verification required"
             )
             raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Webhook security misconfiguration: secret key not set for {gateway_name}",
             )
 

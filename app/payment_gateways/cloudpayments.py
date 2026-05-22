@@ -36,8 +36,11 @@ class CloudPaymentsGateway(BasePaymentGateway):
     def verify_token(self, order_id: str, token: str) -> bool:
         """Проверка токена."""
         if not settings.cloudpayments_secret_key:
-            logger.warning("CLOUDPAYMENTS_SECRET_KEY not configured, skipping token verification")
-            return True
+            logger.error(
+                "CLOUDPAYMENTS_SECRET_KEY not configured, "
+                "rejecting webhook token - signature verification required"
+            )
+            return False
 
         expected_token = self.generate_token(order_id)
         return hmac.compare_digest(expected_token, token)

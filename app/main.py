@@ -19,7 +19,7 @@ from app.routes.webhook_routes import router as webhook_router
 from app.routes.admin_routes import router as admin_router
 from app.routes.auth_routes import router as auth_router
 from app.routes.webhook_monitor_routes import router as webhook_monitor_router
-from app.database import init_db, engine, Base
+from app.database import init_db, engine
 from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler, rate_limiter_middleware
 from slowapi.middleware import SlowAPIMiddleware
 from app.utils.logger import setup_logging

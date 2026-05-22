@@ -54,7 +54,7 @@ class BasePaymentGateway(ABC):
             k: v for k, v in params.items() if v is not None and v != ""
         }
         signature_str = "&".join(
-            f"{key}={value}" for key, value in sorted(filtered_params.items())
+            f"{param_key}={value}" for param_key, value in sorted(filtered_params.items())
         )
         return hmac.new(
             key.encode(), signature_str.encode(), hashlib.sha256

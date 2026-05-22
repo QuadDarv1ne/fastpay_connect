@@ -92,8 +92,13 @@ class TestWebhookSecurityMiddleware:
         # Должен жаловаться на X-Signature или X-Timestamp
         assert "header" in response.json()["detail"].lower()
 
-    def test_webhook_with_required_headers_rustore(self, client):
+    def test_webhook_with_required_headers_rustore(self, client, monkeypatch):
         """Проверка webhook RuStore с заголовком X-Signature."""
+        monkeypatch.setattr("app.settings.settings.rustore_secret_key", "test_secret")
+        monkeypatch.setattr(
+            "app.middleware.webhook_security.signature_verifier.verify",
+            lambda **kwargs: True,
+        )
         response = client.post(
             "/api/v1/webhooks/rustore",
             json={"event": "payment"},
@@ -102,8 +107,13 @@ class TestWebhookSecurityMiddleware:
         assert response.status_code == 200
         assert response.json() == {"status": "success"}
 
-    def test_webhook_with_required_headers_sbp(self, client):
+    def test_webhook_with_required_headers_sbp(self, client, monkeypatch):
         """Проверка webhook SBP с обязательными заголовками."""
+        monkeypatch.setattr("app.settings.settings.sbp_secret_key", "test_secret")
+        monkeypatch.setattr(
+            "app.middleware.webhook_security.signature_verifier.verify",
+            lambda **kwargs: True,
+        )
         response = client.post(
             "/api/v1/webhooks/sbp",
             json={"event": "payment"},
@@ -191,8 +201,13 @@ class TestWebhookSecurityGuard:
 class TestWebhookIPValidation:
     """Тесты валидации IP адресов."""
 
-    def test_localhost_ip_allowed(self, client):
+    def test_localhost_ip_allowed(self, client, monkeypatch):
         """Проверка что localhost IP разрешён."""
+        monkeypatch.setattr("app.settings.settings.sbp_secret_key", "test_secret")
+        monkeypatch.setattr(
+            "app.middleware.webhook_security.signature_verifier.verify",
+            lambda **kwargs: True,
+        )
         response = client.post(
             "/api/v1/webhooks/sbp",
             json={"event": "payment"},
