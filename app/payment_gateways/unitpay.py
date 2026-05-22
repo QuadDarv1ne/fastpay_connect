@@ -1,8 +1,9 @@
 """Интеграция с платёжной системой UnitPay."""
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from app.payment_gateways.base import BasePaymentGateway
+from app.payment_gateways.exceptions import PaymentGatewayConfigError
 from app.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -60,8 +61,51 @@ class UnitPayGateway(BasePaymentGateway):
             logger.info(f"Ignored UnitPay event: {event}")
             return {"status": "ignored", "message": "Event not recognized"}
 
+    async def refund_payment(
+        self, payment_id: str, amount: Optional[float] = None, reason: str = ""
+    ) -> Dict[str, Any]:
+        """Возврат платежа через UnitPay API."""
+        if not self.validate_config():
+            raise PaymentGatewayConfigError("UnitPay gateway not configured")
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+
+        refund_payload: Dict[str, Any] = {
+            "paymentId": payment_id,
+        }
+        if amount:
+            refund_payload["amount"] = amount
+        if reason:
+            refund_payload["reason"] = reason[:250]
+
+        return await self._request(
+            "POST", f"{self.base_url}/refund", headers=headers, json_data=refund_payload
+        )
+
+    async def cancel_payment(self, payment_id: str) -> Dict[str, Any]:
+        """Отмена платежа через UnitPay API."""
+        if not self.validate_config():
+            raise PaymentGatewayConfigError("UnitPay gateway not configured")
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+
+        return await self._request(
+            "POST",
+            f"{self.base_url}/cancel",
+            headers=headers,
+            json_data={"paymentId": payment_id},
+        )
+
 
 gateway = UnitPayGateway()
 create_payment = gateway.create_payment
 verify_signature = gateway.verify_signature
 handle_unitpay_webhook = gateway.handle_webhook
+refund_payment = gateway.refund_payment
+cancel_payment = gateway.cancel_payment

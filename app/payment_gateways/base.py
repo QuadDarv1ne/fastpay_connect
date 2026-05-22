@@ -217,3 +217,15 @@ class BasePaymentGateway(ABC):
     ) -> Dict[str, str]:
         """Обработка webhook уведомления."""
         pass
+
+    @abstractmethod
+    async def refund_payment(
+        self, payment_id: str, amount: Optional[float] = None, reason: str = ""
+    ) -> Dict[str, Any]:
+        """Возврат платежа через API шлюза."""
+        pass
+
+    @abstractmethod
+    async def cancel_payment(self, payment_id: str) -> Dict[str, Any]:
+        """Отмена платежа через API шлюза."""
+        pass

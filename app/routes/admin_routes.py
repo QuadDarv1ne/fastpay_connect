@@ -7,6 +7,7 @@ from app.repositories.payment_repository import PaymentRepository
 from app.models.payment import PaymentStatus
 from app.database import get_db
 from app.utils.audit import log_audit_action
+from app.utils.gateway_registry import GATEWAY_CONFIGS
 from pydantic import BaseModel, ConfigDict, Field
 from app.middleware.rate_limiter import limiter
 from app.utils.security import get_current_user, require_any_role
@@ -269,14 +270,32 @@ async def refund_payment(
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
 
-    # TODO: Call the actual payment gateway's refund API based on payment_gateway
-    # Different gateways have different refund APIs. Until implemented,
-    # manual reconciliation with the gateway is required.
-    logger.warning(
-        f"Payment {payment.order_id} marked as refunded in DB, "
-        f"but gateway-level refund was not called for '{payment.payment_gateway}'. "
-        f"Manual reconciliation required."
-    )
+    # Call the actual payment gateway's refund API
+    gateway_config = GATEWAY_CONFIGS.get(payment.payment_gateway)
+    if gateway_config and gateway_config.get("refund_func"):
+        try:
+            refund_func = gateway_config["refund_func"]
+            gateway_payment_id = payment.payment_id or payment.order_id
+            result = await refund_func(
+                payment_id=gateway_payment_id,
+                amount=payment.amount,
+                reason=refund_request.reason or "Refund",
+            )
+            logger.info(
+                f"Gateway-level refund initiated for payment {payment.order_id} "
+                f"via '{payment.payment_gateway}': {result}"
+            )
+        except Exception as e:
+            logger.error(
+                f"Failed to initiate gateway-level refund for payment {payment.order_id} "
+                f"via '{payment.payment_gateway}': {e}. "
+                f"Payment marked as refunded in DB — manual reconciliation required."
+            )
+    else:
+        logger.warning(
+            f"Refund function not configured for gateway '{payment.payment_gateway}'. "
+            f"Payment {payment.order_id} marked as refunded in DB only."
+        )
 
     # Audit log
     log_audit_action(
@@ -341,12 +360,28 @@ async def cancel_payment(
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
 
-    # TODO: Call the actual payment gateway's cancel API based on payment_gateway
-    logger.warning(
-        f"Payment {payment.order_id} marked as cancelled in DB, "
-        f"but gateway-level cancellation was not called for '{payment.payment_gateway}'. "
-        f"Manual reconciliation required."
-    )
+    # Call the actual payment gateway's cancel API
+    gateway_config = GATEWAY_CONFIGS.get(payment.payment_gateway)
+    if gateway_config and gateway_config.get("cancel_func"):
+        try:
+            cancel_func = gateway_config["cancel_func"]
+            gateway_payment_id = payment.payment_id or payment.order_id
+            result = await cancel_func(payment_id=gateway_payment_id)
+            logger.info(
+                f"Gateway-level cancellation initiated for payment {payment.order_id} "
+                f"via '{payment.payment_gateway}': {result}"
+            )
+        except Exception as e:
+            logger.error(
+                f"Failed to initiate gateway-level cancellation for payment {payment.order_id} "
+                f"via '{payment.payment_gateway}': {e}. "
+                f"Payment marked as cancelled in DB — manual reconciliation required."
+            )
+    else:
+        logger.warning(
+            f"Cancel function not configured for gateway '{payment.payment_gateway}'. "
+            f"Payment {payment.order_id} marked as cancelled in DB only."
+        )
 
     # Audit log
     log_audit_action(

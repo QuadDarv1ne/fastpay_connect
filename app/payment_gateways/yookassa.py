@@ -4,6 +4,7 @@ import logging
 import uuid
 from typing import Any, Dict, Optional
 from app.payment_gateways.base import BasePaymentGateway
+from app.payment_gateways.exceptions import PaymentGatewayConfigError
 from app.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -73,8 +74,55 @@ class YooKassaGateway(BasePaymentGateway):
             logger.info(f"Ignored YooKassa event: {event}")
             return {"status": "ignored", "message": "Event not recognized"}
 
+    async def refund_payment(
+        self, payment_id: str, amount: Optional[float] = None, reason: str = ""
+    ) -> Dict[str, Any]:
+        """Возврат платежа через YooKassa API."""
+        if not self.validate_config():
+            raise PaymentGatewayConfigError("YooKassa gateway not configured")
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "Idempotence-Key": f"refund_{payment_id}_{uuid.uuid4().hex[:8]}",
+        }
+
+        refund_payload: Dict[str, Any] = {
+            "payment_id": payment_id,
+            "amount": {"value": str(amount), "currency": "RUB"} if amount else None,
+            "description": reason[:250] if reason else "Refund",
+        }
+        # Remove None values
+        refund_payload = {k: v for k, v in refund_payload.items() if v is not None}
+
+        return await self._request(
+            "POST",
+            f"{self.base_url}/refunds",
+            headers=headers,
+            json_data=refund_payload,
+        )
+
+    async def cancel_payment(self, payment_id: str) -> Dict[str, Any]:
+        """Отмена платежа через YooKassa API."""
+        if not self.validate_config():
+            raise PaymentGatewayConfigError("YooKassa gateway not configured")
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "Idempotence-Key": f"cancel_{payment_id}_{uuid.uuid4().hex[:8]}",
+        }
+
+        return await self._request(
+            "POST",
+            f"{self.base_url}/payments/{payment_id}/cancel",
+            headers=headers,
+        )
+
 
 gateway = YooKassaGateway()
 create_payment = gateway.create_payment
 verify_signature = gateway.verify_signature
 handle_yookassa_webhook = gateway.handle_webhook
+refund_payment = gateway.refund_payment
+cancel_payment = gateway.cancel_payment

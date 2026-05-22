@@ -6,38 +6,56 @@ import uuid
 from app.payment_gateways.yookassa import (
     create_payment as yookassa_create,
     handle_yookassa_webhook,
+    refund_payment as yookassa_refund,
+    cancel_payment as yookassa_cancel,
 )
 from app.payment_gateways.tinkoff import (
     create_payment as tinkoff_create,
     handle_tinkoff_webhook,
+    refund_payment as tinkoff_refund,
+    cancel_payment as tinkoff_cancel,
 )
 from app.payment_gateways.cloudpayments import (
     create_payment as cloudpayments_create,
     handle_cloudpayments_webhook,
+    refund_payment as cloudpayments_refund,
+    cancel_payment as cloudpayments_cancel,
 )
 from app.payment_gateways.unitpay import (
     create_payment as unitpay_create,
     handle_unitpay_webhook,
+    refund_payment as unitpay_refund,
+    cancel_payment as unitpay_cancel,
 )
 from app.payment_gateways.robokassa import (
     create_payment as robokassa_create,
     handle_robokassa_webhook,
+    refund_payment as robokassa_refund,
+    cancel_payment as robokassa_cancel,
 )
 from app.payment_gateways.sbp import (
     create_payment as sbp_create,
     handle_sbp_webhook,
+    refund_payment as sbp_refund,
+    cancel_payment as sbp_cancel,
 )
 from app.payment_gateways.rustore import (
     create_payment as rustore_create,
     handle_rustore_webhook,
+    refund_payment as rustore_refund,
+    cancel_payment as rustore_cancel,
 )
 from app.payment_gateways.apple_pay import (
     create_payment as apple_pay_create,
     handle_apple_pay_webhook,
+    refund_payment as apple_pay_refund,
+    cancel_payment as apple_pay_cancel,
 )
 from app.payment_gateways.google_pay import (
     create_payment as google_pay_create,
     handle_google_pay_webhook,
+    refund_payment as google_pay_refund,
+    cancel_payment as google_pay_cancel,
 )
 
 
@@ -67,49 +85,67 @@ GATEWAY_CONFIGS: Dict[str, Dict[str, Any]] = {
     "yookassa": {
         "name": "yookassa",
         "create_func": yookassa_create,
+        "refund_func": yookassa_refund,
+        "cancel_func": yookassa_cancel,
         "payment_id_field": "id",
         "payment_url_field": "confirmation.confirmation_url",
     },
     "tinkoff": {
         "name": "tinkoff",
         "create_func": tinkoff_create,
+        "refund_func": tinkoff_refund,
+        "cancel_func": tinkoff_cancel,
         "payment_id_field": "payment_id",
         "payment_url_field": "payment_url",
     },
     "cloudpayments": {
         "name": "cloudpayments",
         "create_func": cloudpayments_create,
+        "refund_func": cloudpayments_refund,
+        "cancel_func": cloudpayments_cancel,
         "payment_id_field": "transaction_id",
     },
     "unitpay": {
         "name": "unitpay",
         "create_func": unitpay_create,
+        "refund_func": unitpay_refund,
+        "cancel_func": unitpay_cancel,
         "payment_id_field": "payment_id",
     },
     "robokassa": {
         "name": "robokassa",
         "create_func": robokassa_create,
+        "refund_func": robokassa_refund,
+        "cancel_func": robokassa_cancel,
         "payment_id_field": "invoice_id",
     },
     "sbp": {
         "name": "sbp",
         "create_func": sbp_create,
+        "refund_func": sbp_refund,
+        "cancel_func": sbp_cancel,
         "payment_id_field": "paymentId",
         "payment_url_field": "payload",
     },
     "rustore": {
         "name": "rustore",
         "create_func": rustore_create,
+        "refund_func": rustore_refund,
+        "cancel_func": rustore_cancel,
         "payment_id_field": "orderId",
     },
     "apple_pay": {
         "name": "apple_pay",
         "create_func": apple_pay_create,
+        "refund_func": apple_pay_refund,
+        "cancel_func": apple_pay_cancel,
         "payment_id_field": "payment_id",
     },
     "google_pay": {
         "name": "google_pay",
         "create_func": google_pay_create,
+        "refund_func": google_pay_refund,
+        "cancel_func": google_pay_cancel,
         "payment_id_field": "payment_id",
     },
 }

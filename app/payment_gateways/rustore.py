@@ -599,6 +599,35 @@ class RuStoreGateway(BasePaymentGateway):
 
         return result
 
+    async def refund_payment(
+        self, payment_id: str, amount: Optional[float] = None, reason: str = ""
+    ) -> Dict[str, Any]:
+        """Возврат платежа через RuStore API."""
+        if not self.validate_config():
+            raise PaymentGatewayConfigError("RuStore gateway not configured")
+
+        payload: Dict[str, Any] = {}
+        if amount:
+            payload["amount"] = amount
+        if reason:
+            payload["reason"] = reason[:250]
+
+        return await self._authenticated_request(
+            "POST",
+            f"/applications/{self.console_application_id}/invoices/{payment_id}/refund",
+            json_data=payload if payload else None,
+        )
+
+    async def cancel_payment(self, payment_id: str) -> Dict[str, Any]:
+        """Отмена платежа через RuStore API."""
+        if not self.validate_config():
+            raise PaymentGatewayConfigError("RuStore gateway not configured")
+
+        return await self._authenticated_request(
+            "POST",
+            f"/applications/{self.console_application_id}/invoices/{payment_id}/cancel",
+        )
+
 
 # Глобальный экземпляр gateway
 gateway = RuStoreGateway()
@@ -616,3 +645,5 @@ get_user_subscriptions = gateway.get_user_subscriptions
 cancel_subscription = gateway.cancel_subscription
 verify_webhook_signature = gateway.verify_webhook_signature
 handle_rustore_webhook = gateway.handle_webhook
+refund_payment = gateway.refund_payment
+cancel_payment = gateway.cancel_payment

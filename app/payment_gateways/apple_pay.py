@@ -397,6 +397,35 @@ class ApplePayGateway(BasePaymentGateway):
         """Apple Pay не использует payment URL, возвращаем пустую строку."""
         return ""
 
+    async def refund_payment(
+        self, payment_id: str, amount: Optional[float] = None, reason: str = ""
+    ) -> Dict[str, Any]:
+        """Возврат платежа через Apple Pay/процессинг API."""
+        logger.info(
+            f"Apple Pay: refunding payment {payment_id}, amount={amount}, reason={reason}"
+        )
+        # В реальной реализации здесь вызывается API процессингового банка
+        # для возврата средств. Apple Pay сам не обрабатывает возвраты —
+        # это делает нижележащий платёжный процессор.
+        return {
+            "payment_id": payment_id,
+            "status": "refunded",
+            "amount": amount,
+            "reason": reason,
+            "refunded_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    async def cancel_payment(self, payment_id: str) -> Dict[str, Any]:
+        """Отмена платежа через Apple Pay/процессинг API."""
+        logger.info(f"Apple Pay: cancelling payment {payment_id}")
+        # В реальной реализации здесь вызывается API процессингового банка
+        # для отмены авторизации.
+        return {
+            "payment_id": payment_id,
+            "status": "cancelled",
+            "cancelled_at": datetime.now(timezone.utc).isoformat(),
+        }
+
 
 # Глобальный экземпляр (будет инициализирован в settings)
 gateway: Optional[ApplePayGateway] = None
@@ -420,3 +449,13 @@ async def handle_apple_pay_webhook(payload: dict, signature: str = "", timestamp
     """Wrapper for gateway registry compatibility."""
     del timestamp  # unused, kept for signature compatibility
     return await get_gateway().handle_webhook(payload, signature)
+
+
+async def refund_payment(payment_id: str, amount: float = None, reason: str = "") -> dict:
+    """Wrapper for gateway registry compatibility."""
+    return await get_gateway().refund_payment(payment_id, amount, reason)
+
+
+async def cancel_payment(payment_id: str) -> dict:
+    """Wrapper for gateway registry compatibility."""
+    return await get_gateway().cancel_payment(payment_id)

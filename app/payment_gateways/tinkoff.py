@@ -1,8 +1,9 @@
 """Интеграция с платёжной системой Tinkoff."""
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from app.payment_gateways.base import BasePaymentGateway
+from app.payment_gateways.exceptions import PaymentGatewayConfigError
 from app.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -56,8 +57,52 @@ class TinkoffGateway(BasePaymentGateway):
             logger.info(f"Ignored Tinkoff event: {event}")
             return {"status": "ignored", "message": "Event not recognized"}
 
+    async def refund_payment(
+        self, payment_id: str, amount: Optional[float] = None, reason: str = ""
+    ) -> Dict[str, Any]:
+        """Возврат платежа через Tinkoff API."""
+        if not self.validate_config():
+            raise PaymentGatewayConfigError("Tinkoff gateway not configured")
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+
+        refund_payload: Dict[str, Any] = {
+            "TerminalKey": self.api_key,
+            "PaymentId": payment_id,
+            "Amount": int((amount or 0) * 100),  # Tinkoff uses kopecks
+            "Description": reason[:250] if reason else "Refund",
+        }
+
+        return await self._request(
+            "POST", f"{self.base_url}/Refund", headers=headers, json_data=refund_payload
+        )
+
+    async def cancel_payment(self, payment_id: str) -> Dict[str, Any]:
+        """Отмена платежа через Tinkoff API."""
+        if not self.validate_config():
+            raise PaymentGatewayConfigError("Tinkoff gateway not configured")
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+
+        cancel_payload = {
+            "TerminalKey": self.api_key,
+            "PaymentId": payment_id,
+        }
+
+        return await self._request(
+            "POST", f"{self.base_url}/Cancel", headers=headers, json_data=cancel_payload
+        )
+
 
 gateway = TinkoffGateway()
 create_payment = gateway.create_payment
 verify_signature = gateway.verify_signature
 handle_tinkoff_webhook = gateway.handle_webhook
+refund_payment = gateway.refund_payment
+cancel_payment = gateway.cancel_payment
