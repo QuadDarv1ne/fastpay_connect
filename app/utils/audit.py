@@ -31,6 +31,7 @@ def log_audit_action(
         ip_address=ip_address,
     )
     db.add(entry)
+    db.flush()
     db.commit()
     logger.info(f"Audit: {username} performed {action} on {resource_type}/{resource_id}")
     return entry

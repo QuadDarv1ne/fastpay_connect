@@ -357,7 +357,8 @@ async def health_check(request: Request):
     try:
         with engine.connect() as conn:
             conn.execute(Base.metadata.tables["payments"].select().limit(1))
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Health check database connection failed: {e}")
         db_status = "error"
 
     response_time_ms = round((time.time() - start_time) * 1000, 2)
@@ -386,7 +387,8 @@ async def readiness_check():
                 "configuration": "ok",
             },
         }
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Readiness check failed: {e}")
         return {
             "status": "not_ready",
             "checks": {

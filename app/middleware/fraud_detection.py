@@ -76,8 +76,8 @@ class FraudDetector:
             )
             self._redis_client.ping()
             logger.info("Fraud detection: Redis backend connected")
-        except Exception:
-            logger.debug("Fraud detection: using in-memory backend")
+        except Exception as e:
+            logger.debug(f"Fraud detection: using in-memory backend (Redis error: {e})")
             self._redis_client = None
 
     def _get_client_ip(self, request: Request) -> str:
@@ -119,8 +119,8 @@ class FraudDetector:
                 if count > self.config.max_requests_per_minute:
                     return f"Rate limit exceeded: {count} requests/minute"
                 return None
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Fraud detection velocity check Redis error: {e}")
 
         # In-memory fallback
         timestamps = self._request_counts[fingerprint]
@@ -148,8 +148,8 @@ class FraudDetector:
                 if count > self.config.max_payments_per_hour:
                     return f"Too many payments: {count}/hour"
                 return None
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Fraud detection payment velocity check Redis error: {e}")
 
         # In-memory
         timestamps = self._payment_counts[fingerprint]
@@ -187,8 +187,8 @@ class FraudDetector:
                 if total > self.config.max_daily_amount_per_ip:
                     return f"Daily amount limit exceeded: {total}"
                 return None
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Fraud detection daily amount check Redis error: {e}")
 
         return None
 
@@ -215,8 +215,8 @@ class FraudDetector:
                         str(block_until),
                     )
                 return
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Fraud detection record_failed_attempt Redis error: {e}")
 
         # In-memory
         timestamps = self._failed_counts[fingerprint]
@@ -235,8 +235,8 @@ class FraudDetector:
                 if blocked:
                     return f"IP blocked for {self.config.block_duration_minutes} minutes due to suspicious activity"
                 return None
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Fraud detection check_blocked Redis error: {e}")
 
         # In-memory
         block_until = self._blocked_ips.get(fingerprint)
@@ -326,8 +326,8 @@ class FraudDetectionMiddleware(BaseHTTPMiddleware):
             try:
                 body = await request.json()
                 amount = body.get("amount")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Fraud detection: could not parse request body: {e}")
 
             violation = fraud_detector.record_payment(fingerprint, amount)
             if violation:
