@@ -1,16 +1,16 @@
 import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import AsyncGenerator
 import os
 
 from fastapi import FastAPI, Request, HTTPException, status
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy import text
 
 import logging
 
@@ -58,7 +58,7 @@ STATIC_DIR = BASE_DIR / "static"
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI):
     """Lifespan context manager с graceful shutdown."""
     logger.info("Application startup initiated")
 
@@ -131,8 +131,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
 )
 
 app.add_middleware(PrometheusMiddleware)
@@ -166,8 +166,9 @@ from app.middleware.fraud_detection import FraudDetectionMiddleware
 app.add_middleware(FraudDetectionMiddleware)
 logger.info("Fraud detection middleware enabled")
 
-# TrustedHostMiddleware отключен в тестах
-if not DISABLE_RATE_LIMITING and settings.allowed_hosts and "*" not in settings.allowed_hosts:
+# TrustedHostMiddleware
+DISABLE_TRUSTED_HOST_CHECKS = os.getenv("DISABLE_TRUSTED_HOST_CHECKS", "false").lower() == "true"
+if not DISABLE_TRUSTED_HOST_CHECKS and settings.allowed_hosts and "*" not in settings.allowed_hosts:
     app.add_middleware(
         TrustedHostMiddleware,
         allowed_hosts=settings.allowed_hosts,
@@ -301,7 +302,6 @@ async def celery_health_check():
 @app.get("/manifest.json", tags=["PWA"])
 async def get_manifest():
     """Отдача manifest.json для PWA."""
-    from fastapi.responses import FileResponse
     manifest_path = STATIC_DIR / "manifest.json"
     if manifest_path.exists():
         return FileResponse(str(manifest_path), media_type="application/manifest+json")
@@ -311,7 +311,6 @@ async def get_manifest():
 @app.get("/service-worker.js", tags=["PWA"])
 async def get_service_worker():
     """Отдача service-worker.js для PWA."""
-    from fastapi.responses import FileResponse
     sw_path = STATIC_DIR / "service-worker.js"
     if sw_path.exists():
         return FileResponse(str(sw_path), media_type="application/javascript")
@@ -348,7 +347,6 @@ app.add_route("/metrics", MetricsEndpoint.metrics)
 @limiter.limit("60/minute")
 async def health_check(request: Request):
     """Root-level health check endpoint."""
-    from app.database import engine, Base
     import time
 
     start_time = time.time()
@@ -356,7 +354,7 @@ async def health_check(request: Request):
 
     try:
         with engine.connect() as conn:
-            conn.execute(Base.metadata.tables["payments"].select().limit(1))
+            conn.execute(text("SELECT 1"))
     except Exception as e:
         logger.warning(f"Health check database connection failed: {e}")
         db_status = "error"
@@ -375,11 +373,9 @@ async def health_check(request: Request):
 @app.get("/ready", tags=["Health"])
 async def readiness_check():
     """Root-level readiness check endpoint."""
-    from app.database import engine, Base
-
     try:
         with engine.connect() as conn:
-            conn.execute(Base.metadata.tables["payments"].select().limit(1))
+            conn.execute(text("SELECT 1"))
         return {
             "status": "ready",
             "checks": {
@@ -425,7 +421,15 @@ async def payment_service_error_handler(request: Request, exc: PaymentServiceErr
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
     """Обработчик непредвиденных ошибок."""
-    logger.exception(f"Unhandled error: {exc}")
+    # Don't log expected client disconnects or cancellations at error level
+    if isinstance(exc, (asyncio.CancelledError, ConnectionError)):
+        logger.debug(f"Client disconnect: {request.url.path}")
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"error": "Service unavailable"},
+        )
+
+    logger.exception(f"Unhandled error at {request.url.path} [{request.method}]: {exc}")
 
     accept_header = request.headers.get("accept", "")
     is_api_request = (
@@ -433,6 +437,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
         request.url.path.startswith("/payments") or
         request.url.path.startswith("/webhooks") or
         request.url.path.startswith("/admin") or
+        request.url.path.startswith("/graphql") or
         "application/json" in accept_header
     )
 
