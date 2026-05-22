@@ -450,4 +450,5 @@ async def create_payment(amount: float, description: str, order_id: str) -> dict
 
 async def handle_google_pay_webhook(payload: dict, signature: str = "", timestamp: str = "") -> dict:
     """Wrapper for gateway registry compatibility."""
-    return await get_gateway().handle_webhook(payload, signature, timestamp)
+    del timestamp  # unused, kept for signature compatibility
+    return await get_gateway().handle_webhook(payload, signature)

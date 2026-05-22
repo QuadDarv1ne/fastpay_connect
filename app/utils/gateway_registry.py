@@ -110,7 +110,7 @@ GATEWAY_CONFIGS: Dict[str, Dict[str, Any]] = {
     "google_pay": {
         "name": "google_pay",
         "create_func": google_pay_create,
-        "payment_id_field": "google_pay_transaction_id",
+        "payment_id_field": "payment_id",
     },
 }
 

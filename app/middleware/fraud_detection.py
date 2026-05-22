@@ -256,11 +256,6 @@ class FraudDetector:
         if blocked:
             return blocked
 
-        # Check user agent
-        ua_violation = _check_ua_global()
-        if ua_violation:
-            return ua_violation
-
         # Check velocity
         velocity = self._check_velocity(fingerprint)
         if velocity:
@@ -277,11 +272,6 @@ class FraudDetector:
             return amount_violation
 
         return None
-
-
-def _check_ua_global() -> Optional[str]:
-    """Placeholder — actual check is done per-request in middleware."""
-    return None
 
 
 # Global instance
