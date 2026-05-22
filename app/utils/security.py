@@ -19,16 +19,21 @@ from app.utils.token_blacklist import is_token_blacklisted
 
 logger = logging.getLogger(__name__)
 
-# Конфигурация
-if not settings.secret_key:
-    raise RuntimeError(
-        "SECRET_KEY environment variable is not set. "
-        "Set a strong secret key before starting the application."
-    )
-SECRET_KEY = settings.secret_key
+# Конфигурация — ленивая инициализация для предотвращения crash при импорте
+SECRET_KEY: Optional[str] = settings.secret_key
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 REFRESH_TOKEN_EXPIRE_DAYS = 7
+
+
+def _ensure_secret_key() -> str:
+    """Проверка наличия SECRET_KEY при использовании, а не при импорте."""
+    if not SECRET_KEY:
+        raise RuntimeError(
+            "SECRET_KEY environment variable is not set. "
+            "Set a strong secret key before starting the application."
+        )
+    return SECRET_KEY
 
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
@@ -51,15 +56,16 @@ def create_access_token(
     expires_delta: Optional[timedelta] = None,
 ) -> str:
     """Создание access токена."""
+    secret = _ensure_secret_key()
     to_encode = data.copy()
-    
+
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    
+
     to_encode.update({"exp": expire, "type": "access"})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, secret, algorithm=ALGORITHM)
     return encoded_jwt
 
 
@@ -68,22 +74,24 @@ def create_refresh_token(
     expires_delta: Optional[timedelta] = None,
 ) -> str:
     """Создание refresh токена."""
+    secret = _ensure_secret_key()
     to_encode = data.copy()
-    
+
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
         expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    
+
     to_encode.update({"exp": expire, "type": "refresh"})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, secret, algorithm=ALGORITHM)
     return encoded_jwt
 
 
 def decode_token(token: str, expected_type: str = "access") -> Optional[TokenData]:
     """Декодирование токена."""
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        secret = _ensure_secret_key()
+        payload = jwt.decode(token, secret, algorithms=[ALGORITHM])
         
         # Проверка типа токена
         token_type = payload.get("type")

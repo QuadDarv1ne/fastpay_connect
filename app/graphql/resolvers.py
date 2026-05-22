@@ -116,19 +116,20 @@ def tenant_model_to_graphql(tenant: TenantModel) -> TenantType:
 def webhook_model_to_graphql(webhook: WebhookEventModel) -> WebhookEventType:
     """Конвертация модели WebhookEvent в GraphQL тип."""
     from app.graphql.schema import WebhookEvent, WebhookEventType, WebhookEventStatus
-    
+
+    # Map model fields to GraphQL type fields based on actual model schema
     return WebhookEvent(
         id=webhook.id,
-        event_type=WebhookEventType(webhook.event_type),
-        event_status=WebhookEventStatus(webhook.event_status),
-        payment_id=webhook.payment_id,
-        tenant_id=webhook.tenant_id,
-        payload=webhook.payload,
-        response=webhook.response,
-        response_status=webhook.response_status,
+        event_type=WebhookEventType(webhook.gateway) if hasattr(WebhookEventType, webhook.gateway) else WebhookEventType.UNKNOWN,
+        event_status=WebhookEventStatus(webhook.status.value if hasattr(webhook.status, 'value') else webhook.status),
+        payment_id=webhook.order_id,  # order_id serves as payment reference
+        tenant_id=None,  # WebhookEvent model does not have tenant_id
+        payload=webhook.payload or {},
+        response=webhook.last_error,  # last_error serves as response info
+        response_status=webhook.status.value if hasattr(webhook.status, 'value') else webhook.status,
         retry_count=webhook.retry_count,
         max_retries=webhook.max_retries,
-        processed=webhook.processed,
+        processed=webhook.processed_at is not None,
         created_at=webhook.created_at,
         updated_at=webhook.updated_at,
         next_retry_at=webhook.next_retry_at,
@@ -465,7 +466,10 @@ class TenantQuery:
             query = db.query(TenantModel)
 
             if is_active is not None:
-                query = query.filter(TenantModel.is_active == is_active)
+                if is_active:
+                    query = query.filter(TenantModel.status == "active")
+                else:
+                    query = query.filter(TenantModel.status != "active")
 
             if search:
                 # Escape special LIKE characters to prevent SQL injection
@@ -506,7 +510,13 @@ class WebhookQuery:
         with get_db() as db:
             query = db.query(WebhookEventModel).filter(WebhookEventModel.id == event_id)
             if not ctx.get("is_admin"):
-                query = query.filter(WebhookEventModel.tenant_id == ctx.get("user_id"))
+                # Non-admin users can only see their own tenant's webhooks
+                tenant_payments = db.query(PaymentModel).filter(PaymentModel.tenant_id == ctx.get("user_id")).all()
+                order_ids = [p.order_id for p in tenant_payments]
+                if order_ids:
+                    query = query.filter(WebhookEventModel.order_id.in_(order_ids))
+                else:
+                    return None
             event = query.first()
 
         if not event:
@@ -536,21 +546,35 @@ class WebhookQuery:
             query = db.query(WebhookEventModel)
 
             if not ctx.get("is_admin"):
-                query = query.filter(WebhookEventModel.tenant_id == ctx.get("user_id"))
+                # Non-admin users can only see their own tenant's webhooks
+                # Filter by order_id matching tenant's payments
+                tenant_payments = db.query(PaymentModel).filter(PaymentModel.tenant_id == ctx.get("user_id")).all()
+                order_ids = [p.order_id for p in tenant_payments]
+                if order_ids:
+                    query = query.filter(WebhookEventModel.order_id.in_(order_ids))
+                else:
+                    # No payments for this tenant, return empty
+                    return WebhookEventTypeConnection(items=[], total=0, page=page, page_size=0, pages=0)
             elif tenant_id:
-                query = query.filter(WebhookEventModel.tenant_id == tenant_id)
+                # Admin filtering by tenant - same approach
+                tenant_payments = db.query(PaymentModel).filter(PaymentModel.tenant_id == tenant_id).all()
+                order_ids = [p.order_id for p in tenant_payments]
+                if order_ids:
+                    query = query.filter(WebhookEventModel.order_id.in_(order_ids))
+                else:
+                    return WebhookEventTypeConnection(items=[], total=0, page=page, page_size=0, pages=0)
 
             if event_type:
-                query = query.filter(WebhookEventModel.event_type == event_type)
+                query = query.filter(WebhookEventModel.gateway == event_type)
 
             if event_status:
-                query = query.filter(WebhookEventModel.event_status == event_status)
+                query = query.filter(WebhookEventModel.status == event_status)
 
             if processed is not None:
-                query = query.filter(WebhookEventModel.processed == processed)
-
-            if tenant_id:
-                query = query.filter(WebhookEventModel.tenant_id == tenant_id)
+                if processed:
+                    query = query.filter(WebhookEventModel.processed_at.isnot(None))
+                else:
+                    query = query.filter(WebhookEventModel.processed_at.is_(None))
 
             total = query.count()
             offset = (page - 1) * page_size

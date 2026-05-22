@@ -260,18 +260,11 @@ async def refund_payment(
             detail=f"Cannot refund payment in status: {status_val}",
         )
 
-    payment = repository.update_status(
-        order_id=refund_request.order_id,
-        payment_id=refund_request.payment_id,
-        status=PaymentStatus.REFUNDED,
-        metadata={"refund_reason": refund_request.reason},
-    )
-
-    if not payment:
-        raise HTTPException(status_code=404, detail="Payment not found")
-
-    # Call the actual payment gateway's refund API
+    # Call the actual payment gateway's refund API FIRST
     gateway_config = GATEWAY_CONFIGS.get(payment.payment_gateway)
+    gateway_success = False
+    gateway_error = None
+
     if gateway_config and gateway_config.get("refund_func"):
         try:
             refund_func = gateway_config["refund_func"]
@@ -281,21 +274,34 @@ async def refund_payment(
                 amount=payment.amount,
                 reason=refund_request.reason or "Refund",
             )
+            gateway_success = True
             logger.info(
-                f"Gateway-level refund initiated for payment {payment.order_id} "
+                f"Gateway-level refund successful for payment {payment.order_id} "
                 f"via '{payment.payment_gateway}': {result}"
             )
         except Exception as e:
+            gateway_error = str(e)
             logger.error(
                 f"Failed to initiate gateway-level refund for payment {payment.order_id} "
-                f"via '{payment.payment_gateway}': {e}. "
-                f"Payment marked as refunded in DB — manual reconciliation required."
+                f"via '{payment.payment_gateway}': {e}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Gateway refund failed: {gateway_error}",
             )
     else:
         logger.warning(
             f"Refund function not configured for gateway '{payment.payment_gateway}'. "
-            f"Payment {payment.order_id} marked as refunded in DB only."
+            f"Proceeding with DB-only refund for payment {payment.order_id}."
         )
+
+    # Only update DB after gateway call succeeds
+    payment = repository.update_status(
+        order_id=refund_request.order_id,
+        payment_id=refund_request.payment_id,
+        status=PaymentStatus.REFUNDED,
+        metadata={"refund_reason": refund_request.reason},
+    )
 
     # Audit log
     log_audit_action(
@@ -350,38 +356,44 @@ async def cancel_payment(
             detail=f"Cannot cancel payment in status: {status_val}",
         )
 
+    # Call the actual payment gateway's cancel API FIRST
+    gateway_config = GATEWAY_CONFIGS.get(payment.payment_gateway)
+    gateway_success = False
+    gateway_error = None
+
+    if gateway_config and gateway_config.get("cancel_func"):
+        try:
+            cancel_func = gateway_config["cancel_func"]
+            gateway_payment_id = payment.payment_id or payment.order_id
+            result = await cancel_func(payment_id=gateway_payment_id)
+            gateway_success = True
+            logger.info(
+                f"Gateway-level cancellation successful for payment {payment.order_id} "
+                f"via '{payment.payment_gateway}': {result}"
+            )
+        except Exception as e:
+            gateway_error = str(e)
+            logger.error(
+                f"Failed to initiate gateway-level cancellation for payment {payment.order_id} "
+                f"via '{payment.payment_gateway}': {e}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Gateway cancellation failed: {gateway_error}",
+            )
+    else:
+        logger.warning(
+            f"Cancel function not configured for gateway '{payment.payment_gateway}'. "
+            f"Proceeding with DB-only cancellation for payment {payment.order_id}."
+        )
+
+    # Only update DB after gateway call succeeds
     payment = repository.update_status(
         order_id=cancel_request.order_id,
         payment_id=cancel_request.payment_id,
         status=PaymentStatus.CANCELLED,
         metadata={"cancel_reason": cancel_request.reason},
     )
-
-    if not payment:
-        raise HTTPException(status_code=404, detail="Payment not found")
-
-    # Call the actual payment gateway's cancel API
-    gateway_config = GATEWAY_CONFIGS.get(payment.payment_gateway)
-    if gateway_config and gateway_config.get("cancel_func"):
-        try:
-            cancel_func = gateway_config["cancel_func"]
-            gateway_payment_id = payment.payment_id or payment.order_id
-            result = await cancel_func(payment_id=gateway_payment_id)
-            logger.info(
-                f"Gateway-level cancellation initiated for payment {payment.order_id} "
-                f"via '{payment.payment_gateway}': {result}"
-            )
-        except Exception as e:
-            logger.error(
-                f"Failed to initiate gateway-level cancellation for payment {payment.order_id} "
-                f"via '{payment.payment_gateway}': {e}. "
-                f"Payment marked as cancelled in DB — manual reconciliation required."
-            )
-    else:
-        logger.warning(
-            f"Cancel function not configured for gateway '{payment.payment_gateway}'. "
-            f"Payment {payment.order_id} marked as cancelled in DB only."
-        )
 
     # Audit log
     log_audit_action(
