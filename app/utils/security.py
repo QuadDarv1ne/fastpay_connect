@@ -131,8 +131,12 @@ def authenticate_user(
 def update_last_login(db: Session, user: User) -> User:
     """Обновление времени последнего входа."""
     user.last_login = datetime.now(timezone.utc)
-    db.commit()
-    db.refresh(user)
+    try:
+        db.commit()
+        db.refresh(user)
+    except Exception as e:
+        logger.error(f"Failed to update last_login for user {user.id}: {e}")
+        db.rollback()
     return user
 
 

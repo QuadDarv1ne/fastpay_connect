@@ -88,9 +88,9 @@ async def process_webhook(
     try:
         result = await config.handler(payload, auth_value)
     except Exception as e:
-        logger.error(f"Webhook handler error: {e}")
+        logger.error(f"Webhook handler error: {e}", exc_info=True)
         raise HTTPException(
-            status_code=400, detail=f"Webhook processing failed: {e}"
+            status_code=400, detail="Webhook processing failed"
         ) from e
 
     order_id: Optional[str] = None

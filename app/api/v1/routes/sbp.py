@@ -1,5 +1,6 @@
 """SBP (Система Быстрых Платежей) API endpoints."""
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
 from typing import Dict, Any, List, Optional
 from datetime import datetime
@@ -17,6 +18,8 @@ from app.schemas.sbp import (
     SBPWebhookResponse,
     SBPStatusEnum,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sbp", tags=["SBP"])
 
@@ -60,7 +63,8 @@ async def create_sbp_payment(
     except PaymentGatewayError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.error(f"create_sbp_payment failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/payment/{payment_id}", response_model=SBPPaymentInfoResponse)
@@ -92,7 +96,8 @@ async def get_sbp_payment(
     except PaymentGatewayError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.error(f"get_sbp_payment failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/payment/order/{order_id}", response_model=SBPPaymentInfoResponse)
@@ -124,7 +129,8 @@ async def get_sbp_payment_by_order(
     except PaymentGatewayError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.error(f"get_sbp_payment_by_order failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/refund", response_model=SBPRefundResponse)
@@ -157,7 +163,8 @@ async def refund_sbp_payment(
     except PaymentGatewayError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.error(f"refund_sbp_payment failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/cancel/{payment_id}")
@@ -184,7 +191,8 @@ async def cancel_sbp_payment(
     except PaymentGatewayError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.error(f"cancel_sbp_payment failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/banks", response_model=SBPBanksResponse)
@@ -243,8 +251,8 @@ async def handle_sbp_webhook(
 
     try:
         payload = await request.json()
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
 
     try:
         result = await gateway.handle_webhook(
@@ -264,8 +272,11 @@ async def handle_sbp_webhook(
             action=result.get("action"),
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.error(f"handle_sbp_webhook failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/qr/{payment_id}")

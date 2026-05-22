@@ -1,5 +1,6 @@
 """Google Pay API endpoints."""
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
@@ -19,6 +20,8 @@ from app.schemas.google_pay import (
     GooglePayIsReadyToPayResponse,
     GooglePayStatusEnum,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/google-pay", tags=["Google Pay"])
 
@@ -64,7 +67,8 @@ async def create_google_pay_payment(
     except PaymentGatewayError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.error(f"create_google_pay_payment failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post(
@@ -103,7 +107,8 @@ async def process_google_pay_token(
     except PaymentGatewayError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.error(f"process_google_pay_token failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get(
@@ -164,7 +169,8 @@ async def refund_google_pay_payment(
     except PaymentGatewayError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.error(f"refund_google_pay_payment failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post(
@@ -195,7 +201,8 @@ async def validate_google_pay_merchant(
     except PaymentGatewayError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.error(f"validate_google_pay_merchant failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post(
@@ -227,7 +234,8 @@ async def google_pay_webhook(
     except PaymentGatewayError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.error(f"google_pay_webhook failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get(
