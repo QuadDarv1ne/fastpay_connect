@@ -1,0 +1,68 @@
+{
+    "payment": {
+        "success": "Платёж успешно создан",
+        "not_found": "Платёж не найден",
+        "already_exists": "Платёж уже существует",
+        "invalid_amount": "Неверная сумма платежа",
+        "invalid_currency": "Неверная валюта",
+        "gateway_error": "Ошибка платёжного шлюза",
+        "timeout": "Таймаут платёжного шлюза",
+        "refund_success": "Возврат успешно обработан",
+        "cancel_success": "Платёж успешно отменён",
+        "status_updated": "Статус платежа обновлён"
+    },
+    "subscription": {
+        "created": "Подписка успешно создана",
+        "cancelled": "Подписка отменена",
+        "paused": "Подписка приостановлена",
+        "resumed": "Подписка возобновлена",
+        "not_found": "Подписка не найдена",
+        "already_cancelled": "Подписка уже отменена",
+        "already_paused": "Подписка уже приостановлена",
+        "not_paused": "Подписка не приостановлена",
+        "trial_period": "Пробный период: {days} дней"
+    },
+    "auth": {
+        "login_success": "Успешный вход",
+        "logout_success": "Успешный выход",
+        "invalid_credentials": "Неверные учётные данные",
+        "token_expired": "Токен истёк",
+        "token_blacklisted": "Токен деактивирован",
+        "password_changed": "Пароль успешно изменён",
+        "mfa_enabled": "Двухфакторная аутентификация включена",
+        "mfa_disabled": "Двухфакторная аутентификация отключена",
+        "mfa_invalid_code": "Неверный код двухфакторной аутентификации"
+    },
+    "admin": {
+        "action_logged": "Действие записано в журнал аудита",
+        "statistics_updated": "Статистика обновлена",
+        "user_not_found": "Пользователь не найден",
+        "permission_denied": "Доступ запрещён"
+    },
+    "errors": {
+        "internal_error": "Внутренняя ошибка сервера",
+        "service_unavailable": "Сервис временно недоступен",
+        "rate_limit_exceeded": "Превышен лимит запросов",
+        "validation_error": "Ошибка валидации",
+        "not_found": "Ресурс не найден",
+        "unauthorized": "Требуется авторизация",
+        "forbidden": "Доступ запрещён",
+        "bad_request": "Неверный запрос"
+    },
+    "webhook": {
+        "processed": "Вебхук успешно обработан",
+        "invalid_signature": "Неверная подпись вебхука",
+        "unknown_gateway": "Неизвестный платёжный шлюз",
+        "processing_error": "Ошибка обработки вебхука"
+    },
+    "common": {
+        "ok": "Успешно",
+        "error": "Ошибка",
+        "pending": "В обработке",
+        "processing": "Обработка",
+        "completed": "Завершено",
+        "failed": "Ошибка",
+        "cancelled": "Отменено",
+        "refunded": "Возвращено"
+    }
+}

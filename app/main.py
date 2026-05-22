@@ -156,6 +156,16 @@ from app.middleware.webhook_security import WebhookSecurityMiddleware
 app.add_middleware(WebhookSecurityMiddleware)
 logger.info("Webhook security middleware enabled")
 
+# Internationalization (i18n) Middleware
+from app.middleware.i18n import I18nMiddleware
+app.add_middleware(I18nMiddleware)
+logger.info("i18n middleware enabled")
+
+# Fraud Detection Middleware
+from app.middleware.fraud_detection import FraudDetectionMiddleware
+app.add_middleware(FraudDetectionMiddleware)
+logger.info("Fraud detection middleware enabled")
+
 # TrustedHostMiddleware отключен в тестах
 if not DISABLE_RATE_LIMITING and settings.allowed_hosts and "*" not in settings.allowed_hosts:
     app.add_middleware(
@@ -229,6 +239,14 @@ app.include_router(dashboard_router, prefix="/api/dashboard", tags=["Dashboard"]
 
 # 2FA
 app.include_router(mfa_router, prefix="/api/auth", tags=["2FA"])
+
+# Subscriptions
+from app.routes.subscription_routes import router as subscription_router
+app.include_router(subscription_router, prefix="/api", tags=["Subscriptions"])
+
+# Split Payments (Marketplace)
+from app.routes.split_payment_routes import router as split_payment_router
+app.include_router(split_payment_router, prefix="/api/payments", tags=["Split Payments"])
 
 
 @app.get("/", response_class=HTMLResponse)

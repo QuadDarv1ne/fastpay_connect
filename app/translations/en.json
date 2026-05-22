@@ -1,0 +1,68 @@
+{
+    "payment": {
+        "success": "Payment successfully created",
+        "not_found": "Payment not found",
+        "already_exists": "Payment already exists",
+        "invalid_amount": "Invalid payment amount",
+        "invalid_currency": "Invalid currency",
+        "gateway_error": "Payment gateway error",
+        "timeout": "Payment gateway timeout",
+        "refund_success": "Refund successfully processed",
+        "cancel_success": "Payment successfully cancelled",
+        "status_updated": "Payment status updated"
+    },
+    "subscription": {
+        "created": "Subscription successfully created",
+        "cancelled": "Subscription cancelled",
+        "paused": "Subscription paused",
+        "resumed": "Subscription resumed",
+        "not_found": "Subscription not found",
+        "already_cancelled": "Subscription already cancelled",
+        "already_paused": "Subscription already paused",
+        "not_paused": "Subscription is not paused",
+        "trial_period": "Trial period: {days} days"
+    },
+    "auth": {
+        "login_success": "Login successful",
+        "logout_success": "Logout successful",
+        "invalid_credentials": "Invalid credentials",
+        "token_expired": "Token expired",
+        "token_blacklisted": "Token deactivated",
+        "password_changed": "Password successfully changed",
+        "mfa_enabled": "Two-factor authentication enabled",
+        "mfa_disabled": "Two-factor authentication disabled",
+        "mfa_invalid_code": "Invalid two-factor authentication code"
+    },
+    "admin": {
+        "action_logged": "Action logged to audit journal",
+        "statistics_updated": "Statistics updated",
+        "user_not_found": "User not found",
+        "permission_denied": "Permission denied"
+    },
+    "errors": {
+        "internal_error": "Internal server error",
+        "service_unavailable": "Service temporarily unavailable",
+        "rate_limit_exceeded": "Rate limit exceeded",
+        "validation_error": "Validation error",
+        "not_found": "Resource not found",
+        "unauthorized": "Authorization required",
+        "forbidden": "Access denied",
+        "bad_request": "Bad request"
+    },
+    "webhook": {
+        "processed": "Webhook successfully processed",
+        "invalid_signature": "Invalid webhook signature",
+        "unknown_gateway": "Unknown payment gateway",
+        "processing_error": "Webhook processing error"
+    },
+    "common": {
+        "ok": "Success",
+        "error": "Error",
+        "pending": "Pending",
+        "processing": "Processing",
+        "completed": "Completed",
+        "failed": "Failed",
+        "cancelled": "Cancelled",
+        "refunded": "Refunded"
+    }
+}
