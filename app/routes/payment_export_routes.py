@@ -114,6 +114,16 @@ async def export_payments_csv(
         status=status_filter,
         tenant_id=tenant_id,
     )
+    # Enforce maximum record limit to prevent DoS / OOM
+    MAX_EXPORT_RECORDS = 100_000
+    payments_list = list(payments)
+    if len(payments_list) > MAX_EXPORT_RECORDS:
+        from fastapi import HTTPException, status
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Export exceeds maximum record limit of {MAX_EXPORT_RECORDS}. "
+                   f"Please narrow your date range or filters.",
+        )
     
     # Создаём CSV в памяти
     output = io.StringIO()

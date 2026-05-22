@@ -5,6 +5,7 @@ GraphQL resolvers для FastPay Connect.
 
 import strawberry
 from typing import List, Optional
+from strawberry.types import Info
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
 from datetime import datetime, timezone
@@ -12,6 +13,8 @@ from enum import Enum
 import base64
 import logging
 from contextlib import contextmanager
+
+from app.graphql.context import get_graphql_context
 
 logger = logging.getLogger(__name__)
 
@@ -132,15 +135,37 @@ def webhook_model_to_graphql(webhook: WebhookEventModel) -> WebhookEventType:
     )
 
 
+# Maximum page size to prevent DoS
+MAX_PAGE_SIZE = 100
+
+
+def _get_ctx(info: Info) -> dict:
+    """Extract context from Strawberry info."""
+    ctx = info.context
+    # Strawberry wraps dict context in an object, access directly
+    if isinstance(ctx, dict):
+        return ctx
+    # If it's a custom object, try to get attributes
+    return getattr(ctx, "__dict__", {}) or {}
+
+
 @strawberry.type
 class PaymentQuery:
     """Query resolver для платежей."""
 
     @strawberry.field
-    def payment(self, order_id: str) -> Optional[PaymentType]:
+    def payment(self, info: Info, order_id: str) -> Optional[PaymentType]:
         """Получить платёж по order_id."""
+        ctx = _get_ctx(info)
+        if not ctx.get("user_id"):
+            return None
+
         with get_db() as db:
-            payment = db.query(PaymentModel).filter(PaymentModel.order_id == order_id).first()
+            query = db.query(PaymentModel).filter(PaymentModel.order_id == order_id)
+            # Non-admin users can only see their own tenant's payments
+            if not ctx.get("is_admin"):
+                query = query.filter(PaymentModel.tenant_id == ctx["user_id"])
+            payment = query.first()
 
         if not payment:
             return None
@@ -148,10 +173,17 @@ class PaymentQuery:
         return payment_model_to_graphql(payment)
 
     @strawberry.field
-    def payment_by_id(self, payment_id: int) -> Optional[PaymentType]:
+    def payment_by_id(self, info: Info, payment_id: int) -> Optional[PaymentType]:
         """Получить платёж по ID."""
+        ctx = _get_ctx(info)
+        if not ctx.get("user_id"):
+            return None
+
         with get_db() as db:
-            payment = db.query(PaymentModel).filter(PaymentModel.id == payment_id).first()
+            query = db.query(PaymentModel).filter(PaymentModel.id == payment_id)
+            if not ctx.get("is_admin"):
+                query = query.filter(PaymentModel.tenant_id == ctx["user_id"])
+            payment = query.first()
 
         if not payment:
             return None
@@ -161,6 +193,7 @@ class PaymentQuery:
     @strawberry.field
     def payments(
         self,
+        info: Info,
         page: int = 1,
         page_size: int = 20,
         status: Optional[str] = None,
@@ -174,8 +207,22 @@ class PaymentQuery:
         sort_order: str = "desc",
     ) -> PaymentTypeConnection:
         """Получить список платежей с пагинацией и фильтрами."""
+        ctx = _get_ctx(info)
+        if not ctx.get("user_id"):
+            return PaymentTypeConnection(items=[], edges=[], total=0, page=page, page_size=0, pages=0, has_next=False, has_previous=False)
+
+        # Enforce page size limit
+        page_size = min(page_size, MAX_PAGE_SIZE)
+
         with get_db() as db:
             query = db.query(PaymentModel)
+
+            # Non-admin users can only see their own tenant's payments
+            if not ctx.get("is_admin"):
+                query = query.filter(PaymentModel.tenant_id == ctx.get("user_id"))
+            # Admin can filter by tenant_id if provided
+            elif tenant_id:
+                query = query.filter(PaymentModel.tenant_id == tenant_id)
 
             # Фильтры
             if status:
@@ -247,14 +294,23 @@ class PaymentQuery:
     @strawberry.field
     def payments_by_cursor(
         self,
+        info: Info,
         first: Optional[int] = None,
         after: Optional[str] = None,
         last: Optional[int] = None,
         before: Optional[str] = None,
     ) -> PaymentTypeConnection:
         """Получить платежи с cursor-based пагинацией (Relay style)."""
+        ctx = _get_ctx(info)
+        if not ctx.get("user_id"):
+            return PaymentTypeConnection(items=[], edges=[], total=0, page=1, page_size=0, pages=0, has_next=False, has_previous=False)
+
+        limit = min(first or last or 20, MAX_PAGE_SIZE)
+
         with get_db() as db:
             query = db.query(PaymentModel).order_by(PaymentModel.id.asc())
+            if not ctx.get("is_admin"):
+                query = query.filter(PaymentModel.tenant_id == ctx.get("user_id"))
 
             if after:
                 cursor_id = decode_cursor(after)
@@ -295,21 +351,32 @@ class PaymentQuery:
     @strawberry.field
     def statistics(
         self,
+        info: Info,
         gateway: Optional[str] = None,
         tenant_id: Optional[str] = None,
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
     ) -> PaymentTypeStatistics:
         """Получить расширенную статистику по платежам."""
+        ctx = _get_ctx(info)
+        if not ctx.get("user_id"):
+            return PaymentTypeStatistics(
+                total_payments=0, total_amount=0, by_status={}, by_gateway={},
+                by_currency={}, daily_revenue={}, average_payment=0,
+            )
+
         with get_db() as db:
             base_query = db.query(PaymentModel)
 
-            # Применяем фильтры
+            # Non-admin users can only see their own tenant's stats
+            if not ctx.get("is_admin"):
+                base_query = base_query.filter(PaymentModel.tenant_id == ctx.get("user_id"))
+            elif tenant_id:
+                base_query = base_query.filter(PaymentModel.tenant_id == tenant_id)
+
+            # Apply additional filters
             if gateway:
                 base_query = base_query.filter(PaymentModel.payment_gateway == gateway)
-
-            if tenant_id:
-                base_query = base_query.filter(PaymentModel.tenant_id == tenant_id)
 
             if date_from:
                 base_query = base_query.filter(PaymentModel.created_at >= date_from)
@@ -364,8 +431,12 @@ class TenantQuery:
     """Query resolver для тенантов."""
 
     @strawberry.field
-    def tenant(self, tenant_id: int) -> Optional[TenantType]:
-        """Получить тенанта по ID."""
+    def tenant(self, info: Info, tenant_id: int) -> Optional[TenantType]:
+        """Получить тенанта по ID. Admin only."""
+        ctx = _get_ctx(info)
+        if not ctx.get("is_admin"):
+            return None
+
         with get_db() as db:
             tenant = db.query(TenantModel).filter(TenantModel.id == tenant_id).first()
 
@@ -377,12 +448,19 @@ class TenantQuery:
     @strawberry.field
     def tenants(
         self,
+        info: Info,
         page: int = 1,
         page_size: int = 20,
         is_active: Optional[bool] = None,
         search: Optional[str] = None,
     ) -> TenantTypeConnection:
-        """Получить список тенантов."""
+        """Получить список тенантов. Admin only."""
+        ctx = _get_ctx(info)
+        if not ctx.get("is_admin"):
+            return TenantTypeConnection(items=[], total=0, page=page, page_size=0, pages=0)
+
+        page_size = min(page_size, MAX_PAGE_SIZE)
+
         with get_db() as db:
             query = db.query(TenantModel)
 
@@ -419,10 +497,17 @@ class WebhookQuery:
     """Query resolver для webhook событий."""
 
     @strawberry.field
-    def webhook_event(self, event_id: int) -> Optional[WebhookEventType]:
+    def webhook_event(self, info: Info, event_id: int) -> Optional[WebhookEventType]:
         """Получить webhook событие по ID."""
+        ctx = _get_ctx(info)
+        if not ctx.get("user_id"):
+            return None
+
         with get_db() as db:
-            event = db.query(WebhookEventModel).filter(WebhookEventModel.id == event_id).first()
+            query = db.query(WebhookEventModel).filter(WebhookEventModel.id == event_id)
+            if not ctx.get("is_admin"):
+                query = query.filter(WebhookEventModel.tenant_id == ctx.get("user_id"))
+            event = query.first()
 
         if not event:
             return None
@@ -432,6 +517,7 @@ class WebhookQuery:
     @strawberry.field
     def webhook_events(
         self,
+        info: Info,
         page: int = 1,
         page_size: int = 20,
         event_type: Optional[str] = None,
@@ -440,8 +526,19 @@ class WebhookQuery:
         tenant_id: Optional[int] = None,
     ) -> WebhookEventTypeConnection:
         """Получить список webhook событий."""
+        ctx = _get_ctx(info)
+        if not ctx.get("user_id"):
+            return WebhookEventTypeConnection(items=[], total=0, page=page, page_size=0, pages=0)
+
+        page_size = min(page_size, MAX_PAGE_SIZE)
+
         with get_db() as db:
             query = db.query(WebhookEventModel)
+
+            if not ctx.get("is_admin"):
+                query = query.filter(WebhookEventModel.tenant_id == ctx.get("user_id"))
+            elif tenant_id:
+                query = query.filter(WebhookEventModel.tenant_id == tenant_id)
 
             if event_type:
                 query = query.filter(WebhookEventModel.event_type == event_type)

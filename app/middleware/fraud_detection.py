@@ -82,11 +82,27 @@ class FraudDetector:
             self._redis_client = None
 
     def _get_client_ip(self, request: Request) -> str:
-        """Extract real client IP, respecting proxy headers."""
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-        return request.client.host or "unknown"
+        """Extract real client IP, respecting proxy headers only from trusted sources.
+
+        Only trust X-Forwarded-For when the immediate client is a known
+        private address (i.e. we are behind a reverse proxy). Otherwise
+        use request.client.host directly to prevent header spoofing.
+        """
+        client_host = request.client.host if request.client else "unknown"
+
+        # Only trust forwarded header when coming from a private/proxy IP
+        if client_host and (
+            client_host.startswith("10.") or
+            client_host.startswith("172.16.") or
+            client_host.startswith("192.168.") or
+            client_host.startswith("127.") or
+            client_host == "::1"
+        ):
+            forwarded = request.headers.get("X-Forwarded-For")
+            if forwarded:
+                return forwarded.split(",")[0].strip()
+
+        return client_host
 
     def _get_fingerprint(self, request: Request) -> str:
         """Generate a unique fingerprint for the request."""

@@ -33,10 +33,6 @@ from app.utils.metrics import PrometheusMiddleware, MetricsEndpoint
 from app.api.v1 import router as v1_router
 from app.api.v2 import router as v2_router
 
-# GraphQL
-from strawberry.fastapi import GraphQLRouter
-from app.graphql.resolvers import schema as graphql_schema
-
 # WebSocket
 from app.routes.websocket_routes import router as websocket_router
 
@@ -229,7 +225,15 @@ from app.api.v1.routes.sbp import router as sbp_router
 app.include_router(sbp_router, prefix="/api/v1", tags=["SBP"])
 
 # GraphQL
-graphql_router = GraphQLRouter(graphql_schema)
+from strawberry.fastapi import GraphQLRouter
+from app.graphql.resolvers import schema as graphql_schema
+from app.graphql.context import get_graphql_context
+
+
+graphql_router = GraphQLRouter(
+    graphql_schema,
+    context_getter=get_graphql_context,
+)
 app.include_router(graphql_router, prefix="/graphql", tags=["GraphQL"])
 
 # WebSocket
