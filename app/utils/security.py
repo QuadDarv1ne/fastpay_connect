@@ -15,6 +15,7 @@ from app.database import get_db
 from app.models.user import User
 from app.schemas.auth import TokenData
 from app.settings import settings
+from app.utils.token_blacklist import is_token_blacklisted
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +156,14 @@ async def get_current_user(
     
     if not token:
         raise credentials_exception
+    
+    # Check if token has been revoked
+    if is_token_blacklisted(token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     token_data = decode_token(token, expected_type="access")
     

@@ -11,7 +11,7 @@ from app.services.payment_service import PaymentService, PaymentServiceError
 
 router = APIRouter()
 
-VALID_GATEWAYS = ("yookassa", "tinkoff", "cloudpayments", "unitpay", "robokassa")
+VALID_GATEWAYS = ("yookassa", "tinkoff", "cloudpayments", "unitpay", "robokassa", "sbp", "rustore", "apple_pay", "google_pay")
 
 
 @router.post("/create", response_model=PaymentResponse)

@@ -2,9 +2,12 @@
 
 from fastapi import APIRouter, Depends, Request, HTTPException
 from typing import Dict, Any, List, Optional
+from sqlalchemy.orm import Session
 
 from app.dependencies import get_payment_repository
 from app.repositories.payment_repository import PaymentRepository
+from app.database import get_db
+from app.utils.audit import log_audit_action
 from app.middleware.rate_limiter import limiter
 from app.utils.security import get_current_user, require_any_role
 from app.models.user import User
@@ -82,6 +85,7 @@ async def refund_payment_v1(
     refund_data: Dict[str, Any],
     repository: PaymentRepository = Depends(get_payment_repository),
     current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Refund a payment (v1)."""
     order_id = refund_data.get("order_id")
@@ -114,6 +118,18 @@ async def refund_payment_v1(
     
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
+
+    # Audit log
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        username=current_user.username,
+        action="refund",
+        resource_type="payment",
+        resource_id=payment.order_id,
+        details=f"Refund reason: {reason or 'N/A'}",
+        ip_address=request.client.host if request.client else None,
+    )
     
     return {
         "status": "success",
@@ -129,6 +145,7 @@ async def cancel_payment_v1(
     cancel_data: Dict[str, Any],
     repository: PaymentRepository = Depends(get_payment_repository),
     current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Cancel a payment (v1)."""
     order_id = cancel_data.get("order_id")
@@ -161,6 +178,18 @@ async def cancel_payment_v1(
     
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
+
+    # Audit log
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        username=current_user.username,
+        action="cancel",
+        resource_type="payment",
+        resource_id=payment.order_id,
+        details=f"Cancel reason: {reason or 'N/A'}",
+        ip_address=request.client.host if request.client else None,
+    )
     
     return {
         "status": "success",

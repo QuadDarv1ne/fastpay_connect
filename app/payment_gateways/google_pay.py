@@ -440,3 +440,14 @@ def get_gateway() -> GooglePayGateway:
     if gateway is None:
         gateway = GooglePayGateway()
     return gateway
+
+
+# Module-level wrappers for gateway registry compatibility
+async def create_payment(amount: float, description: str, order_id: str) -> dict:
+    """Wrapper for gateway registry compatibility."""
+    return await get_gateway().create_payment(amount, description, order_id)
+
+
+async def handle_google_pay_webhook(payload: dict, signature: str = "", timestamp: str = "") -> dict:
+    """Wrapper for gateway registry compatibility."""
+    return await get_gateway().handle_webhook(payload, signature, timestamp)

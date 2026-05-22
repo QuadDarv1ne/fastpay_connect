@@ -23,6 +23,22 @@ from app.payment_gateways.robokassa import (
     create_payment as robokassa_create,
     handle_robokassa_webhook,
 )
+from app.payment_gateways.sbp import (
+    create_payment as sbp_create,
+    handle_sbp_webhook,
+)
+from app.payment_gateways.rustore import (
+    create_payment as rustore_create,
+    handle_rustore_webhook,
+)
+from app.payment_gateways.apple_pay import (
+    create_payment as apple_pay_create,
+    handle_apple_pay_webhook,
+)
+from app.payment_gateways.google_pay import (
+    create_payment as google_pay_create,
+    handle_google_pay_webhook,
+)
 
 
 def extract_nested_value(data: Dict[str, Any], path: str) -> Optional[Any]:
@@ -75,6 +91,27 @@ GATEWAY_CONFIGS: Dict[str, Dict[str, Any]] = {
         "create_func": robokassa_create,
         "payment_id_field": "invoice_id",
     },
+    "sbp": {
+        "name": "sbp",
+        "create_func": sbp_create,
+        "payment_id_field": "paymentId",
+        "payment_url_field": "payload",
+    },
+    "rustore": {
+        "name": "rustore",
+        "create_func": rustore_create,
+        "payment_id_field": "orderId",
+    },
+    "apple_pay": {
+        "name": "apple_pay",
+        "create_func": apple_pay_create,
+        "payment_id_field": "payment_id",
+    },
+    "google_pay": {
+        "name": "google_pay",
+        "create_func": google_pay_create,
+        "payment_id_field": "google_pay_transaction_id",
+    },
 }
 
 WEBHOOK_HANDLERS: Dict[str, Any] = {
@@ -83,6 +120,10 @@ WEBHOOK_HANDLERS: Dict[str, Any] = {
     "cloudpayments": handle_cloudpayments_webhook,
     "unitpay": handle_unitpay_webhook,
     "robokassa": handle_robokassa_webhook,
+    "sbp": handle_sbp_webhook,
+    "rustore": handle_rustore_webhook,
+    "apple_pay": handle_apple_pay_webhook,
+    "google_pay": handle_google_pay_webhook,
 }
 
 STATUS_MAP: Dict[str, str] = {

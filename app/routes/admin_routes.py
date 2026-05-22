@@ -1,9 +1,12 @@
 from typing import Any, Dict, List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from datetime import datetime
+from sqlalchemy.orm import Session
 from app.dependencies import get_payment_repository
 from app.repositories.payment_repository import PaymentRepository
 from app.models.payment import PaymentStatus
+from app.database import get_db
+from app.utils.audit import log_audit_action
 from pydantic import BaseModel, ConfigDict, Field
 from app.middleware.rate_limiter import limiter
 from app.utils.security import get_current_user, require_any_role
@@ -230,6 +233,7 @@ async def refund_payment(
     refund_request: RefundRequest,
     repository: PaymentRepository = Depends(get_payment_repository),
     current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Возврат платежа."""
     if not refund_request.order_id and not refund_request.payment_id:
@@ -265,6 +269,18 @@ async def refund_payment(
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
 
+    # Audit log
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        username=current_user.username,
+        action="refund",
+        resource_type="payment",
+        resource_id=payment.order_id,
+        details=f"Refund reason: {refund_request.reason or 'N/A'}",
+        ip_address=request.client.host if request.client else None,
+    )
+
     return {
         "status": "success",
         "message": "Payment refunded",
@@ -280,6 +296,7 @@ async def cancel_payment(
     cancel_request: CancelRequest,
     repository: PaymentRepository = Depends(get_payment_repository),
     current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Отмена платежа."""
     if not cancel_request.order_id and not cancel_request.payment_id:
@@ -314,6 +331,18 @@ async def cancel_payment(
 
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
+
+    # Audit log
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        username=current_user.username,
+        action="cancel",
+        resource_type="payment",
+        resource_id=payment.order_id,
+        details=f"Cancel reason: {cancel_request.reason or 'N/A'}",
+        ip_address=request.client.host if request.client else None,
+    )
 
     return {
         "status": "success",

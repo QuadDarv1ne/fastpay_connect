@@ -329,9 +329,20 @@ async def logout(
     request: Request,
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, str]:
-    """
-    Выход из системы (на клиенте нужно удалить токены).
-    """
+    """Выход из системы с инвалидацией токена через Redis blacklist."""
+    from app.utils.token_blacklist import blacklist_token
+
     logger.info(f"User '{current_user.username}' logged out")
-    
+
+    # Extract the raw token from Authorization header
+    auth_header = request.headers.get("Authorization", "")
+    token = None
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+
+    if token:
+        success = blacklist_token(token)
+        if not success:
+            logger.warning("Failed to blacklist token during logout (Redis may be unavailable)")
+
     return {"status": "success", "message": "Logged out successfully"}

@@ -3,6 +3,9 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
 from typing import Dict, Any
 from datetime import timedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.repositories.user_repository import UserRepository
@@ -247,5 +250,18 @@ async def logout_v1(
     request: Request,
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, str]:
-    """Logout (v1)."""
+    """Logout (v1) — invalidates the current access token via Redis blacklist."""
+    from app.utils.token_blacklist import blacklist_token
+
+    # Extract the raw token from Authorization header
+    auth_header = request.headers.get("Authorization", "")
+    token = None
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+
+    if token:
+        success = blacklist_token(token)
+        if not success:
+            logger.warning("Failed to blacklist token during logout (Redis may be unavailable)")
+
     return {"status": "success", "message": "Logged out successfully"}
