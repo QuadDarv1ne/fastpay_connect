@@ -227,8 +227,14 @@ class WebhookSecurityMiddleware(BaseHTTPMiddleware):
         # Получаем секретный ключ шлюза
         secret_key = self._get_gateway_secret_key(gateway_name)
         if not secret_key:
-            logger.warning(f"No secret key configured for {gateway_name}")
-            return
+            logger.error(
+                f"Webhook rejected: no secret key configured for {gateway_name}, "
+                "signature verification required"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Webhook security misconfiguration: secret key not set for {gateway_name}",
+            )
 
         # Получаем тело запроса и кэшируем для downstream handlers
         body = await request.body()

@@ -65,11 +65,14 @@ class BasePaymentGateway(ABC):
     ) -> bool:
         """Проверка HMAC подписи."""
         if not self.secret_key:
-            logger.warning(
+            logger.error(
                 f"{self.__class__.__name__}: secret key not configured, "
-                "skipping signature verification"
+                "rejecting webhook - signature verification required"
             )
-            return True
+            raise PaymentGatewayConfigError(
+                f"{self.__class__.__name__}: secret key not configured, "
+                "webhook signature verification cannot be skipped"
+            )
 
         expected_signature = self.generate_signature(params)
         return hmac.compare_digest(expected_signature, provided_signature)
