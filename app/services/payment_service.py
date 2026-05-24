@@ -104,30 +104,35 @@ class PaymentService:
                 order_id, PaymentStatus.FAILED, {"error": e.message},
                 "Payment gateway not configured", e,
             )
+            return None  # _fail_payment raises, but this satisfies type checkers
         except PaymentGatewayTimeoutError as e:
             logger.error(f"Gateway timeout: {e.message}")
             self._fail_payment(
                 order_id, PaymentStatus.FAILED, {"error": "Gateway timeout"},
                 "Payment gateway timeout", e,
             )
+            return None
         except PaymentGatewayConnectionError as e:
             logger.error(f"Gateway connection error: {e.message}")
             self._fail_payment(
                 order_id, PaymentStatus.FAILED, {"error": "Gateway connection failed"},
                 "Payment gateway unavailable", e,
             )
+            return None
         except PaymentGatewayError as e:
             logger.error(f"Gateway error: {e.message}")
             self._fail_payment(
                 order_id, PaymentStatus.FAILED, {"error": e.message},
                 e.message, e,
             )
+            return None
         except Exception as e:
             logger.error(f"Unexpected gateway error: {e}")
             self._fail_payment(
                 order_id, PaymentStatus.FAILED, {"error": f"Unexpected error: {type(e).__name__}"},
                 f"Payment failed: {type(e).__name__}", e,
             )
+            return None
 
         if "error" in result:
             self._fail_payment(

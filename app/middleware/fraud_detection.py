@@ -14,6 +14,7 @@ Falls back to in-memory storage if Redis unavailable.
 import hashlib
 import json
 import logging
+import threading
 import time
 from collections import defaultdict
 from typing import Any, Dict, Optional, Set
@@ -56,9 +57,10 @@ class FraudDetector:
     def __init__(self, config: Optional[FraudDetectionConfig] = None):
         self.config = config or FraudDetectionConfig()
         self._redis_client = None
+        self._lock = threading.Lock()
         self._init_redis()
 
-        # In-memory fallback
+        # In-memory fallback (protected by _lock)
         self._request_counts: Dict[str, list] = defaultdict(list)
         self._payment_counts: Dict[str, list] = defaultdict(list)
         self._failed_counts: Dict[str, list] = defaultdict(list)
@@ -141,13 +143,14 @@ class FraudDetector:
             except Exception as e:
                 logger.warning(f"Fraud detection velocity check Redis error: {e}")
 
-        # In-memory fallback
-        timestamps = self._request_counts[fingerprint]
-        cutoff = now - window
-        self._request_counts[fingerprint] = [t for t in timestamps if t > cutoff]
-        if len(self._request_counts[fingerprint]) > self.config.max_requests_per_minute:
-            return f"Rate limit exceeded: {len(self._request_counts[fingerprint])} requests/minute"
-        self._request_counts[fingerprint].append(now)
+        # In-memory fallback (thread-safe)
+        with self._lock:
+            timestamps = self._request_counts[fingerprint]
+            cutoff = now - window
+            self._request_counts[fingerprint] = [t for t in timestamps if t > cutoff]
+            if len(self._request_counts[fingerprint]) > self.config.max_requests_per_minute:
+                return f"Rate limit exceeded: {len(self._request_counts[fingerprint])} requests/minute"
+            self._request_counts[fingerprint].append(now)
         return None
 
     def _check_payment_velocity(self, fingerprint: str) -> Optional[str]:
@@ -170,13 +173,14 @@ class FraudDetector:
             except Exception as e:
                 logger.warning(f"Fraud detection payment velocity check Redis error: {e}")
 
-        # In-memory
-        timestamps = self._payment_counts[fingerprint]
-        cutoff = now - hour_window
-        self._payment_counts[fingerprint] = [t for t in timestamps if t > cutoff]
-        if len(self._payment_counts[fingerprint]) > self.config.max_payments_per_hour:
-            return f"Too many payments: {len(self._payment_counts[fingerprint])}/hour"
-        self._payment_counts[fingerprint].append(now)
+        # In-memory (thread-safe)
+        with self._lock:
+            timestamps = self._payment_counts[fingerprint]
+            cutoff = now - hour_window
+            self._payment_counts[fingerprint] = [t for t in timestamps if t > cutoff]
+            if len(self._payment_counts[fingerprint]) > self.config.max_payments_per_hour:
+                return f"Too many payments: {len(self._payment_counts[fingerprint])}/hour"
+            self._payment_counts[fingerprint].append(now)
         return None
 
     def _check_amount(self, amount: Optional[float], fingerprint: str) -> Optional[str]:
@@ -237,14 +241,15 @@ class FraudDetector:
             except Exception as e:
                 logger.warning(f"Fraud detection record_failed_attempt Redis error: {e}")
 
-        # In-memory
-        timestamps = self._failed_counts[fingerprint]
-        cutoff = now - hour_window
-        self._failed_counts[fingerprint] = [t for t in timestamps if t > cutoff]
-        self._failed_counts[fingerprint].append(now)
-        if len(self._failed_counts[fingerprint]) >= self.config.max_failed_attempts_per_hour:
-            block_until = now + (self.config.block_duration_minutes * 60)
-            self._blocked_ips[fingerprint] = block_until
+        # In-memory (thread-safe)
+        with self._lock:
+            timestamps = self._failed_counts[fingerprint]
+            cutoff = now - hour_window
+            self._failed_counts[fingerprint] = [t for t in timestamps if t > cutoff]
+            self._failed_counts[fingerprint].append(now)
+            if len(self._failed_counts[fingerprint]) >= self.config.max_failed_attempts_per_hour:
+                block_until = now + (self.config.block_duration_minutes * 60)
+                self._blocked_ips[fingerprint] = block_until
 
     def check_blocked(self, fingerprint: str) -> Optional[str]:
         """Check if fingerprint is currently blocked."""
@@ -257,12 +262,13 @@ class FraudDetector:
             except Exception as e:
                 logger.warning(f"Fraud detection check_blocked Redis error: {e}")
 
-        # In-memory
-        block_until = self._blocked_ips.get(fingerprint)
-        if block_until and time.time() < block_until:
-            return f"IP blocked for {self.config.block_duration_minutes} minutes due to suspicious activity"
-        elif block_until:
-            del self._blocked_ips[fingerprint]
+        # In-memory (thread-safe)
+        with self._lock:
+            block_until = self._blocked_ips.get(fingerprint)
+            if block_until and time.time() < block_until:
+                return f"IP blocked for {self.config.block_duration_minutes} minutes due to suspicious activity"
+            elif block_until:
+                del self._blocked_ips[fingerprint]
         return None
 
     def record_payment(self, fingerprint: str, amount: Optional[float] = None) -> Optional[str]:
