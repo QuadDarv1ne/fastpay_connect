@@ -8,6 +8,7 @@ from app.utils.ip_validator import verify_webhook_ip
 from app.utils.gateway_registry import (
     WEBHOOK_HANDLERS,
     STATUS_MAP,
+    EVENT_STATUS_MAP,
     extract_webhook_event_id,
 )
 from app.settings import settings
@@ -97,8 +98,11 @@ async def process_webhook(
     if result.get("status") == "processed":
         order_id = payload.get("order_id") or payload.get("payment_id")
         if order_id:
-            message = result.get("message", "").lower()
-            db_status = STATUS_MAP.get(message, "pending")
+            # Prefer direct event mapping, fallback to message-based lookup
+            event = payload.get("event", "")
+            db_status = EVENT_STATUS_MAP.get(event) or STATUS_MAP.get(
+                result.get("message", "").lower(), "pending"
+            )
             webhook_event_id = extract_webhook_event_id(payload)
             repository.update_status(
                 order_id=order_id,

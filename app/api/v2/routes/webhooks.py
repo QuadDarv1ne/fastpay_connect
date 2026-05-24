@@ -11,7 +11,7 @@ from typing import Dict, Any
 from app.dependencies import get_payment_repository
 from app.repositories.payment_repository import PaymentRepository
 from app.middleware.rate_limiter import limiter
-from app.utils.gateway_registry import WEBHOOK_HANDLERS, STATUS_MAP, extract_webhook_event_id
+from app.utils.gateway_registry import WEBHOOK_HANDLERS, STATUS_MAP, EVENT_STATUS_MAP, extract_webhook_event_id
 
 import logging
 
@@ -52,8 +52,11 @@ def _create_webhook_handler(gateway_name: str):
         if result.get("status") == "processed" or result.get("processed"):
             order_id = payload.get("order_id") or payload.get("payment_id") or result.get("order_id")
             if order_id:
-                message = result.get("message", "").lower()
-                db_status = STATUS_MAP.get(message, "pending")
+                # Prefer direct event mapping, fallback to message-based lookup
+                event = payload.get("event", "")
+                db_status = EVENT_STATUS_MAP.get(event) or STATUS_MAP.get(
+                    result.get("message", "").lower(), "pending"
+                )
                 webhook_event_id = extract_webhook_event_id(payload)
                 repository.update_status(
                     order_id=order_id,

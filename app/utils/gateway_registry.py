@@ -162,6 +162,20 @@ WEBHOOK_HANDLERS: Dict[str, Any] = {
     "google_pay": handle_google_pay_webhook,
 }
 
+EVENT_STATUS_MAP: Dict[str, str] = {
+    "payment.succeeded": "completed",
+    "payment.canceled": "cancelled",
+    "payment.cancelled": "cancelled",
+    "payment.failed": "failed",
+    "payment.refunded": "refunded",
+    "payment.waiting_for_capture": "processing",
+    "payment.waiting": "pending",
+    "order.completed": "completed",
+    "order.cancelled": "cancelled",
+    "subscription.activated": "completed",
+    "subscription.cancelled": "cancelled",
+}
+
 STATUS_MAP: Dict[str, str] = {
     "payment successful": "completed",
     "payment canceled": "cancelled",
