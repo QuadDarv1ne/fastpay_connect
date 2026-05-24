@@ -234,3 +234,15 @@ def require_any_role(allowed_roles: List[str]):
             )
         return current_user
     return roles_checker
+
+
+async def require_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """FastAPI dependency: requires admin or operator role."""
+    if not current_user.has_any_role(["admin", "operator"]):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin or operator role required",
+        )
+    return current_user

@@ -28,6 +28,8 @@ from app.settings import settings
 from app.payment_gateways.exceptions import PaymentGatewayError
 from app.services.payment_service import PaymentServiceError
 from app.utils.metrics import PrometheusMiddleware, MetricsEndpoint
+from app.models.user import User
+from app.utils.security import require_admin
 
 # API Versioning
 from app.api.v1 import router as v1_router
@@ -352,8 +354,8 @@ app.add_route("/metrics", MetricsEndpoint.metrics)
 
 
 @app.get("/debug-info", tags=["Health"])
-async def debug_info():
-    """Debug endpoint to check current settings."""
+async def debug_info(current_user: User = Depends(require_admin)):
+    """Debug endpoint — requires admin authentication."""
     return {
         "debug": settings.debug,
         "docs_url": "/docs" if settings.debug else None,

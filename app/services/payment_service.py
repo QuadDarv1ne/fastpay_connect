@@ -119,6 +119,16 @@ class PaymentService:
                 metadata={"error": e.message},
             )
             raise PaymentServiceError(e.message, order_id=order_id) from e
+        except Exception as e:
+            logger.error(f"Unexpected gateway error: {e}")
+            self.repository.update_status(
+                order_id=order_id,
+                status=PaymentStatus.FAILED,
+                metadata={"error": f"Unexpected error: {type(e).__name__}"},
+            )
+            raise PaymentServiceError(
+                f"Payment failed: {type(e).__name__}", order_id=order_id
+            ) from e
 
         if "error" in result:
             self.repository.update_status(

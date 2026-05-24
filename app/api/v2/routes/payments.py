@@ -9,7 +9,7 @@ Improvements over v1:
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from typing import Dict, Any
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from app.dependencies import get_payment_repository
 from app.repositories.payment_repository import PaymentRepository
@@ -31,7 +31,20 @@ VALID_GATEWAYS = (
 )
 
 # In-memory idempotency store (production should use Redis)
+# Each entry stores (data, expires_at) to allow TTL-based cleanup
 _idempotency_store: Dict[str, Dict[str, Any]] = {}
+_IDEMPOTENCY_TTL = timedelta(hours=24)
+
+
+def _cleanup_expired_idempotency_entries() -> None:
+    """Remove expired entries from the idempotency store."""
+    now = datetime.now(timezone.utc)
+    expired_keys = [
+        k for k, v in _idempotency_store.items()
+        if v.get("expires_at", now) < now
+    ]
+    for k in expired_keys:
+        _idempotency_store.pop(k, None)
 
 
 @router.post("/create", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED)
@@ -46,11 +59,15 @@ async def create_payment_v2(
     Supports idempotency via `idempotency_key` — duplicate requests
     with the same key return the original result without re-processing.
     """
+    # Periodic cleanup of expired entries
+    _cleanup_expired_idempotency_entries()
+
     # Idempotency check
     if payment_data.idempotency_key:
         key = f"idem:{payment_data.idempotency_key}"
-        if key in _idempotency_store:
-            original = _idempotency_store[key]
+        stored = _idempotency_store.get(key)
+        if stored and stored.get("expires_at", datetime.min.replace(tzinfo=timezone.utc)) > datetime.now(timezone.utc):
+            original = stored
             return PaymentResponse(
                 success=True,
                 payment_id=original.get("payment_id"),
@@ -108,7 +125,7 @@ async def create_payment_v2(
             detail={"error": error_msg, "order_id": order_id},
         )
 
-    # Store idempotency result
+    # Store idempotency result with TTL
     if payment_data.idempotency_key:
         key = f"idem:{payment_data.idempotency_key}"
         _idempotency_store[key] = {
@@ -118,6 +135,7 @@ async def create_payment_v2(
             "currency": result.currency or "RUB",
             "status": "processing",
             "payment_url": result.payment_url,
+            "expires_at": datetime.now(timezone.utc) + _IDEMPOTENCY_TTL,
         }
 
     return PaymentResponse(

@@ -46,3 +46,6 @@ slowapi>=0.1.9,<0.2.0
 
 # Templating
 jinja2>=3.1.0,<4.0.0
+
+# Email validation (required by Pydantic EmailStr)
+email-validator>=2.2.0,<3.0.0

@@ -76,7 +76,10 @@ class MFAService:
 
     def remove_used_backup_code(self, code: str, hashed_codes: List[str]) -> List[str]:
         """Удаление использованного backup кода."""
-        return [hc for hc in hashed_codes if not verify_password(code, hc)]
+        for i, hashed_code in enumerate(hashed_codes):
+            if verify_password(code, hashed_code):
+                return hashed_codes[:i] + hashed_codes[i + 1:]
+        return hashed_codes[:]
 
     def serialize_backup_codes(self, hashed_codes: List[str]) -> str:
         """Сериализация хешированных backup кодов в JSON строку."""

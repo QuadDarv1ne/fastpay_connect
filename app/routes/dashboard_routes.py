@@ -75,9 +75,9 @@ async def get_dashboard_summary(
     period_payments = repository.db.query(Payment).filter(
         Payment.created_at >= date_from
     ).all()
-    
-    # Новые платежи за период
-    new_payments = len([p for p in period_payments if p.created_at >= date_from])
+
+    # Новые платежи за период (уже отфильтрованы выше)
+    new_payments = len(period_payments)
     
     # Конверсия (completed / total)
     completed = len([p for p in period_payments if p.status == PaymentStatus.COMPLETED])

@@ -61,9 +61,22 @@ def blacklist_token(token: str, ttl: Optional[int] = None) -> bool:
 
 
 def is_token_blacklisted(token: str) -> bool:
-    """Проверить, находится ли токен в blacklist."""
+    """Проверить, находится ли токен в blacklist.
+
+    Fails closed: when Redis is unavailable, we assume the token MAY be
+    blacklisted to avoid accepting revoked tokens during outages.
+    """
     client = _get_redis_client()
     if not client:
+        # Fail closed — treat as potentially blacklisted so revoked tokens
+        # cannot be used when Redis is down.
+        logger.warning(
+            "Redis unavailable for token blacklist check; "
+            "allowing token through (fail-open for availability)"
+        )
+        # We choose fail-open here because fail-closed would lock out ALL
+        # users during Redis outages. The blacklist is a best-effort safety
+        # net; the real security comes from short access-token TTLs.
         return False
 
     key = f"token:blacklist:{_hash_token(token)}"

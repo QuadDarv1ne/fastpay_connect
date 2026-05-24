@@ -26,12 +26,16 @@ async def verify_webhook_ip(request: Request, whitelist: List[str]) -> None:
     """Проверка IP запроса. Выбрасывает 403 если IP не в whitelist."""
     client_ip: Optional[str] = request.client.host if request.client else None
 
-    if not client_ip:
-        return
-
     # Skip check only if whitelist is empty (development mode)
     if not whitelist:
         return
+
+    if not client_ip:
+        logger.warning("Webhook access denied: unable to determine client IP")
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied: unable to determine client IP",
+        )
 
     if not is_ip_in_whitelist(client_ip, whitelist):
         logger.warning(f"Webhook access denied from IP: {client_ip}")
