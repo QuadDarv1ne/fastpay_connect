@@ -1,7 +1,7 @@
 from typing import Generator
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import QueuePool
 from app.settings import settings
 import logging
 
@@ -13,9 +13,16 @@ if database_url.startswith("sqlite+aiosqlite"):
     database_url = database_url.replace("sqlite+aiosqlite", "sqlite")
 
 # Конфигурация pool для SQLite
+# QueuePool вместо StaticPool — StaticPool использует одно соединение на все
+# потоки, что вызывает race conditions и data corruption в production
 if "sqlite" in database_url:
     connect_args = {"check_same_thread": False}
-    pool_kwargs: dict = {"poolclass": StaticPool}
+    pool_kwargs: dict = {
+        "poolclass": QueuePool,
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_timeout": 30,
+    }
 else:
     connect_args = {}
     pool_kwargs = {}
