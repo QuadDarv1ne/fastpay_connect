@@ -66,8 +66,12 @@ class SubscriptionService:
         )
 
         self.db.add(sub)
-        self.db.commit()
-        self.db.refresh(sub)
+        try:
+            self.db.commit()
+            self.db.refresh(sub)
+        except Exception:
+            self.db.rollback()
+            raise
 
         logger.info(f"Subscription created: user={user_id}, plan={request.plan_name}, id={sub.id}")
         return sub
@@ -106,16 +110,24 @@ class SubscriptionService:
             raise SubscriptionServiceError("Subscription already cancelled")
 
         if cancel_at_period_end:
-            sub.cancel_at_period_end = "true"
+            sub.cancel_at_period_end = True
             sub.cancellation_reason = reason
-            self.db.commit()
+            try:
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
+                raise
             self.db.refresh(sub)
             logger.info(f"Subscription {sub.id} marked for cancellation at period end")
         else:
             sub.status = SubscriptionStatus.CANCELLED.value
             sub.cancellation_reason = reason
-            sub.cancel_at_period_end = ""
-            self.db.commit()
+            sub.cancel_at_period_end = False
+            try:
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
+                raise
             self.db.refresh(sub)
             logger.info(f"Subscription {sub.id} cancelled immediately")
 
@@ -163,7 +175,7 @@ class SubscriptionService:
             .filter(
                 Subscription.status == SubscriptionStatus.ACTIVE.value,
                 Subscription.next_billing_date <= now,
-                Subscription.cancel_at_period_end == "",
+                Subscription.cancel_at_period_end.is_(False),
             )
             .all()
         )
