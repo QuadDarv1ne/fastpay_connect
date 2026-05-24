@@ -261,29 +261,29 @@ async def refund_payment(
         )
 
     # Call the actual payment gateway's refund API FIRST
-    gateway_config = GATEWAY_CONFIGS.get(payment.payment_gateway)
+    gateway_config = GATEWAY_CONFIGS.get(existing.payment_gateway)
     gateway_success = False
     gateway_error = None
 
     if gateway_config and gateway_config.get("refund_func"):
         try:
             refund_func = gateway_config["refund_func"]
-            gateway_payment_id = payment.payment_id or payment.order_id
+            gateway_payment_id = existing.payment_id or existing.order_id
             result = await refund_func(
                 payment_id=gateway_payment_id,
-                amount=payment.amount,
+                amount=existing.amount,
                 reason=refund_request.reason or "Refund",
             )
             gateway_success = True
             logger.info(
-                f"Gateway-level refund successful for payment {payment.order_id} "
-                f"via '{payment.payment_gateway}': {result}"
+                f"Gateway-level refund successful for payment {existing.order_id} "
+                f"via '{existing.payment_gateway}': {result}"
             )
         except Exception as e:
             gateway_error = str(e)
             logger.error(
-                f"Failed to initiate gateway-level refund for payment {payment.order_id} "
-                f"via '{payment.payment_gateway}': {e}"
+                f"Failed to initiate gateway-level refund for payment {existing.order_id} "
+                f"via '{existing.payment_gateway}': {e}"
             )
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
@@ -291,8 +291,8 @@ async def refund_payment(
             )
     else:
         logger.warning(
-            f"Refund function not configured for gateway '{payment.payment_gateway}'. "
-            f"Proceeding with DB-only refund for payment {payment.order_id}."
+            f"Refund function not configured for gateway '{existing.payment_gateway}'. "
+            f"Proceeding with DB-only refund for payment {existing.order_id}."
         )
 
     # Only update DB after gateway call succeeds
@@ -357,25 +357,25 @@ async def cancel_payment(
         )
 
     # Call the actual payment gateway's cancel API FIRST
-    gateway_config = GATEWAY_CONFIGS.get(payment.payment_gateway)
+    gateway_config = GATEWAY_CONFIGS.get(existing.payment_gateway)
     gateway_success = False
     gateway_error = None
 
     if gateway_config and gateway_config.get("cancel_func"):
         try:
             cancel_func = gateway_config["cancel_func"]
-            gateway_payment_id = payment.payment_id or payment.order_id
+            gateway_payment_id = existing.payment_id or existing.order_id
             result = await cancel_func(payment_id=gateway_payment_id)
             gateway_success = True
             logger.info(
-                f"Gateway-level cancellation successful for payment {payment.order_id} "
-                f"via '{payment.payment_gateway}': {result}"
+                f"Gateway-level cancellation successful for payment {existing.order_id} "
+                f"via '{existing.payment_gateway}': {result}"
             )
         except Exception as e:
             gateway_error = str(e)
             logger.error(
-                f"Failed to initiate gateway-level cancellation for payment {payment.order_id} "
-                f"via '{payment.payment_gateway}': {e}"
+                f"Failed to initiate gateway-level cancellation for payment {existing.order_id} "
+                f"via '{existing.payment_gateway}': {e}"
             )
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
@@ -383,8 +383,8 @@ async def cancel_payment(
             )
     else:
         logger.warning(
-            f"Cancel function not configured for gateway '{payment.payment_gateway}'. "
-            f"Proceeding with DB-only cancellation for payment {payment.order_id}."
+            f"Cancel function not configured for gateway '{existing.payment_gateway}'. "
+            f"Proceeding with DB-only cancellation for payment {existing.order_id}."
         )
 
     # Only update DB after gateway call succeeds
