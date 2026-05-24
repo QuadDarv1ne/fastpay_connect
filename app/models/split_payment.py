@@ -4,13 +4,16 @@ Allows a single payment to be distributed among multiple recipients.
 Each recipient gets a defined share of the total amount.
 """
 
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Index, Enum
-from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List
-from app.database import Base
 import enum
 import json
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import (Column, DateTime, Enum, ForeignKey, Index, Integer,
+                        Numeric, String)
+from sqlalchemy.orm import relationship
+
+from app.database import Base
 
 
 class SplitStatus(enum.Enum):

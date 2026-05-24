@@ -2,14 +2,15 @@
 Security utilities for OAuth2 authentication.
 """
 
-from datetime import datetime, timezone, timedelta
-from typing import Optional, List, Union
-from jose import JWTError, jwt
-from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
 import logging
+from datetime import datetime, timedelta, timezone
+from typing import List, Optional, Union
+
 import bcrypt
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
+from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
@@ -143,8 +144,9 @@ def update_last_login(db: Session, user: User) -> User:
         db.commit()
         db.refresh(user)
     except Exception as e:
-        logger.error(f"Failed to update last_login for user {user.id}: {e}")
         db.rollback()
+        logger.error(f"Failed to update last_login for user {user.id}: {e}")
+        raise
     return user
 
 

@@ -2,12 +2,15 @@
 Webhook Event model для мониторинга retry queue.
 """
 
-from sqlalchemy import Column, Integer, String, Text, DateTime, Enum, Index, JSON
-from datetime import datetime, timezone
-from typing import Dict, Any, Optional
-from app.database import Base
 import enum
 import json
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
+
+from sqlalchemy import (JSON, Column, DateTime, Enum, Index, Integer, String,
+                        Text)
+
+from app.database import Base
 
 
 class WebhookEventStatus(enum.Enum):

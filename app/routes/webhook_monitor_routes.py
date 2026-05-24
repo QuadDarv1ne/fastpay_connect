@@ -2,16 +2,17 @@
 Webhook monitoring routes для dashboard.
 """
 
-from fastapi import APIRouter, Depends, Request, HTTPException, Query
-from fastapi.responses import HTMLResponse
-from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse
 
 from app.database import get_db
+from app.middleware.rate_limiter import limiter
+from app.models.user import User
 from app.repositories.webhook_event_repository import WebhookEventRepository
 from app.utils.security import get_current_user, require_any_role
-from app.models.user import User
-from app.middleware.rate_limiter import limiter
 
 router = APIRouter()
 
@@ -43,6 +44,7 @@ async def webhook_dashboard_ui(
     UI дашборд для мониторинга webhook событий.
     """
     from pathlib import Path
+
     from fastapi.templating import Jinja2Templates
     
     templates_dir = Path(__file__).parent.parent / "templates"

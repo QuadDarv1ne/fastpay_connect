@@ -1,15 +1,16 @@
 """Tenant management API endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.repositories.tenant_repository import TenantRepository
-from app.models.user import User
-from app.utils.security import get_current_user
 from app.middleware.rate_limiter import limiter
+from app.models.user import User
+from app.repositories.tenant_repository import TenantRepository
 from app.schemas.tenant import TenantCreate, TenantResponse, TenantUpdate
+from app.utils.security import get_current_user
 
 router = APIRouter(prefix="/tenants", tags=["Tenants"])
 

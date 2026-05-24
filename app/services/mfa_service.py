@@ -3,12 +3,14 @@
 Автор: Dupley Maxim Igorevich
 """
 
-import pyotp
 import base64
 import json
 import secrets
-from typing import List, Tuple, Optional
 from datetime import datetime, timezone
+from typing import List, Optional, Tuple
+
+import pyotp
+
 from app.utils.security import verify_password
 
 

@@ -4,18 +4,19 @@
 от платёжных шлюзов.
 """
 
-import os
-import logging
 import json
+import logging
+import os
 from typing import Callable, Dict, List, Optional
-from fastapi import FastAPI, Request, HTTPException, status, Response
+
+from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
+from app.settings import settings
 from app.utils.ip_validator import is_ip_in_whitelist
 from app.utils.webhook_signature import signature_verifier
-from app.settings import settings
 
 logger = logging.getLogger(__name__)
 

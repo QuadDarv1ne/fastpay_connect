@@ -11,15 +11,16 @@ Uses Redis for distributed state tracking.
 Falls back to in-memory storage if Redis unavailable.
 """
 
-import time
 import hashlib
 import json
 import logging
+import time
 from collections import defaultdict
-from typing import Optional, Dict, Any, Set
+from typing import Any, Dict, Optional, Set
 
-from fastapi import Request, Response, HTTPException, status
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from fastapi import HTTPException, Request, Response, status
+from starlette.middleware.base import (BaseHTTPMiddleware,
+                                       RequestResponseEndpoint)
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +68,9 @@ class FraudDetector:
     def _init_redis(self) -> None:
         """Initialize Redis connection."""
         try:
-            from app.settings import settings
             import redis
+
+            from app.settings import settings
 
             self._redis_client = redis.from_url(
                 settings.redis_url,

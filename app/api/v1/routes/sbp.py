@@ -1,23 +1,17 @@
 """SBP (Система Быстрых Платежей) API endpoints."""
 
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 
 from app.middleware.rate_limiter import limiter
-from app.schemas.sbp import (
-    SBPPaymentRequest,
-    SBPPaymentResponse,
-    SBPPaymentInfoResponse,
-    SBPRefundRequest,
-    SBPRefundResponse,
-    SBPBankResponse,
-    SBPBanksResponse,
-    SBPWebhookPayload,
-    SBPWebhookResponse,
-    SBPStatusEnum,
-)
+from app.schemas.sbp import (SBPBankResponse, SBPBanksResponse,
+                             SBPPaymentInfoResponse, SBPPaymentRequest,
+                             SBPPaymentResponse, SBPRefundRequest,
+                             SBPRefundResponse, SBPStatusEnum,
+                             SBPWebhookPayload, SBPWebhookResponse)
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +28,8 @@ async def create_sbp_payment(
 
     Создаёт платёж с генерацией QR кода и payment_url для оплаты.
     """
-    from app.payment_gateways.sbp import gateway
     from app.payment_gateways.exceptions import PaymentGatewayError
+    from app.payment_gateways.sbp import gateway
 
     try:
         result = await gateway.create_payment(
@@ -74,8 +68,8 @@ async def get_sbp_payment(
     payment_id: str,
 ) -> SBPPaymentInfoResponse:
     """Получение информации о платеже СБП."""
-    from app.payment_gateways.sbp import gateway
     from app.payment_gateways.exceptions import PaymentGatewayError
+    from app.payment_gateways.sbp import gateway
 
     try:
         result = await gateway.get_payment_info(payment_id)
@@ -107,8 +101,8 @@ async def get_sbp_payment_by_order(
     order_id: str,
 ) -> SBPPaymentInfoResponse:
     """Получение информации о платеже по order_id."""
-    from app.payment_gateways.sbp import gateway
     from app.payment_gateways.exceptions import PaymentGatewayError
+    from app.payment_gateways.sbp import gateway
 
     try:
         result = await gateway.get_payment_by_order_id(order_id)
@@ -140,8 +134,8 @@ async def refund_sbp_payment(
     refund_data: SBPRefundRequest,
 ) -> SBPRefundResponse:
     """Возврат платежа СБП."""
-    from app.payment_gateways.sbp import gateway
     from app.payment_gateways.exceptions import PaymentGatewayError
+    from app.payment_gateways.sbp import gateway
 
     try:
         result = await gateway.refund_payment(
@@ -174,8 +168,8 @@ async def cancel_sbp_payment(
     payment_id: str,
 ) -> Dict[str, Any]:
     """Отмена платежа СБП."""
-    from app.payment_gateways.sbp import gateway
     from app.payment_gateways.exceptions import PaymentGatewayError
+    from app.payment_gateways.sbp import gateway
 
     try:
         result = await gateway.cancel_payment(payment_id)

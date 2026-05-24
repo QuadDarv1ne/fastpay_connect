@@ -9,13 +9,9 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
-from .exceptions import (
-    PaymentGatewayAPIError,
-    PaymentGatewayConfigError,
-    PaymentGatewayConnectionError,
-    PaymentGatewayError,
-    PaymentGatewayTimeoutError,
-)
+from .exceptions import (PaymentGatewayAPIError, PaymentGatewayConfigError,
+                         PaymentGatewayConnectionError, PaymentGatewayError,
+                         PaymentGatewayTimeoutError)
 
 logger = logging.getLogger(__name__)
 

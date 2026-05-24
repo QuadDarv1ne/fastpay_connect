@@ -8,22 +8,20 @@ Endpoints для управления webhook событиями:
 - Статистика
 """
 
-from fastapi import APIRouter, Depends, Query, HTTPException, status
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.database import get_db
-from app.repositories.webhook_event_repository import WebhookEventRepository
-from app.models.webhook_event import WebhookEvent, WebhookEventStatus
-from app.utils.security import get_current_user
-from app.models.user import User
 from app.middleware.rate_limiter import limiter
-from app.schemas.webhook import (
-    WebhookEventResponse,
-    WebhookEventListResponse,
-    WebhookStatsResponse,
-    WebhookRetryRequest,
-)
+from app.models.user import User
+from app.models.webhook_event import WebhookEvent, WebhookEventStatus
+from app.repositories.webhook_event_repository import WebhookEventRepository
+from app.schemas.webhook import (WebhookEventListResponse,
+                                 WebhookEventResponse, WebhookRetryRequest,
+                                 WebhookStatsResponse)
+from app.utils.security import get_current_user
 
 router = APIRouter()
 

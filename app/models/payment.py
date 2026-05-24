@@ -1,11 +1,14 @@
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, Enum, Index, ForeignKey, Text
-from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List
-from app.database import Base
 import enum
 import json
 import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import (Column, DateTime, Enum, ForeignKey, Index, Integer,
+                        Numeric, String, Text)
+from sqlalchemy.orm import relationship
+
+from app.database import Base
 
 logger = logging.getLogger(__name__)
 

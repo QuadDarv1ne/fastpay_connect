@@ -7,11 +7,12 @@ Supports API versioning through:
 3. Accept header (application/json; version=v1)
 """
 
-from fastapi import Request, HTTPException, status
+import logging
+from typing import Optional
+
+from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from typing import Optional
-import logging
 
 logger = logging.getLogger(__name__)
 

@@ -7,13 +7,7 @@ Endpoints in this version may change without notice.
 
 from fastapi import APIRouter
 
-from app.api.v2.routes import (
-    health,
-    payments,
-    webhooks,
-    admin,
-    i18n,
-)
+from app.api.v2.routes import admin, health, i18n, payments, webhooks
 
 router = APIRouter()
 

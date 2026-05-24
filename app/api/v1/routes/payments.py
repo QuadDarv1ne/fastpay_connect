@@ -1,12 +1,13 @@
 """Payments routes for API v1."""
 
+from typing import Any, Dict
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from typing import Dict, Any
 
 from app.dependencies import get_payment_repository
+from app.middleware.rate_limiter import limiter
 from app.repositories.payment_repository import PaymentRepository
 from app.schemas import PaymentRequest, PaymentResponse
-from app.middleware.rate_limiter import limiter
 from app.services.payment_service import PaymentService, PaymentServiceError
 
 router = APIRouter()

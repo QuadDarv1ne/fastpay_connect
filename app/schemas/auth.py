@@ -4,8 +4,9 @@ OAuth2 authentication schemas with 2FA support.
 """
 
 from datetime import datetime, timezone
-from typing import Optional, List
-from pydantic import BaseModel, ConfigDict, Field, EmailStr
+from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class Token(BaseModel):

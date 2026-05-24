@@ -1,12 +1,8 @@
 """Платёжные шлюзы."""
 
-from .exceptions import (
-    PaymentGatewayError,
-    PaymentGatewayConfigError,
-    PaymentGatewayAPIError,
-    PaymentGatewayTimeoutError,
-    PaymentGatewayConnectionError,
-)
+from .exceptions import (PaymentGatewayAPIError, PaymentGatewayConfigError,
+                         PaymentGatewayConnectionError, PaymentGatewayError,
+                         PaymentGatewayTimeoutError)
 
 __all__ = [
     "PaymentGatewayError",

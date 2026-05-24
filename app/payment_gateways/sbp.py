@@ -19,11 +19,9 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from app.payment_gateways.base import BasePaymentGateway
-from app.payment_gateways.exceptions import (
-    PaymentGatewayAPIError,
-    PaymentGatewayConfigError,
-    PaymentGatewayError,
-)
+from app.payment_gateways.exceptions import (PaymentGatewayAPIError,
+                                             PaymentGatewayConfigError,
+                                             PaymentGatewayError)
 from app.settings import settings
 
 logger = logging.getLogger(__name__)

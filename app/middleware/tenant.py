@@ -4,15 +4,16 @@ Tenant middleware for multi-tenant isolation.
 Извлекает tenant из API ключа и устанавливает в контекст запроса.
 """
 
-from fastapi import Request, HTTPException, status
+import logging
+from typing import Optional
+
+from fastapi import HTTPException, Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
-from typing import Optional
-import logging
 
 from app.database import SessionLocal
 from app.models.tenant import Tenant
-from app.utils.tenant import set_current_tenant, reset_tenant_context
+from app.utils.tenant import reset_tenant_context, set_current_tenant
 
 logger = logging.getLogger(__name__)
 

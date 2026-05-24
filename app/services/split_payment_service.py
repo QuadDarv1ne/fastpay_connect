@@ -7,16 +7,13 @@ import json
 import logging
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
 from app.models.payment import Payment, PaymentStatus
 from app.models.split_payment import SplitPayment, SplitStatus
-from app.schemas.split_payment import (
-    SplitPaymentCreateRequest,
-    SplitRecipient,
-)
+from app.schemas.split_payment import SplitPaymentCreateRequest, SplitRecipient
 
 logger = logging.getLogger(__name__)
 

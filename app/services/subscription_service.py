@@ -1,14 +1,15 @@
 """Subscription service for recurring payments."""
 
-from datetime import datetime, timezone, timedelta
-from typing import Optional, Dict, Any, List
+import json
+import logging
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy.orm import Session
 
-from app.models.subscription import Subscription, SubscriptionStatus, SubscriptionInterval
+from app.models.subscription import (Subscription, SubscriptionInterval,
+                                     SubscriptionStatus)
 from app.schemas.subscription import SubscriptionCreateRequest
-
-import logging
-import json
 
 logger = logging.getLogger(__name__)
 

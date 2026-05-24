@@ -7,19 +7,9 @@ All endpoints in this version are considered stable and backward-compatible.
 
 from fastapi import APIRouter
 
-from app.api.v1.routes import (
-    payments,
-    webhooks,
-    admin,
-    auth,
-    health,
-    currencies,
-    rustore,
-    sbp,
-    tenants,
-    apple_pay,
-    google_pay,
-)
+from app.api.v1.routes import (admin, apple_pay, auth, currencies, google_pay,
+                               health, payments, rustore, sbp, tenants,
+                               webhooks)
 
 router = APIRouter()
 

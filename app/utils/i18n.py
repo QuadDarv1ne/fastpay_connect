@@ -7,7 +7,7 @@ Default language is Russian (ru), with English (en) as secondary.
 import json
 import os
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import Request
 

@@ -7,15 +7,16 @@ Endpoints для аналитики платежей:
 - Отчёты по шлюзам и валютам
 """
 
-from fastapi import APIRouter, Depends, Query, HTTPException, status
-from typing import Dict, Any, Optional, List
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.database import get_db
+from app.middleware.rate_limiter import limiter
+from app.models.user import User
 from app.repositories.payment_repository import PaymentRepository
 from app.utils.security import get_current_user
-from app.models.user import User
-from app.middleware.rate_limiter import limiter
 
 router = APIRouter()
 

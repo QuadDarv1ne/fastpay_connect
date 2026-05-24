@@ -1,9 +1,10 @@
 """Health check routes for API v1."""
 
-from fastapi import APIRouter
-from typing import Dict, Any
-import time
 import asyncio
+import time
+from typing import Any, Dict
+
+from fastapi import APIRouter
 
 router = APIRouter()
 
@@ -11,7 +12,7 @@ router = APIRouter()
 @router.get("/health")
 async def health_check_v1() -> Dict[str, Any]:
     """Health check endpoint (v1)."""
-    from app.database import engine, Base
+    from app.database import Base, engine
     
     start_time = time.time()
     db_status = "ok"
@@ -35,7 +36,7 @@ async def health_check_v1() -> Dict[str, Any]:
 @router.get("/ready")
 async def readiness_check_v1() -> Dict[str, Any]:
     """Readiness check endpoint (v1)."""
-    from app.database import engine, Base
+    from app.database import Base, engine
     from app.settings import settings
     
     readiness_status = {

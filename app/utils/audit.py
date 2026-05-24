@@ -1,7 +1,7 @@
 """Audit logging utilities for admin actions."""
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 from sqlalchemy.orm import Session
 

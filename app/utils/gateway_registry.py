@@ -1,62 +1,47 @@
 """Central registry for payment gateway configurations and shared utilities."""
 
-from typing import Any, Dict, Optional
 import uuid
+from typing import Any, Dict, Optional
 
-from app.payment_gateways.yookassa import (
-    create_payment as yookassa_create,
-    handle_yookassa_webhook,
-    refund_payment as yookassa_refund,
-    cancel_payment as yookassa_cancel,
-)
-from app.payment_gateways.tinkoff import (
-    create_payment as tinkoff_create,
-    handle_tinkoff_webhook,
-    refund_payment as tinkoff_refund,
-    cancel_payment as tinkoff_cancel,
-)
-from app.payment_gateways.cloudpayments import (
-    create_payment as cloudpayments_create,
-    handle_cloudpayments_webhook,
-    refund_payment as cloudpayments_refund,
-    cancel_payment as cloudpayments_cancel,
-)
-from app.payment_gateways.unitpay import (
-    create_payment as unitpay_create,
-    handle_unitpay_webhook,
-    refund_payment as unitpay_refund,
-    cancel_payment as unitpay_cancel,
-)
-from app.payment_gateways.robokassa import (
-    create_payment as robokassa_create,
-    handle_robokassa_webhook,
-    refund_payment as robokassa_refund,
-    cancel_payment as robokassa_cancel,
-)
-from app.payment_gateways.sbp import (
-    create_payment as sbp_create,
-    handle_sbp_webhook,
-    refund_payment as sbp_refund,
-    cancel_payment as sbp_cancel,
-)
-from app.payment_gateways.rustore import (
-    create_payment as rustore_create,
-    handle_rustore_webhook,
-    refund_payment as rustore_refund,
-    cancel_payment as rustore_cancel,
-)
-from app.payment_gateways.apple_pay import (
-    create_payment as apple_pay_create,
-    handle_apple_pay_webhook,
-    refund_payment as apple_pay_refund,
-    cancel_payment as apple_pay_cancel,
-)
-from app.payment_gateways.google_pay import (
-    create_payment as google_pay_create,
-    handle_google_pay_webhook,
-    refund_payment as google_pay_refund,
-    cancel_payment as google_pay_cancel,
-)
+from app.payment_gateways.apple_pay import cancel_payment as apple_pay_cancel
+from app.payment_gateways.apple_pay import create_payment as apple_pay_create
+from app.payment_gateways.apple_pay import handle_apple_pay_webhook
+from app.payment_gateways.apple_pay import refund_payment as apple_pay_refund
+from app.payment_gateways.cloudpayments import \
+    cancel_payment as cloudpayments_cancel
+from app.payment_gateways.cloudpayments import \
+    create_payment as cloudpayments_create
+from app.payment_gateways.cloudpayments import handle_cloudpayments_webhook
+from app.payment_gateways.cloudpayments import \
+    refund_payment as cloudpayments_refund
+from app.payment_gateways.google_pay import cancel_payment as google_pay_cancel
+from app.payment_gateways.google_pay import create_payment as google_pay_create
+from app.payment_gateways.google_pay import handle_google_pay_webhook
+from app.payment_gateways.google_pay import refund_payment as google_pay_refund
+from app.payment_gateways.robokassa import cancel_payment as robokassa_cancel
+from app.payment_gateways.robokassa import create_payment as robokassa_create
+from app.payment_gateways.robokassa import handle_robokassa_webhook
+from app.payment_gateways.robokassa import refund_payment as robokassa_refund
+from app.payment_gateways.rustore import cancel_payment as rustore_cancel
+from app.payment_gateways.rustore import create_payment as rustore_create
+from app.payment_gateways.rustore import handle_rustore_webhook
+from app.payment_gateways.rustore import refund_payment as rustore_refund
+from app.payment_gateways.sbp import cancel_payment as sbp_cancel
+from app.payment_gateways.sbp import create_payment as sbp_create
+from app.payment_gateways.sbp import handle_sbp_webhook
+from app.payment_gateways.sbp import refund_payment as sbp_refund
+from app.payment_gateways.tinkoff import cancel_payment as tinkoff_cancel
+from app.payment_gateways.tinkoff import create_payment as tinkoff_create
+from app.payment_gateways.tinkoff import handle_tinkoff_webhook
+from app.payment_gateways.tinkoff import refund_payment as tinkoff_refund
+from app.payment_gateways.unitpay import cancel_payment as unitpay_cancel
+from app.payment_gateways.unitpay import create_payment as unitpay_create
+from app.payment_gateways.unitpay import handle_unitpay_webhook
+from app.payment_gateways.unitpay import refund_payment as unitpay_refund
+from app.payment_gateways.yookassa import cancel_payment as yookassa_cancel
+from app.payment_gateways.yookassa import create_payment as yookassa_create
+from app.payment_gateways.yookassa import handle_yookassa_webhook
+from app.payment_gateways.yookassa import refund_payment as yookassa_refund
 
 
 def extract_nested_value(data: Dict[str, Any], path: str) -> Optional[Any]:

@@ -2,12 +2,13 @@
 Repository for user operations.
 """
 
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from typing import Optional, List
-from datetime import datetime, timezone
-import logging
 import json
+import logging
+from datetime import datetime, timezone
+from typing import List, Optional
+
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.utils.security import get_password_hash

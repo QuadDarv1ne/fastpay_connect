@@ -2,12 +2,13 @@
 Repository for tenant operations.
 """
 
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from typing import Optional, List
-import logging
 import json
+import logging
 import secrets
+from typing import List, Optional
+
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from app.models.tenant import Tenant, TenantStatus
 

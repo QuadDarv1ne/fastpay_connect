@@ -2,36 +2,26 @@
 OAuth2 authentication routes.
 """
 
-from typing import Any, Dict, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordRequestForm
-from datetime import timedelta
 import logging
+from datetime import timedelta
+from typing import Any, Dict, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordRequestForm
 
 from app.database import get_db
-from app.repositories.user_repository import UserRepository
-from app.schemas.auth import (
-    Token,
-    LoginRequest,
-    UserCreate,
-    UserResponse,
-    PasswordChange,
-    RefreshTokenRequest,
-)
-from app.utils.security import (
-    authenticate_user,
-    create_access_token,
-    create_refresh_token,
-    decode_token,
-    get_current_user,
-    get_password_hash,
-    update_last_login,
-    ACCESS_TOKEN_EXPIRE_MINUTES,
-    REFRESH_TOKEN_EXPIRE_DAYS,
-)
-from app.models.user import User
 from app.middleware.rate_limiter import limiter
+from app.models.user import User
+from app.repositories.user_repository import UserRepository
+from app.schemas.auth import (LoginRequest, PasswordChange,
+                              RefreshTokenRequest, Token, UserCreate,
+                              UserResponse)
 from app.services.mfa_service import mfa_service
+from app.utils.security import (ACCESS_TOKEN_EXPIRE_MINUTES,
+                                REFRESH_TOKEN_EXPIRE_DAYS, authenticate_user,
+                                create_access_token, create_refresh_token,
+                                decode_token, get_current_user,
+                                get_password_hash, update_last_login)
 
 logger = logging.getLogger(__name__)
 
@@ -249,7 +239,7 @@ async def refresh_token(
     repository: UserRepository = Depends(get_user_repository),
 ) -> Token:
     """Refresh access token using a refresh token."""
-    from app.utils.token_blacklist import is_token_blacklisted, blacklist_token
+    from app.utils.token_blacklist import blacklist_token, is_token_blacklisted
 
     if is_token_blacklisted(token_data.refresh_token):
         raise HTTPException(

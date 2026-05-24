@@ -1,7 +1,8 @@
 """Audit log model for tracking admin actions."""
 
-from sqlalchemy import Column, Integer, String, DateTime, Text, Index
 from datetime import datetime, timezone
+
+from sqlalchemy import Column, DateTime, Index, Integer, String, Text
 
 from app.database import Base
 

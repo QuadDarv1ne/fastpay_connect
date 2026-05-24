@@ -2,11 +2,12 @@
 WebSocket Manager для управления подключениями.
 """
 
-from typing import Dict, List, Set, Optional
-from fastapi import WebSocket
-import logging
 import json
+import logging
 from datetime import datetime, timezone
+from typing import Dict, List, Optional, Set
+
+from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)
 

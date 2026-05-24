@@ -4,11 +4,13 @@ Automatically detects user's language preference and attaches it
 to the request state for use throughout the application.
 """
 
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.middleware.base import (BaseHTTPMiddleware,
+                                       RequestResponseEndpoint)
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.utils.i18n import get_language_from_request, SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE
+from app.utils.i18n import (DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES,
+                            get_language_from_request)
 
 
 class I18nMiddleware(BaseHTTPMiddleware):

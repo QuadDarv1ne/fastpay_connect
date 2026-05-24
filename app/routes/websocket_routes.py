@@ -2,17 +2,19 @@
 WebSocket routes для уведомлений о платежах.
 """
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query, HTTPException
-from typing import Optional, List
-import logging
 import json
+import logging
 from datetime import datetime, timezone
+from typing import List, Optional
 
-from app.websocket.manager import websocket_manager
-from app.utils.security import decode_token
+from fastapi import (APIRouter, Depends, HTTPException, Query, WebSocket,
+                     WebSocketDisconnect)
+
 from app.database import get_db
-from app.repositories.payment_repository import PaymentRepository
 from app.dependencies import get_payment_repository
+from app.repositories.payment_repository import PaymentRepository
+from app.utils.security import decode_token
+from app.websocket.manager import websocket_manager
 
 logger = logging.getLogger(__name__)
 

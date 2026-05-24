@@ -1,13 +1,14 @@
-import os
 import logging
+import os
 from typing import Optional
+
+import redis
+from fastapi import Header, Request, status
+from fastapi.responses import JSONResponse
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from fastapi import Request, status, Header
-from fastapi.responses import JSONResponse
-import redis
+from slowapi.util import get_remote_address
 
 from app.settings import settings
 

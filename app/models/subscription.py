@@ -1,8 +1,10 @@
 """Subscription model for recurring payments."""
 
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, Boolean, Index, Text
 from datetime import datetime, timezone
 from enum import Enum as PyEnum
+
+from sqlalchemy import (Boolean, Column, DateTime, Index, Integer, Numeric,
+                        String, Text)
 
 from app.database import Base
 

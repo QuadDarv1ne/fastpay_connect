@@ -1,34 +1,25 @@
 """Authentication routes for API v1."""
 
-from fastapi import APIRouter, Depends, Request, HTTPException
-from typing import Dict, Any
-from datetime import timedelta
 import logging
+from datetime import timedelta
+from typing import Any, Dict
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 logger = logging.getLogger(__name__)
 
 from app.database import get_db
-from app.repositories.user_repository import UserRepository
-from app.schemas.auth import (
-    Token,
-    UserCreate,
-    UserResponse,
-    LoginRequest,
-    RefreshTokenRequest,
-    PasswordChange,
-)
-from app.utils.security import (
-    authenticate_user,
-    create_access_token,
-    create_refresh_token,
-    decode_token,
-    get_current_user,
-    update_last_login,
-    ACCESS_TOKEN_EXPIRE_MINUTES,
-    REFRESH_TOKEN_EXPIRE_DAYS,
-)
 from app.middleware.rate_limiter import limiter
 from app.models.user import User
+from app.repositories.user_repository import UserRepository
+from app.schemas.auth import (LoginRequest, PasswordChange,
+                              RefreshTokenRequest, Token, UserCreate,
+                              UserResponse)
+from app.utils.security import (ACCESS_TOKEN_EXPIRE_MINUTES,
+                                REFRESH_TOKEN_EXPIRE_DAYS, authenticate_user,
+                                create_access_token, create_refresh_token,
+                                decode_token, get_current_user,
+                                update_last_login)
 
 router = APIRouter()
 
@@ -165,7 +156,7 @@ async def refresh_token_v1(
     repository: UserRepository = Depends(get_user_repository),
 ) -> Token:
     """Refresh access token (v1)."""
-    from app.utils.token_blacklist import is_token_blacklisted, blacklist_token
+    from app.utils.token_blacklist import blacklist_token, is_token_blacklisted
 
     if is_token_blacklisted(token_data.refresh_token):
         raise HTTPException(

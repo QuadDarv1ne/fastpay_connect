@@ -2,18 +2,19 @@
 Routes для Payment Statistics Dashboard.
 """
 
-from fastapi import APIRouter, Depends, Request, Query, HTTPException
-from fastapi.responses import HTMLResponse
-from typing import Dict, Any, Optional
-from datetime import datetime, timedelta, timezone
 import logging
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse
 
 from app.database import get_db
-from app.repositories.payment_repository import PaymentRepository
 from app.dependencies import get_payment_repository
-from app.utils.security import get_current_user
-from app.models.user import User
 from app.middleware.rate_limiter import limiter
+from app.models.user import User
+from app.repositories.payment_repository import PaymentRepository
+from app.utils.security import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ async def payment_dashboard_ui(
     UI Dashboard для статистики платежей.
     """
     from pathlib import Path
+
     from fastapi.templating import Jinja2Templates
     
     templates_dir = Path(__file__).parent.parent / "templates"
@@ -125,9 +127,11 @@ async def get_daily_statistics(
     """
     Получить ежедневную статистику.
     """
-    from sqlalchemy import func
-    from app.models.payment import Payment, PaymentStatus
     from datetime import date
+
+    from sqlalchemy import func
+
+    from app.models.payment import Payment, PaymentStatus
     
     date_from = datetime.now(timezone.utc) - timedelta(days=days)
     
@@ -190,6 +194,7 @@ async def get_gateway_statistics(
     Получить статистику по платёжным системам.
     """
     from sqlalchemy import func
+
     from app.models.payment import Payment, PaymentStatus
     
     date_from = datetime.now(timezone.utc) - timedelta(days=days)
@@ -258,6 +263,7 @@ async def get_status_distribution(
     Получить распределение по статусам.
     """
     from sqlalchemy import func
+
     from app.models.payment import Payment
     
     date_from = datetime.now(timezone.utc) - timedelta(days=days)

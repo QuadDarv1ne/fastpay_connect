@@ -3,22 +3,19 @@
 Автор: Dupley Maxim Igorevich
 """
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
-from app.schemas.auth import (
-    MFASetupRequest,
-    MFASetupResponse,
-    MFAVerifyRequest,
-    MFADisableRequest,
-    MFAStatusResponse,
-)
+from app.schemas.auth import (MFADisableRequest, MFASetupRequest,
+                              MFASetupResponse, MFAStatusResponse,
+                              MFAVerifyRequest)
 from app.services.mfa_service import mfa_service
-from app.utils.security import verify_password, get_password_hash
-from datetime import datetime, timezone
+from app.utils.security import get_password_hash, verify_password
 
 router = APIRouter(prefix="/mfa", tags=["2FA", "Authentication"])
 
@@ -31,7 +28,8 @@ def get_current_user(
 ) -> User:
     """Получить текущего пользователя из токена."""
     from jose import JWTError, jwt
-    from app.utils.security import SECRET_KEY, ALGORITHM
+
+    from app.utils.security import ALGORITHM, SECRET_KEY
     
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field, field_validator, EmailStr
-from typing import Optional, List
 from enum import Enum
+from typing import List, Optional
+
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class PaymentStatusEnum(str, Enum):

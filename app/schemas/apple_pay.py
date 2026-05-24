@@ -1,8 +1,9 @@
 """Схемы Pydantic для Apple Pay."""
 
-from pydantic import BaseModel, Field, field_validator, EmailStr
-from typing import Optional, List, Dict, Any
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class ApplePayNetworkEnum(str, Enum):

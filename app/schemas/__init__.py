@@ -1,67 +1,41 @@
 """Schemas for FastPay Connect."""
 
-from app.schemas.auth import (
-    Token,
-    TokenData,
-    UserBase,
-    UserCreate,
-    UserUpdate,
-    UserResponse,
-    LoginRequest,
-    RefreshTokenRequest,
-    PasswordChange,
-)
-
-from app.schemas.payment import (
-    PaymentRequest,
-    PaymentResponse,
-    PaymentErrorResponse,
-    PaymentStatusEnum,
-    WebhookPayload,
-    BulkPaymentRequest,
-    CurrencyEnum,
-)
-
-from app.schemas.webhook import (
-    WebhookEventResponse,
-    WebhookEventListResponse,
-    WebhookStatsResponse,
-    WebhookRetryRequest,
-)
-
-from app.schemas.apple_pay import (
-    ApplePayPaymentRequest,
-    ApplePayPaymentSessionRequest,
-    ApplePayTokenRequest,
-    ApplePayPaymentResponse,
-    ApplePayPaymentInfoResponse,
-    ApplePayRefundRequest,
-    ApplePayRefundResponse,
-    ApplePayWebhookPayload,
-    ApplePayWebhookResponse,
-    ApplePayMerchantValidationRequest,
-    ApplePayMerchantValidationResponse,
-    ApplePayNetworkEnum,
-    ApplePayStatusEnum,
-)
-
-from app.schemas.google_pay import (
-    GooglePayPaymentRequest,
-    GooglePayPaymentDataRequest,
-    GooglePayTokenRequest,
-    GooglePayPaymentResponse,
-    GooglePayPaymentInfoResponse,
-    GooglePayRefundRequest,
-    GooglePayRefundResponse,
-    GooglePayWebhookPayload,
-    GooglePayWebhookResponse,
-    GooglePayMerchantValidationResponse,
-    GooglePayIsReadyToPayResponse,
-    GooglePayNetworkEnum,
-    GooglePayCardClassEnum,
-    GooglePayStatusEnum,
-    GooglePayEnvironmentEnum,
-)
+from app.schemas.apple_pay import (ApplePayMerchantValidationRequest,
+                                   ApplePayMerchantValidationResponse,
+                                   ApplePayNetworkEnum,
+                                   ApplePayPaymentInfoResponse,
+                                   ApplePayPaymentRequest,
+                                   ApplePayPaymentResponse,
+                                   ApplePayPaymentSessionRequest,
+                                   ApplePayRefundRequest,
+                                   ApplePayRefundResponse, ApplePayStatusEnum,
+                                   ApplePayTokenRequest,
+                                   ApplePayWebhookPayload,
+                                   ApplePayWebhookResponse)
+from app.schemas.auth import (LoginRequest, PasswordChange,
+                              RefreshTokenRequest, Token, TokenData, UserBase,
+                              UserCreate, UserResponse, UserUpdate)
+from app.schemas.google_pay import (GooglePayCardClassEnum,
+                                    GooglePayEnvironmentEnum,
+                                    GooglePayIsReadyToPayResponse,
+                                    GooglePayMerchantValidationResponse,
+                                    GooglePayNetworkEnum,
+                                    GooglePayPaymentDataRequest,
+                                    GooglePayPaymentInfoResponse,
+                                    GooglePayPaymentRequest,
+                                    GooglePayPaymentResponse,
+                                    GooglePayRefundRequest,
+                                    GooglePayRefundResponse,
+                                    GooglePayStatusEnum, GooglePayTokenRequest,
+                                    GooglePayWebhookPayload,
+                                    GooglePayWebhookResponse)
+from app.schemas.payment import (BulkPaymentRequest, CurrencyEnum,
+                                 PaymentErrorResponse, PaymentRequest,
+                                 PaymentResponse, PaymentStatusEnum,
+                                 WebhookPayload)
+from app.schemas.webhook import (WebhookEventListResponse,
+                                 WebhookEventResponse, WebhookRetryRequest,
+                                 WebhookStatsResponse)
 
 __all__ = [
     # Auth schemas

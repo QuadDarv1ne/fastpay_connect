@@ -1,11 +1,13 @@
 """Prometheus metrics для мониторинга приложения."""
 
-from fastapi import Request, Response
-from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
-from starlette.middleware.base import BaseHTTPMiddleware
-import time
 import re
+import time
 from typing import Dict, Optional
+
+from fastapi import Request, Response
+from prometheus_client import (CONTENT_TYPE_LATEST, Counter, Gauge, Histogram,
+                               generate_latest)
+from starlette.middleware.base import BaseHTTPMiddleware
 
 REQUEST_COUNT = Counter(
     "http_requests_total",

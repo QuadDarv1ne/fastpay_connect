@@ -1,17 +1,14 @@
 """Currency API endpoints."""
 
-from fastapi import APIRouter, Depends, Request, HTTPException, status
-from pydantic import BaseModel, Field
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import BaseModel, Field
 
 from app.middleware.rate_limiter import limiter
-from app.utils.currency import (
-    Currency,
-    CurrencyService,
-    CURRENCY_SYMBOLS,
-    get_currency_service,
-)
+from app.utils.currency import (CURRENCY_SYMBOLS, Currency, CurrencyService,
+                                get_currency_service)
 
 router = APIRouter(prefix="/currencies", tags=["Currencies"])
 

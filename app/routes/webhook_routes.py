@@ -1,19 +1,18 @@
-from typing import Any, Callable, Dict, List, Optional, Tuple
-from fastapi import APIRouter, HTTPException, Request, Depends, status
 import json
-from app.database import get_db
-from app.repositories.payment_repository import PaymentRepository
-from app.dependencies import get_payment_repository
-from app.utils.ip_validator import verify_webhook_ip
-from app.utils.gateway_registry import (
-    WEBHOOK_HANDLERS,
-    STATUS_MAP,
-    EVENT_STATUS_MAP,
-    extract_webhook_event_id,
-)
-from app.settings import settings
 import logging
 from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+
+from app.database import get_db
+from app.dependencies import get_payment_repository
+from app.repositories.payment_repository import PaymentRepository
+from app.settings import settings
+from app.utils.gateway_registry import (EVENT_STATUS_MAP, STATUS_MAP,
+                                        WEBHOOK_HANDLERS,
+                                        extract_webhook_event_id)
+from app.utils.ip_validator import verify_webhook_ip
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +75,7 @@ async def process_webhook(
     
     if use_celery and settings.celery_enabled:
         from app.tasks.webhook_tasks import process_webhook_task
+
         # Асинхронная обработка через Celery с retry логикой
         task = process_webhook_task.delay(
             gateway=config.name,

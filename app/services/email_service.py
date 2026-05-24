@@ -1,7 +1,8 @@
 """Сервис email уведомлений."""
 
 import logging
-from typing import Optional, List
+from typing import List, Optional
+
 from app.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -37,8 +38,8 @@ class EmailService:
 
         try:
             import smtplib
-            from email.mime.text import MIMEText
             from email.mime.multipart import MIMEMultipart
+            from email.mime.text import MIMEText
 
             msg = MIMEMultipart()
             msg["From"] = self.from_email

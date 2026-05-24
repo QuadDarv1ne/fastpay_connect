@@ -1,8 +1,9 @@
-import logging
 import json
+import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Optional, Any, Dict
+from typing import Any, Dict, Optional
+
 import structlog
 
 LOG_DIR = Path("logs")

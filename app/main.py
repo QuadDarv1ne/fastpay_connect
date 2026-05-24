@@ -1,48 +1,44 @@
 import asyncio
+import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-import os
 
-from fastapi import FastAPI, Request, HTTPException, status, Depends
-from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from slowapi.errors import RateLimitExceeded
-from sqlalchemy import text
-
-import logging
-
-from app.routes.payment_routes import router as payment_router
-from app.routes.webhook_routes import router as webhook_router
-from app.routes.admin_routes import router as admin_router
-from app.routes.auth_routes import router as auth_router
-from app.routes.webhook_monitor_routes import router as webhook_monitor_router
-from app.database import init_db, engine
-from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler, rate_limiter_middleware
 from slowapi.middleware import SlowAPIMiddleware
-from app.utils.logger import setup_logging
-from app.utils.settings_validator import settings_validator
-from app.settings import settings
-from app.payment_gateways.exceptions import PaymentGatewayError
-from app.services.payment_service import PaymentServiceError
-from app.utils.metrics import PrometheusMiddleware, MetricsEndpoint
-from app.models.user import User
-from app.utils.security import require_admin
+from sqlalchemy import text
 
 # API Versioning
 from app.api.v1 import router as v1_router
 from app.api.v2 import router as v2_router
-
-# WebSocket
-from app.routes.websocket_routes import router as websocket_router
-
+from app.database import engine, init_db
+from app.middleware.rate_limiter import (limiter, rate_limit_exceeded_handler,
+                                         rate_limiter_middleware)
+from app.models.user import User
+from app.payment_gateways.exceptions import PaymentGatewayError
+from app.routes.admin_routes import router as admin_router
+from app.routes.auth_routes import router as auth_router
 # Dashboard
 from app.routes.dashboard_routes import router as dashboard_router
-
 # 2FA
 from app.routes.mfa_routes import router as mfa_router
+from app.routes.payment_routes import router as payment_router
+from app.routes.webhook_monitor_routes import router as webhook_monitor_router
+from app.routes.webhook_routes import router as webhook_router
+# WebSocket
+from app.routes.websocket_routes import router as websocket_router
+from app.services.payment_service import PaymentServiceError
+from app.settings import settings
+from app.utils.logger import setup_logging
+from app.utils.metrics import MetricsEndpoint, PrometheusMiddleware
+from app.utils.security import require_admin
+from app.utils.settings_validator import settings_validator
 
 setup_logging(level=settings.log_level, json_logs=settings.json_logs)
 logger = logging.getLogger(__name__)
@@ -142,29 +138,35 @@ if rate_limiter_middleware:
 
 # API Versioning Middleware
 from app.middleware.api_versioning import APIVersionMiddleware
+
 app.add_middleware(APIVersionMiddleware)
 
 # Tenant Middleware для multi-tenant поддержки
 from app.middleware.tenant import TenantMiddleware
+
 app.add_middleware(TenantMiddleware)
 
 # Webhook Security Middleware для автоматической проверки IP и заголовков
 from app.middleware.webhook_security import WebhookSecurityMiddleware
+
 app.add_middleware(WebhookSecurityMiddleware)
 logger.info("Webhook security middleware enabled")
 
 # Internationalization (i18n) Middleware
 from app.middleware.i18n import I18nMiddleware
+
 app.add_middleware(I18nMiddleware)
 logger.info("i18n middleware enabled")
 
 # Security Headers Middleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
+
 app.add_middleware(SecurityHeadersMiddleware)
 logger.info("Security headers middleware enabled")
 
 # Fraud Detection Middleware
 from app.middleware.fraud_detection import FraudDetectionMiddleware
+
 app.add_middleware(FraudDetectionMiddleware)
 logger.info("Fraud detection middleware enabled")
 
@@ -203,15 +205,20 @@ app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(webhook_monitor_router, prefix="/api/monitoring/webhooks", tags=["Webhook Monitoring"])
 
 # Webhook Management routes (admin UI)
-from app.routes.webhook_management_routes import router as webhook_management_router
+from app.routes.webhook_management_routes import \
+    router as webhook_management_router
+
 app.include_router(webhook_management_router, prefix="/api/webhooks", tags=["Webhook Management"])
 
 # Payment Export routes
 from app.routes.payment_export_routes import router as payment_export_router
+
 app.include_router(payment_export_router, prefix="/api/payments", tags=["Payment Export"])
 
 # Payment Analytics routes
-from app.routes.payment_analytics_routes import router as payment_analytics_router
+from app.routes.payment_analytics_routes import \
+    router as payment_analytics_router
+
 app.include_router(payment_analytics_router, prefix="/api/payments", tags=["Payment Analytics"])
 
 # API Versioning
@@ -220,21 +227,24 @@ app.include_router(v2_router, prefix="/api/v2", tags=["API v2"])
 
 # Tenant Management
 from app.api.v1.routes.tenants import router as tenants_router
+
 app.include_router(tenants_router, prefix="/api/v1", tags=["Tenants"])
 
 # Currency Management
 from app.api.v1.routes.currencies import router as currencies_router
+
 app.include_router(currencies_router, prefix="/api/v1", tags=["Currencies"])
 
 # SBP Payment
 from app.api.v1.routes.sbp import router as sbp_router
+
 app.include_router(sbp_router, prefix="/api/v1", tags=["SBP"])
 
 # GraphQL
 from strawberry.fastapi import GraphQLRouter
-from app.graphql.resolvers import schema as graphql_schema
-from app.graphql.context import get_graphql_context
 
+from app.graphql.context import get_graphql_context
+from app.graphql.resolvers import schema as graphql_schema
 
 graphql_router = GraphQLRouter(
     graphql_schema,
@@ -253,10 +263,12 @@ app.include_router(mfa_router, prefix="/api/auth", tags=["2FA"])
 
 # Subscriptions
 from app.routes.subscription_routes import router as subscription_router
+
 app.include_router(subscription_router, prefix="/api", tags=["Subscriptions"])
 
 # Split Payments (Marketplace)
 from app.routes.split_payment_routes import router as split_payment_router
+
 app.include_router(split_payment_router, prefix="/api/payments", tags=["Split Payments"])
 
 

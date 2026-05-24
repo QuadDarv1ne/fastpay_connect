@@ -1,25 +1,23 @@
 """Google Pay API endpoints."""
 
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.middleware.rate_limiter import limiter
-from app.schemas.google_pay import (
-    GooglePayPaymentRequest,
-    GooglePayPaymentResponse,
-    GooglePayPaymentInfoResponse,
-    GooglePayPaymentDataRequest,
-    GooglePayTokenRequest,
-    GooglePayRefundRequest,
-    GooglePayRefundResponse,
-    GooglePayWebhookPayload,
-    GooglePayWebhookResponse,
-    GooglePayMerchantValidationResponse,
-    GooglePayIsReadyToPayResponse,
-    GooglePayStatusEnum,
-)
+from app.schemas.google_pay import (GooglePayIsReadyToPayResponse,
+                                    GooglePayMerchantValidationResponse,
+                                    GooglePayPaymentDataRequest,
+                                    GooglePayPaymentInfoResponse,
+                                    GooglePayPaymentRequest,
+                                    GooglePayPaymentResponse,
+                                    GooglePayRefundRequest,
+                                    GooglePayRefundResponse,
+                                    GooglePayStatusEnum, GooglePayTokenRequest,
+                                    GooglePayWebhookPayload,
+                                    GooglePayWebhookResponse)
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +38,8 @@ async def create_google_pay_payment(
 
     Возвращает PaymentDataRequest для инициализации Google Pay на клиенте.
     """
-    from app.payment_gateways.google_pay import get_gateway
     from app.payment_gateways.exceptions import PaymentGatewayError
+    from app.payment_gateways.google_pay import get_gateway
 
     try:
         gateway = get_gateway()
@@ -82,8 +80,8 @@ async def process_google_pay_token(
     token_data: GooglePayTokenRequest,
 ) -> GooglePayPaymentResponse:
     """Обработка токена Google Pay после авторизации пользователем."""
-    from app.payment_gateways.google_pay import get_gateway
     from app.payment_gateways.exceptions import PaymentGatewayError
+    from app.payment_gateways.google_pay import get_gateway
 
     try:
         gateway = get_gateway()
@@ -147,8 +145,8 @@ async def refund_google_pay_payment(
     refund_data: GooglePayRefundRequest,
 ) -> GooglePayRefundResponse:
     """Возврат платежа Google Pay."""
-    from app.payment_gateways.google_pay import get_gateway
     from app.payment_gateways.exceptions import PaymentGatewayError
+    from app.payment_gateways.google_pay import get_gateway
 
     try:
         gateway = get_gateway()
@@ -183,8 +181,8 @@ async def validate_google_pay_merchant(
     request: Request,
 ) -> GooglePayMerchantValidationResponse:
     """Валидация мерчанта для Google Pay."""
-    from app.payment_gateways.google_pay import get_gateway
     from app.payment_gateways.exceptions import PaymentGatewayError
+    from app.payment_gateways.google_pay import get_gateway
 
     try:
         gateway = get_gateway()
@@ -216,8 +214,8 @@ async def google_pay_webhook(
     payload: GooglePayWebhookPayload,
 ) -> GooglePayWebhookResponse:
     """Обработка webhook уведомлений от Google Pay."""
-    from app.payment_gateways.google_pay import get_gateway
     from app.payment_gateways.exceptions import PaymentGatewayError
+    from app.payment_gateways.google_pay import get_gateway
 
     try:
         gateway = get_gateway()

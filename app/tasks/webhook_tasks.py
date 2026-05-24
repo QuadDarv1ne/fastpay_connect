@@ -2,22 +2,19 @@
 Celery tasks для обработки webhook уведомлений с retry логикой.
 """
 
-from typing import Any, Dict, Optional
 import logging
 from datetime import datetime, timezone
+from typing import Any, Dict, Optional
 
 from celery import Celery, Task
 from celery.exceptions import Retry
 
 from app.database import SessionLocal
 from app.repositories.payment_repository import PaymentRepository
-from app.utils.gateway_registry import (
-    WEBHOOK_HANDLERS,
-    STATUS_MAP,
-    EVENT_STATUS_MAP,
-    extract_webhook_event_id,
-)
 from app.settings import settings
+from app.utils.gateway_registry import (EVENT_STATUS_MAP, STATUS_MAP,
+                                        WEBHOOK_HANDLERS,
+                                        extract_webhook_event_id)
 
 logger = logging.getLogger(__name__)
 
@@ -228,7 +225,8 @@ def cleanup_old_webhook_events(self, days: int = 30) -> int:
     """
     db = get_db_session()
     try:
-        from app.repositories.webhook_event_repository import WebhookEventRepository
+        from app.repositories.webhook_event_repository import \
+            WebhookEventRepository
         repository = WebhookEventRepository(db)
         return repository.cleanup_old_events(days=days)
     finally:

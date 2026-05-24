@@ -1,8 +1,9 @@
 """Health check routes for API v2."""
 
-from fastapi import APIRouter
-from typing import Dict, Any
 import time
+from typing import Any, Dict
+
+from fastapi import APIRouter
 
 router = APIRouter()
 
@@ -14,7 +15,7 @@ async def health_check_v2() -> Dict[str, Any]:
     
     Enhanced health check with more detailed metrics.
     """
-    from app.database import engine, Base
+    from app.database import Base, engine
 
     start_time = time.time()
     db_status = "ok"
@@ -46,7 +47,7 @@ async def readiness_check_v2() -> Dict[str, Any]:
     
     Checks if the application is ready to serve traffic.
     """
-    from app.database import engine, Base
+    from app.database import Base, engine
     from app.settings import settings
 
     readiness_status = {

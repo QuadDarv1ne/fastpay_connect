@@ -3,10 +3,11 @@ GraphQL схемы для FastPay Connect.
 Автор: Dupley Maxim Igorevich
 """
 
-import strawberry
-from typing import List, Optional, Dict
 from datetime import datetime
 from enum import Enum
+from typing import Dict, List, Optional
+
+import strawberry
 
 
 @strawberry.enum

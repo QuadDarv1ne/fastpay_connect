@@ -2,11 +2,13 @@
 Tenant model for multi-tenant support.
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
-from datetime import datetime, timezone
-from typing import Optional, List
-from app.database import Base
 import enum
+from datetime import datetime, timezone
+from typing import List, Optional
+
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
+
+from app.database import Base
 
 
 class TenantStatus(enum.Enum):

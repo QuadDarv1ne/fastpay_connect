@@ -3,16 +3,13 @@
 Provides endpoints for fetching translations and managing language preferences.
 """
 
-from fastapi import APIRouter, Request
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
-from app.utils.i18n import (
-    get_translations_for_language,
-    get_language_from_request,
-    SUPPORTED_LANGUAGES,
-    DEFAULT_LANGUAGE,
-    translate,
-)
+from fastapi import APIRouter, Request
+
+from app.utils.i18n import (DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES,
+                            get_language_from_request,
+                            get_translations_for_language, translate)
 
 router = APIRouter()
 

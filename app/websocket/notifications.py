@@ -5,7 +5,7 @@ WebSocket уведомления для платежей.
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 from app.websocket.manager import websocket_manager
 

@@ -3,35 +3,36 @@ GraphQL resolvers для FastPay Connect.
 Автор: Dupley Maxim Igorevich
 """
 
-import strawberry
-from typing import List, Optional
-from strawberry.types import Info
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, and_, or_
-from datetime import datetime, timezone
-from enum import Enum
 import base64
 import logging
 from contextlib import contextmanager
+from datetime import datetime, timezone
+from enum import Enum
+from typing import List, Optional
+
+import strawberry
+from sqlalchemy import and_, func, or_
+from sqlalchemy.orm import Session, joinedload
+from strawberry.types import Info
 
 from app.graphql.context import get_graphql_context
 
 logger = logging.getLogger(__name__)
 
-from app.models.payment import Payment as PaymentModel, PaymentStatus
+from app.database import SessionLocal
+from app.graphql.schema import Payment as PaymentType
+from app.graphql.schema import PaymentConnection as PaymentTypeConnection
+from app.graphql.schema import PaymentEdge as PaymentTypeEdge
+from app.graphql.schema import PaymentStatistics as PaymentTypeStatistics
+from app.graphql.schema import Tenant as TenantType
+from app.graphql.schema import TenantConnection as TenantTypeConnection
+from app.graphql.schema import WebhookEvent as WebhookEventType
+from app.graphql.schema import \
+    WebhookEventConnection as WebhookEventTypeConnection
+from app.models.payment import Payment as PaymentModel
+from app.models.payment import PaymentStatus
 from app.models.tenant import Tenant as TenantModel
 from app.models.webhook_event import WebhookEvent as WebhookEventModel
-from app.database import SessionLocal
-from app.graphql.schema import (
-    Payment as PaymentType,
-    Tenant as TenantType,
-    WebhookEvent as WebhookEventType,
-    PaymentEdge as PaymentTypeEdge,
-    PaymentConnection as PaymentTypeConnection,
-    PaymentStatistics as PaymentTypeStatistics,
-    TenantConnection as TenantTypeConnection,
-    WebhookEventConnection as WebhookEventTypeConnection,
-)
 
 
 @contextmanager
@@ -115,7 +116,8 @@ def tenant_model_to_graphql(tenant: TenantModel) -> TenantType:
 
 def webhook_model_to_graphql(webhook: WebhookEventModel) -> WebhookEventType:
     """Конвертация модели WebhookEvent в GraphQL тип."""
-    from app.graphql.schema import WebhookEvent, WebhookEventType, WebhookEventStatus
+    from app.graphql.schema import (WebhookEvent, WebhookEventStatus,
+                                    WebhookEventType)
 
     # Map model fields to GraphQL type fields based on actual model schema
     return WebhookEvent(

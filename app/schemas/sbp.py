@@ -2,9 +2,10 @@
 Schemas for SBP (Система Быстрых Платежей).
 """
 
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List
 from enum import Enum
+from typing import List, Optional
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class SBPStatusEnum(str, Enum):

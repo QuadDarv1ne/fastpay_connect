@@ -1,6 +1,7 @@
 """GraphQL context and authentication utilities."""
 
 from typing import Any, Callable, Dict, Generator, Optional
+
 from fastapi import Request
 
 # Overridable DB session getter for testing

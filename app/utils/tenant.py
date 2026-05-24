@@ -4,6 +4,7 @@ Tenant context utilities for multi-tenant support.
 
 from contextvars import ContextVar
 from typing import Optional
+
 from app.models.tenant import Tenant
 
 # Context variable для хранения текущего tenant в запросе

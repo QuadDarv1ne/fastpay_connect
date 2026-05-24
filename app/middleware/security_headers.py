@@ -4,10 +4,12 @@ Adds essential HTTP security headers to every response to protect against
 common web attacks (XSS, clickjacking, MIME sniffing, etc.).
 """
 
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+import logging
+
+from starlette.middleware.base import (BaseHTTPMiddleware,
+                                       RequestResponseEndpoint)
 from starlette.requests import Request
 from starlette.responses import Response
-import logging
 
 logger = logging.getLogger(__name__)
 
