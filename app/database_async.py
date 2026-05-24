@@ -4,19 +4,17 @@
 в асинхронном FastAPI приложении.
 """
 
-from typing import AsyncGenerator, Generator
-from sqlalchemy import create_engine, text
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    AsyncEngine,
-    create_async_engine,
-    async_sessionmaker,
-    async_scoped_session,
-)
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.pool import QueuePool
-from app.settings import settings
 import logging
+from typing import AsyncGenerator, Generator
+
+from sqlalchemy import create_engine, text
+from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
+                                    async_scoped_session, async_sessionmaker,
+                                    create_async_engine)
+from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.pool import QueuePool
+
+from app.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +94,6 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         try:
             yield session
-            await session.commit()
         except Exception:
             await session.rollback()
             raise
@@ -107,8 +104,8 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
 async def init_async_db():
     """Асинхронная инициализация БД."""
     from app.models.payment import Payment
-    from app.models.user import User
     from app.models.tenant import Tenant
+    from app.models.user import User
     from app.models.webhook_event import WebhookEvent
 
     async with async_engine.begin() as conn:

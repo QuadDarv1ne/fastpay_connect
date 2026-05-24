@@ -4,24 +4,11 @@ from typing import Generator
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
 
-from app.database import SessionLocal, check_db_connection
+from app.database import check_db_connection, get_db
 from app.repositories.payment_repository import PaymentRepository
 
-
-def get_db() -> Generator[Session, None, None]:
-    """Получить сессию БД."""
-    db = SessionLocal()
-    try:
-        yield db
-    except SQLAlchemyError as e:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Database unavailable"
-        ) from e
-    finally:
-        db.close()
+__all__ = ["get_db", "get_payment_repository", "verify_db_connection"]
 
 
 def get_payment_repository(db: Session = Depends(get_db)) -> PaymentRepository:

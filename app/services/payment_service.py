@@ -1,24 +1,21 @@
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from sqlalchemy import func
-from app.models.payment import Payment, PaymentStatus
-from app.repositories.payment_repository import PaymentRepository
-from app.schemas import PaymentRequest, PaymentResponse
-from app.payment_gateways.exceptions import (
-    PaymentGatewayError,
-    PaymentGatewayConfigError,
-    PaymentGatewayTimeoutError,
-    PaymentGatewayConnectionError,
-)
-from app.utils.gateway_registry import (
-    GATEWAY_CONFIGS,
-    extract_nested_value,
-    generate_order_id,
-)
-from typing import Optional, Dict, Any, List, Union
-from datetime import datetime, timezone
 import json
 import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Union
+
+from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import Session
+
+from app.models.payment import Payment, PaymentStatus
+from app.payment_gateways.exceptions import (PaymentGatewayConfigError,
+                                             PaymentGatewayConnectionError,
+                                             PaymentGatewayError,
+                                             PaymentGatewayTimeoutError)
+from app.repositories.payment_repository import PaymentRepository
+from app.schemas import PaymentRequest, PaymentResponse
+from app.utils.gateway_registry import (GATEWAY_CONFIGS, extract_nested_value,
+                                        generate_order_id)
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +45,26 @@ class PaymentService:
 
     def __init__(self, repository: PaymentRepository) -> None:
         self.repository = repository
+
+    def _commit_or_rollback(self) -> None:
+        """Commit or rollback on error."""
+        try:
+            self.repository.db.commit()
+        except SQLAlchemyError:
+            self.repository.db.rollback()
+            raise
+
+    def _fail_payment(
+        self, order_id: str, status: PaymentStatus, metadata: Dict[str, Any], error_msg: str,
+        exc: Optional[Exception] = None,
+    ) -> None:
+        """Mark payment as failed and commit, then raise PaymentServiceError."""
+        self.repository.update_status(order_id=order_id, status=status, metadata=metadata)
+        try:
+            self.repository.db.commit()
+        except SQLAlchemyError:
+            self.repository.db.rollback()
+        raise PaymentServiceError(error_msg, order_id=order_id) from exc
 
     async def create_payment(
         self, payment_data: PaymentRequest, gateway_key: Optional[str] = None
@@ -83,84 +100,40 @@ class PaymentService:
             result = await create_func(amount, description, order_id)
         except PaymentGatewayConfigError as e:
             logger.error(f"Gateway config error: {e.message}")
-            self.repository.update_status(
-                order_id=order_id,
-                status=PaymentStatus.FAILED,
-                metadata={"error": e.message},
+            self._fail_payment(
+                order_id, PaymentStatus.FAILED, {"error": e.message},
+                "Payment gateway not configured", e,
             )
-            try:
-                self.repository.db.commit()
-            except SQLAlchemyError:
-                self.repository.db.rollback()
-            raise PaymentServiceError(
-                "Payment gateway not configured", order_id=order_id
-            ) from e
         except PaymentGatewayTimeoutError as e:
             logger.error(f"Gateway timeout: {e.message}")
-            self.repository.update_status(
-                order_id=order_id,
-                status=PaymentStatus.FAILED,
-                metadata={"error": "Gateway timeout"},
+            self._fail_payment(
+                order_id, PaymentStatus.FAILED, {"error": "Gateway timeout"},
+                "Payment gateway timeout", e,
             )
-            try:
-                self.repository.db.commit()
-            except SQLAlchemyError:
-                self.repository.db.rollback()
-            raise PaymentServiceError(
-                "Payment gateway timeout", order_id=order_id
-            ) from e
         except PaymentGatewayConnectionError as e:
             logger.error(f"Gateway connection error: {e.message}")
-            self.repository.update_status(
-                order_id=order_id,
-                status=PaymentStatus.FAILED,
-                metadata={"error": "Gateway connection failed"},
+            self._fail_payment(
+                order_id, PaymentStatus.FAILED, {"error": "Gateway connection failed"},
+                "Payment gateway unavailable", e,
             )
-            try:
-                self.repository.db.commit()
-            except SQLAlchemyError:
-                self.repository.db.rollback()
-            raise PaymentServiceError(
-                "Payment gateway unavailable", order_id=order_id
-            ) from e
         except PaymentGatewayError as e:
             logger.error(f"Gateway error: {e.message}")
-            self.repository.update_status(
-                order_id=order_id,
-                status=PaymentStatus.FAILED,
-                metadata={"error": e.message},
+            self._fail_payment(
+                order_id, PaymentStatus.FAILED, {"error": e.message},
+                e.message, e,
             )
-            try:
-                self.repository.db.commit()
-            except SQLAlchemyError:
-                self.repository.db.rollback()
-            raise PaymentServiceError(e.message, order_id=order_id) from e
         except Exception as e:
             logger.error(f"Unexpected gateway error: {e}")
-            self.repository.update_status(
-                order_id=order_id,
-                status=PaymentStatus.FAILED,
-                metadata={"error": f"Unexpected error: {type(e).__name__}"},
+            self._fail_payment(
+                order_id, PaymentStatus.FAILED, {"error": f"Unexpected error: {type(e).__name__}"},
+                f"Payment failed: {type(e).__name__}", e,
             )
-            try:
-                self.repository.db.commit()
-            except SQLAlchemyError:
-                self.repository.db.rollback()
-            raise PaymentServiceError(
-                f"Payment failed: {type(e).__name__}", order_id=order_id
-            ) from e
 
         if "error" in result:
-            self.repository.update_status(
-                order_id=order_id,
-                status=PaymentStatus.FAILED,
-                metadata={"error": result["error"]},
+            self._fail_payment(
+                order_id, PaymentStatus.FAILED, {"error": result["error"]},
+                result["error"],
             )
-            try:
-                self.repository.db.commit()
-            except SQLAlchemyError:
-                self.repository.db.rollback()
-            raise PaymentServiceError(result["error"], order_id=order_id)
 
         payment_id = result.get(config["payment_id_field"])
         payment_url = None
@@ -172,7 +145,7 @@ class PaymentService:
             status=PaymentStatus.PROCESSING,
             metadata={"payment_id": payment_id, "payment_url": payment_url},
         )
-        self.repository.db.commit()
+        self._commit_or_rollback()
         self.repository.db.refresh(payment)
 
         return PaymentResponse(
@@ -352,8 +325,13 @@ def refund_payment(
     else:
         payment.metadata_json = json.dumps(metadata)
 
-    db.commit()
-    db.refresh(payment)
+    try:
+        db.commit()
+        db.refresh(payment)
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Failed to commit refund for {payment.order_id}: {e}")
+        raise
     logger.info(f"Payment refunded: {payment.order_id}")
     return payment
 
@@ -388,8 +366,13 @@ def cancel_payment(
     else:
         payment.metadata_json = json.dumps(metadata)
 
-    db.commit()
-    db.refresh(payment)
+    try:
+        db.commit()
+        db.refresh(payment)
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Failed to commit cancel for {payment.order_id}: {e}")
+        raise
     logger.info(f"Payment cancelled: {payment.order_id}")
     return payment
 

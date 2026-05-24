@@ -2,12 +2,15 @@
 
 import asyncio
 import threading
-from typing import Any, Dict, Optional, Callable, TypeVar
-from functools import wraps
 import time
 from collections import OrderedDict
+from functools import wraps
+from typing import Any, Callable, Dict, Optional, TypeVar
 
 T = TypeVar('T')
+
+# Sentinel object to distinguish "not cached" from "cached None"
+_NOT_FOUND = object()
 
 
 class LRUCache:
@@ -18,7 +21,7 @@ class LRUCache:
         self._max_size = max_size
         self._hits = 0
         self._misses = 0
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def get(self, key: str) -> Optional[Any]:
         """Получить значение из кэша."""
@@ -44,6 +47,9 @@ class LRUCache:
                 'value': value,
                 'expires': time.time() + ttl if ttl else None
             }
+            # Proactively cleanup expired entries at 80% capacity
+            if len(self._cache) > self._max_size * 0.8:
+                self._cleanup_expired()
             if len(self._cache) > self._max_size:
                 self._cache.popitem(last=False)
 
@@ -91,7 +97,7 @@ class AsyncCache:
     """Асинхронный кэш с TTL поддержкой."""
 
     def __init__(self, max_size: int = 1000, default_ttl: int = 300):
-        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._cache: OrderedDict[str, Dict[str, Any]] = OrderedDict()
         self._max_size = max_size
         self._default_ttl = default_ttl
         self._lock = asyncio.Lock()
@@ -106,16 +112,18 @@ class AsyncCache:
                 if entry['expires'] and time.time() > entry['expires']:
                     del self._cache[key]
                     self._misses += 1
-                    return None
+                    return _NOT_FOUND
+                self._cache.move_to_end(key)
                 self._hits += 1
                 return entry['value']
             self._misses += 1
-            return None
+            return _NOT_FOUND
 
     async def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
         """Установить значение в кэш."""
         async with self._lock:
             if key in self._cache:
+                self._cache.move_to_end(key)
                 self._cache[key] = {
                     'value': value,
                     'expires': time.time() + (ttl or self._default_ttl)
@@ -165,7 +173,7 @@ def cached(cache: AsyncCache, key_prefix: str = "", ttl: Optional[int] = None):
         async def wrapper(*args, **kwargs):
             cache_key = f"{key_prefix}:{func.__name__}:{str(args)}:{str(kwargs)}"
             cached_result = await cache.get(cache_key)
-            if cached_result is not None:
+            if cached_result is not _NOT_FOUND:
                 return cached_result
             result = await func(*args, **kwargs)
             await cache.set(cache_key, result, ttl)

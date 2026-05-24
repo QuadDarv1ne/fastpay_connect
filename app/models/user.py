@@ -3,12 +3,16 @@ User model for OAuth2 authentication with 2FA support.
 Автор: Dupley Maxim Igorevich
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum as SQLEnum, ForeignKey, Text
-from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
-from typing import Optional, List
-from app.database import Base
 import enum
+from datetime import datetime, timezone
+from typing import List, Optional
+
+from sqlalchemy import Boolean, Column, DateTime
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship
+
+from app.database import Base
 
 
 class UserRole(enum.Enum):
@@ -31,7 +35,7 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
-    roles = Column(String(255), default="viewer")  # JSON список ролей
+    roles = Column(String(255), default='["viewer"]')  # JSON список ролей
     
     # 2FA поля
     mfa_enabled = Column(Boolean, default=False)

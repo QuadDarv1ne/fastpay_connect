@@ -1,9 +1,12 @@
-from typing import Generator
-from sqlalchemy import create_engine, event, text
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.pool import QueuePool
-from app.settings import settings
 import logging
+from typing import Generator
+
+from sqlalchemy import create_engine, event, text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlalchemy.pool import QueuePool
+
+from app.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -49,15 +52,44 @@ def get_db() -> Generator:
         db.close()
 
 
+class UnitOfWork:
+    """Контекстный менеджер для управления транзакциями.
+
+    Автоматически коммитит при успешном выходе и откатывает
+    транзакцию при возникновении исключения.
+
+    Usage:
+        with UnitOfWork() as uow:
+            uow.session.add(obj)
+            # commit happens automatically on exit
+            # rollback happens automatically on exception
+    """
+
+    def __init__(self) -> None:
+        self.session: Session = SessionLocal()
+
+    def __enter__(self) -> Session:
+        return self.session
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        if exc_type is not None:
+            self.session.rollback()
+            if not isinstance(exc_val, SQLAlchemyError):
+                logger.error(f"UnitOfWork rollback due to {exc_type.__name__}: {exc_val}")
+        else:
+            self.session.commit()
+        self.session.close()
+
+
 def init_db():
     """Инициализация БД."""
-    from app.models.payment import Payment
-    from app.models.user import User
-    from app.models.tenant import Tenant
-    from app.models.webhook_event import WebhookEvent
     from app.models.audit_log import AuditLog
-    from app.models.subscription import Subscription
+    from app.models.payment import Payment
     from app.models.split_payment import SplitPayment
+    from app.models.subscription import Subscription
+    from app.models.tenant import Tenant
+    from app.models.user import User
+    from app.models.webhook_event import WebhookEvent
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created successfully")
 
