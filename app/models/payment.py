@@ -5,6 +5,9 @@ from typing import Dict, Any, Optional, List
 from app.database import Base
 import enum
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PaymentStatus(enum.Enum):
@@ -59,6 +62,14 @@ class Payment(Base):
         except (json.JSONDecodeError, TypeError):
             return [e for e in self.webhook_processed.split(",") if e]
 
+    def _parse_metadata(self) -> Any:
+        """Safely parse metadata_json, returning raw string on invalid JSON."""
+        try:
+            return json.loads(self.metadata_json)
+        except (json.JSONDecodeError, TypeError):
+            logger.warning(f"Invalid metadata_json for payment {self.id}: {self.metadata_json[:100]}")
+            return self.metadata_json
+
     def _set_processed_events(self, events: List[str]) -> None:
         """Set list of processed webhook event IDs as JSON."""
         self.webhook_processed = json.dumps(events)
@@ -87,7 +98,7 @@ class Payment(Base):
             "status": self.status.value if isinstance(self.status, PaymentStatus) else self.status,
             "description": self.description,
             "payment_url": self.payment_url,
-            "metadata": json.loads(self.metadata_json) if self.metadata_json else None,
+            "metadata": self._parse_metadata() if self.metadata_json else None,
             "webhook_processed": self._get_processed_events(),
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,

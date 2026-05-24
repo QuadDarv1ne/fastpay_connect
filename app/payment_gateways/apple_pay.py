@@ -451,7 +451,7 @@ async def handle_apple_pay_webhook(payload: dict, signature: str = "", timestamp
     return await get_gateway().handle_webhook(payload, signature)
 
 
-async def refund_payment(payment_id: str, amount: float = None, reason: str = "") -> dict:
+async def refund_payment(payment_id: str, amount: Optional[float] = None, reason: str = "") -> dict:
     """Wrapper for gateway registry compatibility."""
     return await get_gateway().refund_payment(payment_id, amount, reason)
 

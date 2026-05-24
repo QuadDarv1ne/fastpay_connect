@@ -1,6 +1,7 @@
 """Кэширование для часто используемых данных."""
 
 import asyncio
+import threading
 from typing import Any, Dict, Optional, Callable, TypeVar
 from functools import wraps
 import time
@@ -17,66 +18,73 @@ class LRUCache:
         self._max_size = max_size
         self._hits = 0
         self._misses = 0
+        self._lock = threading.Lock()
 
     def get(self, key: str) -> Optional[Any]:
         """Получить значение из кэша."""
-        if key in self._cache:
-            entry = self._cache[key]
-            if entry['expires'] and time.time() > entry['expires']:
-                del self._cache[key]
-                self._misses += 1
-                return None
-            self._cache.move_to_end(key)
-            self._hits += 1
-            return entry['value']
-        self._misses += 1
-        return None
+        with self._lock:
+            if key in self._cache:
+                entry = self._cache[key]
+                if entry['expires'] and time.time() > entry['expires']:
+                    del self._cache[key]
+                    self._misses += 1
+                    return None
+                self._cache.move_to_end(key)
+                self._hits += 1
+                return entry['value']
+            self._misses += 1
+            return None
 
     def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
         """Установить значение в кэш."""
-        if key in self._cache:
-            self._cache.move_to_end(key)
-        self._cache[key] = {
-            'value': value,
-            'expires': time.time() + ttl if ttl else None
-        }
-        if len(self._cache) > self._max_size:
-            self._cache.popitem(last=False)
+        with self._lock:
+            if key in self._cache:
+                self._cache.move_to_end(key)
+            self._cache[key] = {
+                'value': value,
+                'expires': time.time() + ttl if ttl else None
+            }
+            if len(self._cache) > self._max_size:
+                self._cache.popitem(last=False)
 
     def delete(self, key: str) -> bool:
         """Удалить значение из кэша."""
-        if key in self._cache:
-            del self._cache[key]
-            return True
-        return False
+        with self._lock:
+            if key in self._cache:
+                del self._cache[key]
+                return True
+            return False
 
     def clear(self) -> None:
         """Очистить кэш."""
-        self._cache.clear()
-        self._hits = 0
-        self._misses = 0
+        with self._lock:
+            self._cache.clear()
+            self._hits = 0
+            self._misses = 0
 
     def get_stats(self) -> Dict[str, int]:
         """Получить статистику кэша."""
-        total = self._hits + self._misses
-        hit_rate = (self._hits / total * 100) if total > 0 else 0
-        return {
-            'size': len(self._cache),
-            'max_size': self._max_size,
-            'hits': self._hits,
-            'misses': self._misses,
-            'hit_rate': round(hit_rate, 2)
-        }
+        with self._lock:
+            total = self._hits + self._misses
+            hit_rate = (self._hits / total * 100) if total > 0 else 0
+            return {
+                'size': len(self._cache),
+                'max_size': self._max_size,
+                'hits': self._hits,
+                'misses': self._misses,
+                'hit_rate': round(hit_rate, 2)
+            }
 
     def _cleanup_expired(self) -> None:
         """Очистить просроченные записи."""
-        now = time.time()
-        expired_keys = [
-            k for k, v in self._cache.items()
-            if v['expires'] and now > v['expires']
-        ]
-        for key in expired_keys:
-            del self._cache[key]
+        with self._lock:
+            now = time.time()
+            expired_keys = [
+                k for k, v in self._cache.items()
+                if v['expires'] and now > v['expires']
+            ]
+            for key in expired_keys:
+                del self._cache[key]
 
 
 class AsyncCache:

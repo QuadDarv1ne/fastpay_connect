@@ -228,6 +228,8 @@ class WebhookEventRepository:
         page_size: int = 20,
         gateway: Optional[str] = None,
         status: Optional[str] = None,
+        order_id: Optional[str] = None,
+        created_at_after: Optional[datetime] = None,
     ) -> Tuple[List[WebhookEvent], int]:
         """Получить события с пагинацией."""
         query = self.db.query(WebhookEvent)
@@ -237,6 +239,12 @@ class WebhookEventRepository:
 
         if status:
             query = query.filter(WebhookEvent.status == WebhookEventStatus(status))
+
+        if order_id:
+            query = query.filter(WebhookEvent.order_id == order_id)
+
+        if created_at_after:
+            query = query.filter(WebhookEvent.created_at >= created_at_after)
 
         total = query.count()
         events = query.order_by(

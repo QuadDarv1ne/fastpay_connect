@@ -1,5 +1,6 @@
 """Роуты для работы с платежами."""
 
+import logging
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from app.schemas import PaymentRequest, PaymentResponse
 from app.dependencies import get_payment_repository
@@ -7,7 +8,7 @@ from app.repositories.payment_repository import PaymentRepository
 from app.middleware.rate_limiter import limiter
 from app.services.payment_service import PaymentService, PaymentServiceError
 
-logger = __import__("logging").getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 

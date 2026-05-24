@@ -74,27 +74,16 @@ async def list_webhook_events(
     - **event_id**: Фильтр по ID события
     - **days**: Период выборки в днях (1-90)
     """
-    # Получаем события с пагинацией
+    # Получаем события с пагинацией и фильтрами на уровне БД
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     events, total = repository.get_paginated(
         page=page,
         page_size=page_size,
         gateway=gateway,
         status=status_filter,
+        order_id=order_id,
+        created_at_after=cutoff,
     )
-    
-    # Применяем дополнительные фильтры
-    if order_id:
-        events = [e for e in events if e.order_id == order_id]
-        total = len(events)
-    
-    if event_id:
-        events = [e for e in events if e.event_id == event_id]
-        total = len(events)
-    
-    # Фильтр по периоду
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-    events = [e for e in events if e.created_at >= cutoff]
-    total = len(events)
     
     return WebhookEventListResponse(
         events=[event.to_dict() for event in events],

@@ -75,25 +75,31 @@ class EmailService:
         if not self.enabled:
             return 0
 
+        if not all([self.smtp_server, self.username, self.password, self.from_email]):
+            logger.warning("Email configuration incomplete")
+            return 0
+
         sent_count = 0
-        for email in emails:
-            try:
-                import smtplib
-                from email.mime.text import MIMEText
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
 
-                msg = MIMEText(body)
-                msg["From"] = self.from_email
-                msg["To"] = email
-                msg["Subject"] = subject
+            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                server.starttls()
+                server.login(self.username, self.password)
 
-                with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                    server.starttls()
-                    server.login(self.username, self.password)
-                    server.send_message(msg)
-
-                sent_count += 1
-            except Exception as e:
-                logger.error(f"Failed to send email to {email}: {e}")
+                for email in emails:
+                    try:
+                        msg = MIMEText(body)
+                        msg["From"] = self.from_email
+                        msg["To"] = email
+                        msg["Subject"] = subject
+                        server.send_message(msg)
+                        sent_count += 1
+                    except Exception as e:
+                        logger.error(f"Failed to send email to {email}: {e}")
+        except Exception as e:
+            logger.error(f"Failed to establish SMTP connection: {e}")
 
         return sent_count
 

@@ -88,10 +88,15 @@ async def process_webhook(
     # Синхронная обработка (fallback)
     try:
         result = await config.handler(payload, auth_value)
-    except Exception as e:
-        logger.error(f"Webhook handler error: {e}", exc_info=True)
+    except (ValueError, KeyError, TypeError) as e:
+        logger.warning(f"Webhook handler validation error: {e}", exc_info=True)
         raise HTTPException(
-            status_code=400, detail="Webhook processing failed"
+            status_code=400, detail=f"Invalid webhook payload: {e}"
+        ) from e
+    except Exception as e:
+        logger.error(f"Webhook handler internal error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail="Webhook processing failed"
         ) from e
 
     order_id: Optional[str] = None
