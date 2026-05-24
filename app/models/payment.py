@@ -40,31 +40,39 @@ class Payment(Base):
     description = Column(String)
     payment_url = Column(String)
     metadata_json = Column(String)
-    webhook_processed = Column(Text, default="")
+    webhook_processed = Column(Text, default="[]")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    
+
     # Связь с tenant
     tenant = relationship("Tenant", backref="payments")
 
     def __repr__(self) -> str:
         return f"<Payment(order_id={self.order_id}, amount={self.amount}, status={self.status})>"
 
+    def _get_processed_events(self) -> List[str]:
+        """Get list of processed webhook event IDs."""
+        if not self.webhook_processed or self.webhook_processed == "[]":
+            return []
+        try:
+            return json.loads(self.webhook_processed)
+        except (json.JSONDecodeError, TypeError):
+            return [e for e in self.webhook_processed.split(",") if e]
+
+    def _set_processed_events(self, events: List[str]) -> None:
+        """Set list of processed webhook event IDs as JSON."""
+        self.webhook_processed = json.dumps(events)
+
     def is_webhook_processed(self, event_id: str) -> bool:
         """Проверка, был ли уже обработан webhook с данным event_id."""
-        if not self.webhook_processed:
-            return False
-        processed_events = self.webhook_processed.split(",")
-        return event_id in processed_events
+        return event_id in self._get_processed_events()
 
     def mark_webhook_processed(self, event_id: str) -> None:
         """Отметить webhook событие как обработанное."""
-        if not self.webhook_processed:
-            self.webhook_processed = event_id
-        else:
-            processed_events = self.webhook_processed.split(",")
-            if event_id not in processed_events:
-                self.webhook_processed = f"{self.webhook_processed},{event_id}"
+        events = self._get_processed_events()
+        if event_id not in events:
+            events.append(event_id)
+            self._set_processed_events(events)
 
     def to_dict(self) -> Dict[str, Any]:
         """Конвертация платежа в словарь."""
@@ -80,7 +88,7 @@ class Payment(Base):
             "description": self.description,
             "payment_url": self.payment_url,
             "metadata": json.loads(self.metadata_json) if self.metadata_json else None,
-            "webhook_processed": self.webhook_processed.split(",") if self.webhook_processed else [],
+            "webhook_processed": self._get_processed_events(),
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

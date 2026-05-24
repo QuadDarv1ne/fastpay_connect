@@ -126,31 +126,38 @@ class PaymentRepository:
         status: Union[str, PaymentStatus] = PaymentStatus.COMPLETED,
         metadata: Optional[Dict[str, Any]] = None,
         webhook_event_id: Optional[str] = None,
+        tenant_id: Optional[int] = None,
     ) -> Optional[Payment]:
         """Обновить статус платежа."""
         if order_id:
-            payment = (
+            query = (
                 self._db.query(Payment)
                 .filter(Payment.order_id == order_id)
-                .with_for_update()
-                .first()
             )
         elif payment_id:
-            payment = (
+            query = (
                 self._db.query(Payment)
                 .filter(Payment.payment_id == payment_id)
-                .with_for_update()
-                .first()
             )
         elif transaction_id:
-            payment = (
+            query = (
                 self._db.query(Payment)
                 .filter(Payment.transaction_id == transaction_id)
-                .with_for_update()
-                .first()
             )
         else:
             return None
+
+        # Если tenant_id не указан, используем текущий из контекста
+        if tenant_id is None:
+            current_tenant = get_current_tenant()
+            if current_tenant:
+                tenant_id = current_tenant.id
+
+        # Фильтруем по tenant если он указан — защита от multi-tenant data leak
+        if tenant_id is not None:
+            query = query.filter(Payment.tenant_id == tenant_id)
+
+        payment = query.with_for_update().first()
 
         if not payment:
             return None
