@@ -394,17 +394,18 @@ class SBPGateway(BasePaymentGateway):
             logger.warning("SBP: secret key not configured, skipping signature verification")
             return True
 
-        # Проверяем timestamp (не старше 5 минут)
-        try:
-            webhook_time = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-            now = datetime.now(timezone.utc)
-            time_diff = abs((now - webhook_time).total_seconds())
-            if time_diff > 300:  # 5 минут
-                logger.warning(f"SBP webhook timestamp too old: {time_diff}s")
+        # Проверяем timestamp (не старше 5 минут), если он указан
+        if timestamp:
+            try:
+                webhook_time = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+                now = datetime.now(timezone.utc)
+                time_diff = abs((now - webhook_time).total_seconds())
+                if time_diff > 300:  # 5 минут
+                    logger.warning(f"SBP webhook timestamp too old: {time_diff}s")
+                    return False
+            except Exception as e:
+                logger.warning(f"SBP webhook timestamp parse error: {e}")
                 return False
-        except Exception as e:
-            logger.warning(f"SBP webhook timestamp parse error: {e}")
-            return False
 
         # Генерируем ожидаемую подпись
         body_hash = hashlib.sha256(payload).hexdigest().lower()
@@ -425,21 +426,25 @@ class SBPGateway(BasePaymentGateway):
         self,
         payload: Dict[str, Any],
         signature: str,
-        timestamp: str,
+        timestamp: Optional[str] = None,
     ) -> Dict[str, str]:
         """Обработка webhook уведомления от СБП.
 
         Args:
             payload: Данные webhook уведомления
             signature: Подпись из заголовка X-Signature
-            timestamp: Timestamp из заголовка X-Timestamp
+            timestamp: Timestamp из заголовка X-Timestamp (опционально,
+                       берётся из payload если не указан)
 
         Returns:
             Результат обработки webhook
         """
+        # Timestamp may come from header or payload
+        ts = timestamp or payload.get("timestamp", "")
+
         # Проверяем подпись
         raw_payload = json.dumps(payload, separators=(",", ":")).encode()
-        if not self.verify_webhook_signature(raw_payload, signature, timestamp):
+        if not self.verify_webhook_signature(raw_payload, signature, ts):
             logger.warning("Invalid SBP webhook signature")
             return {"status": "failed", "message": "Invalid signature"}
 
@@ -450,24 +455,24 @@ class SBPGateway(BasePaymentGateway):
 
         logger.info(f"Processing SBP webhook event: {event_type} for payment {payment_id}")
 
-        result = {
+        result: Dict[str, str] = {
             "event_type": event_type,
-            "payment_id": payment_id,
+            "payment_id": payment_id or "",
             "status": status,
-            "processed": True,
+            "processed": True,  # type: ignore[typeddict-item]
         }
 
-        # Обработка различных типов событий
+        # Map SBP-specific events to standard status messages
         if event_type == "payment.paid":
             result["message"] = "Payment successful"
             result["action"] = "fulfill_order"
 
-        elif event_type == "payment.rejected":
-            result["message"] = "Payment rejected"
+        elif event_type in ("payment.rejected", "payment.cancelled"):
+            result["message"] = "Payment canceled"
             result["action"] = "cancel_order"
 
         elif event_type == "payment.expired":
-            result["message"] = "Payment expired"
+            result["message"] = "Payment failed"
             result["action"] = "expire_order"
 
         elif event_type == "payment.refunded":
