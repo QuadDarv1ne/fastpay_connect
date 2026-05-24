@@ -267,10 +267,6 @@ async def refresh_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    success = blacklist_token(token_data.refresh_token)
-    if not success:
-        logger.warning("Failed to blacklist used refresh token (Redis may be unavailable)")
-
     user = repository.get_by_id(payload.user_id)
 
     if not user or not user.is_active:
@@ -279,6 +275,12 @@ async def refresh_token(
             detail="User not found or disabled",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # Only blacklist after all validations pass — prevents permanent lockout
+    # when user lookup fails (e.g. DB issue) but token is already blacklisted
+    success = blacklist_token(token_data.refresh_token)
+    if not success:
+        logger.warning("Failed to blacklist used refresh token (Redis may be unavailable)")
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
