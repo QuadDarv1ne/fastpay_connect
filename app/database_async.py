@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import (
     async_scoped_session,
 )
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import QueuePool
 from app.settings import settings
 import logging
 
@@ -26,14 +26,22 @@ if sync_database_url.startswith("sqlite+aiosqlite"):
     sync_database_url = sync_database_url.replace("sqlite+aiosqlite", "sqlite")
 
 sync_connect_args = {"check_same_thread": False} if "sqlite" in sync_database_url else {}
-sync_poolclass = StaticPool if "sqlite" in sync_database_url else None
+if "sqlite" in sync_database_url:
+    sync_pool_kwargs = {
+        "poolclass": QueuePool,
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_timeout": 30,
+    }
+else:
+    sync_pool_kwargs = {}
 
 sync_engine = create_engine(
     sync_database_url,
     connect_args=sync_connect_args,
-    poolclass=sync_poolclass,
     pool_pre_ping=True,
     pool_recycle=3600,
+    **sync_pool_kwargs,
 )
 
 SyncSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)

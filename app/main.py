@@ -98,7 +98,6 @@ async def lifespan(app: FastAPI):
 
     logger.info("Application shutdown initiated")
     try:
-        from app.database import engine
         engine.dispose()
         logger.info("Database connections closed")
     except Exception as e:
@@ -156,6 +155,11 @@ logger.info("Webhook security middleware enabled")
 from app.middleware.i18n import I18nMiddleware
 app.add_middleware(I18nMiddleware)
 logger.info("i18n middleware enabled")
+
+# Security Headers Middleware
+from app.middleware.security_headers import SecurityHeadersMiddleware
+app.add_middleware(SecurityHeadersMiddleware)
+logger.info("Security headers middleware enabled")
 
 # Fraud Detection Middleware
 from app.middleware.fraud_detection import FraudDetectionMiddleware
