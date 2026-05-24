@@ -7,7 +7,7 @@
 import logging
 from typing import AsyncGenerator, Generator
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
                                     async_scoped_session, async_sessionmaker,
                                     create_async_engine)
@@ -42,6 +42,16 @@ sync_engine = create_engine(
     **sync_pool_kwargs,
 )
 
+
+@event.listens_for(sync_engine, "connect")
+def set_sqlite_pragma_async_module(dbapi_connection, connection_record):
+    """Настройка SQLite pragma для целостности данных."""
+    if "sqlite" in sync_database_url:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.close()
+
 SyncSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)
 Base = declarative_base()
 
@@ -60,7 +70,7 @@ async_database_url = settings.database_url
 
 # Преобразуем URL для async драйверов
 if async_database_url.startswith("sqlite:///"):
-    async_database_url = async_database_url.replace("sqlite:///", "sqlite+aiosqlite://")
+    async_database_url = async_database_url.replace("sqlite:///", "sqlite+aiosqlite:///")
 elif async_database_url.startswith("postgresql://"):
     async_database_url = async_database_url.replace("postgresql://", "postgresql+asyncpg://")
 elif async_database_url.startswith("mysql://"):
@@ -140,7 +150,7 @@ def get_async_engine_url() -> str:
     """Асинхронный URL для alembic."""
     url = settings.database_url
     if url.startswith("sqlite:///"):
-        return url.replace("sqlite:///", "sqlite+aiosqlite://")
+        return url.replace("sqlite:///", "sqlite+aiosqlite:///")
     elif url.startswith("postgresql://"):
         return url.replace("postgresql://", "postgresql+asyncpg://")
     return url

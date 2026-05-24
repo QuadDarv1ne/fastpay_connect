@@ -164,6 +164,12 @@ from app.middleware.security_headers import SecurityHeadersMiddleware
 app.add_middleware(SecurityHeadersMiddleware)
 logger.info("Security headers middleware enabled")
 
+# Request ID Middleware
+from app.middleware.request_id import RequestIDMiddleware
+
+app.add_middleware(RequestIDMiddleware)
+logger.info("Request ID middleware enabled")
+
 # Fraud Detection Middleware
 from app.middleware.fraud_detection import FraudDetectionMiddleware
 
