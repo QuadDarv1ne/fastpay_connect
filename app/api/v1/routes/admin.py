@@ -130,6 +130,10 @@ async def refund_payment_v1(
         details=f"Refund reason: {reason or 'N/A'}",
         ip_address=request.client.host if request.client else None,
     )
+
+    # Atomic commit — both status change and audit entry saved together
+    db.commit()
+    db.refresh(payment)
     
     return {
         "status": "success",
@@ -190,6 +194,10 @@ async def cancel_payment_v1(
         details=f"Cancel reason: {reason or 'N/A'}",
         ip_address=request.client.host if request.client else None,
     )
+
+    # Atomic commit — both status change and audit entry saved together
+    db.commit()
+    db.refresh(payment)
     
     return {
         "status": "success",

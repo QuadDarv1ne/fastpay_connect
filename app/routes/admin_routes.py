@@ -315,6 +315,10 @@ async def refund_payment(
         ip_address=request.client.host if request.client else None,
     )
 
+    # Atomic commit
+    db.commit()
+    db.refresh(payment)
+
     return {
         "status": "success",
         "message": "Payment refunded",
@@ -406,6 +410,10 @@ async def cancel_payment(
         details=f"Cancel reason: {cancel_request.reason or 'N/A'}",
         ip_address=request.client.host if request.client else None,
     )
+
+    # Atomic commit
+    db.commit()
+    db.refresh(payment)
 
     return {
         "status": "success",

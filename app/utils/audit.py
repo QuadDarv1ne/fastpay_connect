@@ -20,7 +20,11 @@ def log_audit_action(
     details: Optional[str] = None,
     ip_address: Optional[str] = None,
 ) -> AuditLog:
-    """Записать действие в audit log."""
+    """Записать действие в audit log.
+
+    Note: Does NOT commit. Caller must call db.commit() to ensure
+    the audit entry is written atomically with related changes.
+    """
     entry = AuditLog(
         user_id=user_id,
         username=username,
@@ -31,7 +35,4 @@ def log_audit_action(
         ip_address=ip_address,
     )
     db.add(entry)
-    db.commit()
-    db.refresh(entry)
-    logger.info(f"Audit: {username} performed {action} on {resource_type}/{resource_id}")
     return entry

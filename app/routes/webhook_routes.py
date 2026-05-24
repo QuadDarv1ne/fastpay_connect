@@ -104,12 +104,15 @@ async def process_webhook(
                 result.get("message", "").lower(), "pending"
             )
             webhook_event_id = extract_webhook_event_id(payload)
-            repository.update_status(
+            payment = repository.update_status(
                 order_id=order_id,
                 status=db_status,
                 metadata=payload,
                 webhook_event_id=webhook_event_id,
             )
+            if payment:
+                repository.db.commit()
+                repository.db.refresh(payment)
             logger.info(f"Payment {order_id} status updated to {db_status}")
 
     return result, order_id

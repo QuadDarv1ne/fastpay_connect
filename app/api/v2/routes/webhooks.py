@@ -58,12 +58,15 @@ def _create_webhook_handler(gateway_name: str):
                     result.get("message", "").lower(), "pending"
                 )
                 webhook_event_id = extract_webhook_event_id(payload)
-                repository.update_status(
+                payment = repository.update_status(
                     order_id=order_id,
                     status=db_status,
                     metadata=payload,
                     webhook_event_id=webhook_event_id,
                 )
+                if payment:
+                    repository.db.commit()
+                    repository.db.refresh(payment)
                 logger.info(f"[{request_id}] Payment {order_id} -> {db_status}")
 
         return {

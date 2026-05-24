@@ -106,6 +106,10 @@ async def refund_payment_v2(
         ip_address=request.client.host if request.client else None,
     )
 
+    # Atomic commit — both status change and audit entry saved together
+    db.commit()
+    db.refresh(payment)
+
     new_status = payment.status.value if hasattr(payment.status, "value") else str(payment.status)
     return AdminActionResponse(
         status="success",
@@ -161,6 +165,10 @@ async def cancel_payment_v2(
         details=f"Cancel reason: {reason or 'N/A'}",
         ip_address=request.client.host if request.client else None,
     )
+
+    # Atomic commit — both status change and audit entry saved together
+    db.commit()
+    db.refresh(payment)
 
     new_status = payment.status.value if hasattr(payment.status, "value") else str(payment.status)
     return AdminActionResponse(

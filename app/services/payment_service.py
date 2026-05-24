@@ -68,8 +68,8 @@ class PaymentService:
         currency = payment_data.currency.value if hasattr(payment_data.currency, "value") else "RUB"
         description = payment_data.description
 
-        # Create DB record
-        self.repository.create(
+        # Create DB record (staged, not committed)
+        payment = self.repository.create(
             order_id=order_id,
             payment_gateway=gateway_key,
             amount=amount,
@@ -88,6 +88,10 @@ class PaymentService:
                 status=PaymentStatus.FAILED,
                 metadata={"error": e.message},
             )
+            try:
+                self.repository.db.commit()
+            except SQLAlchemyError:
+                self.repository.db.rollback()
             raise PaymentServiceError(
                 "Payment gateway not configured", order_id=order_id
             ) from e
@@ -98,6 +102,10 @@ class PaymentService:
                 status=PaymentStatus.FAILED,
                 metadata={"error": "Gateway timeout"},
             )
+            try:
+                self.repository.db.commit()
+            except SQLAlchemyError:
+                self.repository.db.rollback()
             raise PaymentServiceError(
                 "Payment gateway timeout", order_id=order_id
             ) from e
@@ -108,6 +116,10 @@ class PaymentService:
                 status=PaymentStatus.FAILED,
                 metadata={"error": "Gateway connection failed"},
             )
+            try:
+                self.repository.db.commit()
+            except SQLAlchemyError:
+                self.repository.db.rollback()
             raise PaymentServiceError(
                 "Payment gateway unavailable", order_id=order_id
             ) from e
@@ -118,6 +130,10 @@ class PaymentService:
                 status=PaymentStatus.FAILED,
                 metadata={"error": e.message},
             )
+            try:
+                self.repository.db.commit()
+            except SQLAlchemyError:
+                self.repository.db.rollback()
             raise PaymentServiceError(e.message, order_id=order_id) from e
         except Exception as e:
             logger.error(f"Unexpected gateway error: {e}")
@@ -126,6 +142,10 @@ class PaymentService:
                 status=PaymentStatus.FAILED,
                 metadata={"error": f"Unexpected error: {type(e).__name__}"},
             )
+            try:
+                self.repository.db.commit()
+            except SQLAlchemyError:
+                self.repository.db.rollback()
             raise PaymentServiceError(
                 f"Payment failed: {type(e).__name__}", order_id=order_id
             ) from e
@@ -136,6 +156,10 @@ class PaymentService:
                 status=PaymentStatus.FAILED,
                 metadata={"error": result["error"]},
             )
+            try:
+                self.repository.db.commit()
+            except SQLAlchemyError:
+                self.repository.db.rollback()
             raise PaymentServiceError(result["error"], order_id=order_id)
 
         payment_id = result.get(config["payment_id_field"])
@@ -148,6 +172,8 @@ class PaymentService:
             status=PaymentStatus.PROCESSING,
             metadata={"payment_id": payment_id, "payment_url": payment_url},
         )
+        self.repository.db.commit()
+        self.repository.db.refresh(payment)
 
         return PaymentResponse(
             success=True,
