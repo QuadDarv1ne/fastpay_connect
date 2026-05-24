@@ -106,6 +106,12 @@ class WebhookSecurityMiddleware(BaseHTTPMiddleware):
 
                 # Проверяем подпись (если требуется)
                 await self._verify_signature(request, gateway_name)
+
+                # Cache body for downstream handlers even when signature is not required
+                # This prevents stream-consumption issues from future middleware
+                if not hasattr(request.state, "_cached_body"):
+                    body = await request.body()
+                    request.state._cached_body = body
         except HTTPException as exc:
             return JSONResponse(
                 status_code=exc.status_code,

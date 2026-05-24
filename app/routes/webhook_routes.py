@@ -12,7 +12,6 @@ from app.utils.gateway_registry import (
     extract_webhook_event_id,
 )
 from app.settings import settings
-from app.tasks.webhook_tasks import process_webhook_task
 import logging
 from dataclasses import dataclass
 
@@ -76,6 +75,7 @@ async def process_webhook(
         use_celery = os.getenv("DISABLE_CELERY", "false").lower() != "true"
     
     if use_celery and settings.celery_enabled:
+        from app.tasks.webhook_tasks import process_webhook_task
         # Асинхронная обработка через Celery с retry логикой
         task = process_webhook_task.delay(
             gateway=config.name,
