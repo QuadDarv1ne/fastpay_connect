@@ -546,7 +546,7 @@ class PaymentRepository:
 
     def invalidate_statistics_cache(self) -> None:
         """Инвалидировать кэш статистики."""
-        pass
+        logger.debug("Statistics cache invalidation requested (Redis TTL-based)")
 
     def _get_by_any(
         self,

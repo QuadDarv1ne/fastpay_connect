@@ -81,13 +81,25 @@ class SubscriptionService:
         """Get subscription by ID."""
         return self.db.query(Subscription).filter(Subscription.id == subscription_id).first()
 
-    def get_user_subscriptions(self, user_id: int) -> List[Subscription]:
-        """Get all subscriptions for a user."""
+    def get_user_subscriptions(
+        self, user_id: int, offset: int = 0, limit: int = 20
+    ) -> List[Subscription]:
+        """Get subscriptions for a user with pagination."""
         return (
             self.db.query(Subscription)
             .filter(Subscription.user_id == user_id)
             .order_by(Subscription.created_at.desc())
+            .offset(offset)
+            .limit(limit)
             .all()
+        )
+
+    def count_user_subscriptions(self, user_id: int) -> int:
+        """Count user's subscriptions."""
+        return (
+            self.db.query(Subscription)
+            .filter(Subscription.user_id == user_id)
+            .count()
         )
 
     def cancel_subscription(
@@ -177,6 +189,7 @@ class SubscriptionService:
                 Subscription.status == SubscriptionStatus.ACTIVE.value,
                 Subscription.next_billing_date <= now,
                 Subscription.cancel_at_period_end.is_(False),
+                Subscription.cancel_at_period_end.is_(None),
             )
             .all()
         )

@@ -14,7 +14,7 @@ from app.models.user import User
 from app.repositories.payment_repository import PaymentRepository
 from app.utils.audit import log_audit_action
 from app.utils.gateway_registry import GATEWAY_CONFIGS
-from app.utils.security import get_current_user, require_any_role
+from app.utils.security import require_admin, require_any_role
 
 logger = logging.getLogger(__name__)
 
@@ -99,16 +99,7 @@ class DashboardStats(BaseModel):
     daily_amount: Dict[str, float]
 
 
-async def get_current_admin_user(
-    current_user: User = Depends(get_current_user),
-) -> User:
-    """Проверка, что пользователь имеет права администратора."""
-    if not current_user.has_any_role(["admin", "operator"]):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin or operator role required",
-        )
-    return current_user
+get_current_admin_user = require_admin
 
 
 @router.get("/statistics", response_model=PaymentStatistics)
@@ -264,8 +255,6 @@ async def refund_payment(
 
     # Call the actual payment gateway's refund API FIRST
     gateway_config = GATEWAY_CONFIGS.get(existing.payment_gateway)
-    gateway_success = False
-    gateway_error = None
 
     if gateway_config and gateway_config.get("refund_func"):
         try:
@@ -276,20 +265,18 @@ async def refund_payment(
                 amount=existing.amount,
                 reason=refund_request.reason or "Refund",
             )
-            gateway_success = True
             logger.info(
                 f"Gateway-level refund successful for payment {existing.order_id} "
                 f"via '{existing.payment_gateway}': {result}"
             )
         except Exception as e:
-            gateway_error = str(e)
             logger.error(
                 f"Failed to initiate gateway-level refund for payment {existing.order_id} "
                 f"via '{existing.payment_gateway}': {e}"
             )
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"Gateway refund failed: {gateway_error}",
+                detail=f"Gateway refund failed: {e}",
             )
     else:
         logger.warning(

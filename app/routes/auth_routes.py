@@ -47,7 +47,7 @@ async def register(
             detail="Password must be at least 8 characters long",
         )
 
-    if not user_data.username.isalnum() and '_' not in user_data.username:
+    if not all(c.isalnum() or c == '_' for c in user_data.username):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username can only contain alphanumeric characters and underscores",

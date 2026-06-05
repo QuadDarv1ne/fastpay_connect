@@ -1,5 +1,6 @@
 """Зависимости для внедрения."""
 
+import asyncio
 from typing import Generator
 
 from fastapi import Depends, HTTPException, status
@@ -18,7 +19,8 @@ def get_payment_repository(db: Session = Depends(get_db)) -> PaymentRepository:
 
 async def verify_db_connection() -> bool:
     """Проверить подключение к БД."""
-    if not check_db_connection():
+    ok = await asyncio.to_thread(check_db_connection)
+    if not ok:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Database connection failed"

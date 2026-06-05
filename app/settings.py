@@ -3,7 +3,7 @@
 import os
 from typing import List, Optional
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -118,6 +118,16 @@ class Settings(BaseSettings):
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_result_backend: str = "redis://localhost:6379/1"
     celery_enabled: bool = True  # Включить асинхронную обработку webhook через Celery
+
+    @model_validator(mode="after")
+    def validate_secret_key(self):
+        if not self.secret_key:
+            import logging
+            logging.getLogger(__name__).warning(
+                "SECRET_KEY is not set! JWT token creation will fail at runtime. "
+                "Set SECRET_KEY in your .env file."
+            )
+        return self
 
 
 # Глобальный экземпляр настроек

@@ -78,12 +78,12 @@ async def list_subscriptions(
     service: SubscriptionService = Depends(get_subscription_service),
 ) -> SubscriptionListResponse:
     """List user's subscriptions."""
-    subs = service.get_user_subscriptions(user_id=current_user.id)
-    total = len(subs)
+    offset = (page - 1) * page_size
+    subs = service.get_user_subscriptions(
+        user_id=current_user.id, offset=offset, limit=page_size
+    )
+    total = service.count_user_subscriptions(user_id=current_user.id)
     pages = (total + page_size - 1) // page_size if page_size > 0 else 0
-
-    start = (page - 1) * page_size
-    page_items = subs[start:start + page_size]
 
     return SubscriptionListResponse(
         items=[
@@ -104,7 +104,7 @@ async def list_subscriptions(
                 cancel_at_period_end=bool(s.cancel_at_period_end),
                 created_at=s.created_at,
             )
-            for s in page_items
+            for s in subs
         ],
         total=total,
         page=page,
