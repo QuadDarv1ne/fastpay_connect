@@ -50,7 +50,7 @@ def verify_hmac_signature(
             computed_signature = base64.b64encode(computed.digest()).decode('utf-8')
         
         # Constant-time comparison для защиты от timing attacks
-        return hmac.compare_digest(computed_signature, signature.lower())
+        return hmac.compare_digest(computed_signature.lower(), signature.lower())
     
     except Exception as e:
         logger.error(f"Signature verification error: {e}")
@@ -262,8 +262,10 @@ class WebhookSignatureVerifier:
             return False
 
         try:
-            if gateway in ('unitpay', 'robokassa'):
+            if gateway == 'unitpay':
                 return verifier(params or {}, secret_key, signature)
+            elif gateway == 'robokassa':
+                return verifier(payload, params or {}, secret_key, signature)
             elif gateway == 'sbp':
                 if not timestamp:
                     logger.error("SBP webhook requires timestamp")

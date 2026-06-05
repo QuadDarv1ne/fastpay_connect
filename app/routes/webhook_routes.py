@@ -101,8 +101,9 @@ async def process_webhook(
 
     order_id: Optional[str] = None
     if result.get("status") == "processed":
-        order_id = payload.get("order_id") or payload.get("payment_id")
-        if order_id:
+        order_id = payload.get("order_id")
+        payment_id_from_payload = payload.get("payment_id")
+        if order_id or payment_id_from_payload:
             # Prefer direct event mapping, fallback to message-based lookup
             event = payload.get("event", "")
             db_status = EVENT_STATUS_MAP.get(event) or STATUS_MAP.get(
@@ -111,6 +112,7 @@ async def process_webhook(
             webhook_event_id = extract_webhook_event_id(payload)
             payment = repository.update_status(
                 order_id=order_id,
+                payment_id=payment_id_from_payload,
                 status=db_status,
                 metadata=payload,
                 webhook_event_id=webhook_event_id,
