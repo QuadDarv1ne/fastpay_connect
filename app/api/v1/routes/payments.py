@@ -35,7 +35,7 @@ async def create_payment_v1(
 
     service = PaymentService(repository)
     try:
-        return await service.create_payment(payment_data)
+        return await service.create_payment(payment_data, gateway_key=gateway)
     except PaymentServiceError as e:
         error_msg = str(e)
         order_id = getattr(e, "order_id", None) or payment_data.order_id or "unknown"

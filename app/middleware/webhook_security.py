@@ -160,11 +160,14 @@ class WebhookSecurityMiddleware(BaseHTTPMiddleware):
         client_ip: Optional[str] = request.client.host if request.client else None
 
         if not client_ip:
-            logger.warning(f"Webhook from {gateway_name}: cannot determine client IP")
-            return
+            logger.warning(f"Webhook from {gateway_name}: cannot determine client IP — rejecting")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Cannot verify webhook origin IP",
+            )
 
         # Локальные адреса пропускаем
-        if client_ip in ("127.0.0.1", "0.0.0.0", "::1", "testclient"):
+        if client_ip in ("127.0.0.1", "0.0.0.0", "::1"):
             return
 
         if not is_ip_in_whitelist(client_ip, whitelist):

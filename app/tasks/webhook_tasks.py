@@ -80,6 +80,10 @@ class DBTask(Task):
     
     def after_return(self, *args, **kwargs) -> None:
         if self._db is not None:
+            try:
+                self._db.rollback()
+            except Exception:
+                pass
             self._db.close()
             self._db = None
 
@@ -121,7 +125,11 @@ def process_webhook_task(
             return {"status": "error", "message": f"Unknown gateway: {gateway}"}
 
         # Run async webhook handler in a fresh event loop (Celery is sync context)
-        result = asyncio.run(handler(payload, auth_value))
+        loop = asyncio.new_event_loop()
+        try:
+            result = loop.run_until_complete(handler(payload, auth_value))
+        finally:
+            loop.close()
         
         # Обновление статуса платежа
         order_id: Optional[str] = None

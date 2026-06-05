@@ -28,14 +28,14 @@ class TinkoffGateway(BasePaymentGateway):
         """Создание платежа через Tinkoff."""
         payload = self._prepare_payment_payload(amount, description, order_id)
         payload["payment_type"] = "BANK_CARD"
+        payload["TerminalKey"] = self.api_key
 
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
 
         return await self._request(
-            "POST", f"{self.base_url}/payments", headers=headers, json_data=payload
+            "POST", f"{self.base_url}/Init", headers=headers, json_data=payload
         )
 
     async def handle_webhook(
