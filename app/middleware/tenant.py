@@ -33,7 +33,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
         api_key = request.headers.get("X-API-Key")
 
         if api_key:
-            tenant = await self._get_tenant_by_api_key(api_key)
+            tenant = self._get_tenant_by_api_key(api_key)
             if tenant:
                 if tenant.status != "active":
                     raise HTTPException(
@@ -61,7 +61,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
             # Сбрасываем контекст после запроса
             reset_tenant_context()
 
-    async def _get_tenant_by_api_key(self, api_key: str) -> Optional[Tenant]:
+    def _get_tenant_by_api_key(self, api_key: str) -> Optional[Tenant]:
         """Получить tenant по API ключу."""
         from sqlalchemy.exc import SQLAlchemyError
 

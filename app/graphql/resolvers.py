@@ -337,8 +337,8 @@ class PaymentQuery:
                 for p in payments
             ]
 
-            # Получаем общий count
-            total = db.query(PaymentModel).count()
+            # Получаем общий count (с учётом всех фильтров)
+            total = query.count()
 
             return PaymentTypeConnection(
                 items=[payment_model_to_graphql(p) for p in payments],
@@ -512,13 +512,10 @@ class WebhookQuery:
         with get_db() as db:
             query = db.query(WebhookEventModel).filter(WebhookEventModel.id == event_id)
             if not ctx.get("is_admin"):
-                # Non-admin users can only see their own tenant's webhooks
-                tenant_payments = db.query(PaymentModel).filter(PaymentModel.tenant_id == ctx.get("tenant_id")).all()
-                order_ids = [p.order_id for p in tenant_payments]
-                if order_ids:
-                    query = query.filter(WebhookEventModel.order_id.in_(order_ids))
-                else:
-                    return None
+                subq = db.query(PaymentModel.order_id).filter(
+                    PaymentModel.tenant_id == ctx.get("tenant_id")
+                ).subquery()
+                query = query.filter(WebhookEventModel.order_id.in_(subq))
             event = query.first()
 
         if not event:
@@ -548,23 +545,15 @@ class WebhookQuery:
             query = db.query(WebhookEventModel)
 
             if not ctx.get("is_admin"):
-                # Non-admin users can only see their own tenant's webhooks
-                # Filter by order_id matching tenant's payments
-                tenant_payments = db.query(PaymentModel).filter(PaymentModel.tenant_id == ctx.get("tenant_id")).all()
-                order_ids = [p.order_id for p in tenant_payments]
-                if order_ids:
-                    query = query.filter(WebhookEventModel.order_id.in_(order_ids))
-                else:
-                    # No payments for this tenant, return empty
-                    return WebhookEventTypeConnection(items=[], total=0, page=page, page_size=0, pages=0)
+                subq = db.query(PaymentModel.order_id).filter(
+                    PaymentModel.tenant_id == ctx.get("tenant_id")
+                ).subquery()
+                query = query.filter(WebhookEventModel.order_id.in_(subq))
             elif tenant_id:
-                # Admin filtering by tenant - same approach
-                tenant_payments = db.query(PaymentModel).filter(PaymentModel.tenant_id == tenant_id).all()
-                order_ids = [p.order_id for p in tenant_payments]
-                if order_ids:
-                    query = query.filter(WebhookEventModel.order_id.in_(order_ids))
-                else:
-                    return WebhookEventTypeConnection(items=[], total=0, page=page, page_size=0, pages=0)
+                subq = db.query(PaymentModel.order_id).filter(
+                    PaymentModel.tenant_id == tenant_id
+                ).subquery()
+                query = query.filter(WebhookEventModel.order_id.in_(subq))
 
             if event_type:
                 query = query.filter(WebhookEventModel.gateway == event_type)

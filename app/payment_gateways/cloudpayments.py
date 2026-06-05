@@ -102,6 +102,7 @@ class CloudPaymentsGateway(BasePaymentGateway):
             raise PaymentGatewayConfigError("CloudPayments gateway not configured")
 
         headers = {
+            "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
 
@@ -125,6 +126,7 @@ class CloudPaymentsGateway(BasePaymentGateway):
             raise PaymentGatewayConfigError("CloudPayments gateway not configured")
 
         headers = {
+            "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
 

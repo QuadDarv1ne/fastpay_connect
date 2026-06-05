@@ -570,6 +570,7 @@ class PaymentRepository:
         gateway: Optional[str] = None,
         status: Optional[str] = None,
         tenant_id: Optional[int] = None,
+        limit: Optional[int] = None,
     ) -> List[Payment]:
         """
         Получить платежи за период с фильтрами.
@@ -580,6 +581,7 @@ class PaymentRepository:
             gateway: Фильтр по платёжной системе
             status: Фильтр по статусу
             tenant_id: Фильтр по tenant ID
+            limit: Максимальное количество записей
             
         Returns:
             Список платежей
@@ -603,4 +605,32 @@ class PaymentRepository:
         if tenant_id:
             query = query.filter(Payment.tenant_id == tenant_id)
         
+        if limit:
+            query = query.limit(limit)
+        
         return query.order_by(Payment.created_at.desc()).all()
+
+    def get_payments_count(
+        self,
+        start_date: datetime,
+        end_date: datetime,
+        gateway: Optional[str] = None,
+        status: Optional[str] = None,
+        tenant_id: Optional[int] = None,
+    ) -> int:
+        """Получить количество платежей за период с фильтрами (дёшево)."""
+        query = self._db.query(func.count(Payment.id)).filter(
+            Payment.created_at >= start_date,
+            Payment.created_at <= end_date,
+        )
+        if gateway:
+            query = query.filter(Payment.payment_gateway == gateway)
+        if status:
+            try:
+                status_enum = PaymentStatus(status) if not isinstance(status, PaymentStatus) else status
+                query = query.filter(Payment.status == status_enum)
+            except ValueError:
+                return 0
+        if tenant_id:
+            query = query.filter(Payment.tenant_id == tenant_id)
+        return query.scalar() or 0
