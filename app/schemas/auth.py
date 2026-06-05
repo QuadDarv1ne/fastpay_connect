@@ -43,6 +43,8 @@ class UserCreate(UserBase):
     """Модель для создания пользователя."""
 
     password: str = Field(..., min_length=8, max_length=100)
+    roles: List[str] = Field(default_factory=lambda: ["viewer"])
+    is_superuser: bool = False
 
 
 class UserUpdate(BaseModel):

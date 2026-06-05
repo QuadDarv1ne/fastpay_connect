@@ -174,8 +174,7 @@ class RuStoreGateway(BasePaymentGateway):
                 "POST",
                 auth_url,
                 headers=headers,
-                json_data=None,
-                params=data,
+                data=data,
             )
 
             self._token_cache = result

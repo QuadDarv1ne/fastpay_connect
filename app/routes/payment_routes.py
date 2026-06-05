@@ -6,9 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.dependencies import get_payment_repository
 from app.middleware.rate_limiter import limiter
+from app.models.user import User
 from app.repositories.payment_repository import PaymentRepository
 from app.schemas import PaymentRequest, PaymentResponse
 from app.services.payment_service import PaymentService, PaymentServiceError
+from app.utils.security import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +23,7 @@ def _create_payment_handler(gateway: str):
     async def handler(
         request: Request,
         payment_request: PaymentRequest,
+        current_user: User = Depends(get_current_user),
         repository: PaymentRepository = Depends(get_payment_repository),
     ) -> PaymentResponse:
         service = PaymentService(repository)

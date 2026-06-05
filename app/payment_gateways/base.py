@@ -79,6 +79,7 @@ class BasePaymentGateway(ABC):
         url: str,
         headers: Optional[Dict[str, str]] = None,
         json_data: Optional[Dict[str, Any]] = None,
+        data: Optional[Dict[str, Any]] = None,
         params: Optional[Dict[str, Any]] = None,
         timeout: Optional[float] = None,
     ) -> Dict[str, Any]:
@@ -100,6 +101,7 @@ class BasePaymentGateway(ABC):
                         url,
                         headers=headers,
                         json=json_data,
+                        data=data,
                         params=params,
                     )
                     response.raise_for_status()

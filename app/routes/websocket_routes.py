@@ -12,8 +12,9 @@ from fastapi import (APIRouter, Depends, HTTPException, Query, WebSocket,
 
 from app.database import get_db
 from app.dependencies import get_payment_repository
+from app.models.user import User
 from app.repositories.payment_repository import PaymentRepository
-from app.utils.security import decode_token
+from app.utils.security import decode_token, require_admin
 from app.websocket.manager import websocket_manager
 
 logger = logging.getLogger(__name__)
@@ -197,7 +198,9 @@ async def handle_client_message(websocket: WebSocket, message: dict, user_id: st
 
 
 @router.get("/stats")
-async def get_websocket_stats():
+async def get_websocket_stats(
+    current_user: User = Depends(require_admin),
+):
     """Получить статистику WebSocket подключений."""
     return {
         "status": "success",
