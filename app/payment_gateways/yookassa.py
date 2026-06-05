@@ -90,7 +90,7 @@ class YooKassaGateway(BasePaymentGateway):
 
         refund_payload: Dict[str, Any] = {
             "payment_id": payment_id,
-            "amount": {"value": str(amount), "currency": "RUB"} if amount else None,
+            "amount": {"value": str(amount), "currency": "RUB"} if amount is not None else None,
             "description": reason[:250] if reason else "Refund",
         }
         # Remove None values

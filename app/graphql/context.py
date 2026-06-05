@@ -31,26 +31,28 @@ async def get_graphql_context(request: Request) -> Dict[str, Any]:
     if auth_header.startswith("Bearer "):
         token = auth_header[7:]
 
-        # Check if token is blacklisted
-        if not is_token_blacklisted(token):
-            # Decode and validate token
-            token_data = decode_token(token, expected_type="access")
-            if token_data:
-                # Verify user still exists and is active
-                db = _get_db_session()
-                try:
-                    from app.models.user import User
-                    user = db.query(User).filter(User.id == token_data.user_id).first()
-                    if user and user.is_active:
-                        roles = user.get_roles()
-                        return {
-                            "user_id": user.id,
-                            "tenant_id": user.tenant_id,
-                            "user_roles": roles,
-                            "is_admin": "admin" in roles or user.is_superuser,
-                        }
-                finally:
-                    db.close()
+        # Reject blacklisted tokens immediately
+        if is_token_blacklisted(token):
+            return {"user_id": None, "tenant_id": None, "user_roles": None, "is_admin": False}
+
+        # Decode and validate token
+        token_data = decode_token(token, expected_type="access")
+        if token_data:
+            # Verify user still exists and is active
+            db = _get_db_session()
+            try:
+                from app.models.user import User
+                user = db.query(User).filter(User.id == token_data.user_id).first()
+                if user and user.is_active:
+                    roles = user.get_roles()
+                    return {
+                        "user_id": user.id,
+                        "tenant_id": user.tenant_id,
+                        "user_roles": roles,
+                        "is_admin": "admin" in roles or user.is_superuser,
+                    }
+            finally:
+                db.close()
 
     # Unauthenticated context
     return {"user_id": None, "tenant_id": None, "user_roles": None, "is_admin": False}

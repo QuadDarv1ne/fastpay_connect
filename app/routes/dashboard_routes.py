@@ -74,9 +74,11 @@ async def get_dashboard_summary(
     now = datetime.now(timezone.utc)
     date_from = now - timedelta(days=days)
     
-    period_payments = repository.db.query(Payment).filter(
-        Payment.created_at >= date_from
-    ).all()
+    base_filter = [Payment.created_at >= date_from]
+    if current_user.tenant_id is not None:
+        base_filter.append(Payment.tenant_id == current_user.tenant_id)
+    
+    period_payments = repository.db.query(Payment).filter(*base_filter).all()
 
     # Новые платежи за период (уже отфильтрованы выше)
     new_payments = len(period_payments)
@@ -135,13 +137,17 @@ async def get_daily_statistics(
     
     date_from = datetime.now(timezone.utc) - timedelta(days=days)
     
+    base_filter = [Payment.created_at >= date_from]
+    if current_user.tenant_id is not None:
+        base_filter.append(Payment.tenant_id == current_user.tenant_id)
+    
     # Группировка по дням
     daily_stats = repository.db.query(
         func.date(Payment.created_at).label('date'),
         func.count(Payment.id).label('total'),
         func.sum(Payment.amount).label('amount'),
     ).filter(
-        Payment.created_at >= date_from
+        *base_filter
     ).group_by(
         func.date(Payment.created_at)
     ).order_by(
@@ -154,7 +160,7 @@ async def get_daily_statistics(
         Payment.status,
         func.count(Payment.id).label('count'),
     ).filter(
-        Payment.created_at >= date_from
+        *base_filter
     ).group_by(
         func.date(Payment.created_at),
         Payment.status
@@ -199,13 +205,17 @@ async def get_gateway_statistics(
     
     date_from = datetime.now(timezone.utc) - timedelta(days=days)
     
+    base_filter = [Payment.created_at >= date_from]
+    if current_user.tenant_id is not None:
+        base_filter.append(Payment.tenant_id == current_user.tenant_id)
+    
     # Общая статистика по gateway
     gateway_stats = repository.db.query(
         Payment.payment_gateway,
         func.count(Payment.id).label('total'),
         func.sum(Payment.amount).label('amount'),
     ).filter(
-        Payment.created_at >= date_from
+        *base_filter
     ).group_by(
         Payment.payment_gateway
     ).all()
@@ -216,7 +226,7 @@ async def get_gateway_statistics(
         Payment.status,
         func.count(Payment.id).label('count'),
     ).filter(
-        Payment.created_at >= date_from
+        *base_filter
     ).group_by(
         Payment.payment_gateway,
         Payment.status
@@ -268,12 +278,16 @@ async def get_status_distribution(
     
     date_from = datetime.now(timezone.utc) - timedelta(days=days)
     
+    base_filter = [Payment.created_at >= date_from]
+    if current_user.tenant_id is not None:
+        base_filter.append(Payment.tenant_id == current_user.tenant_id)
+    
     status_stats = repository.db.query(
         Payment.status,
         func.count(Payment.id).label('count'),
         func.sum(Payment.amount).label('amount'),
     ).filter(
-        Payment.created_at >= date_from
+        *base_filter
     ).group_by(
         Payment.status
     ).all()

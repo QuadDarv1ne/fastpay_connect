@@ -33,9 +33,14 @@ class SplitPaymentCreateRequest(BaseModel):
     @field_validator("recipients")
     @classmethod
     def validate_recipient_amounts(cls, v: List["SplitRecipient"], info) -> List["SplitRecipient"]:
-        """Ensure recipient amounts sum to total amount."""
-        total = sum(r.amount for r in v)
-        # We'll check against total_amount after model creation
+        """Ensure recipient amounts do not exceed total amount."""
+        total_amount = info.data.get("total_amount")
+        if total_amount is not None:
+            recipient_sum = sum(r.amount for r in v)
+            if recipient_sum > total_amount:
+                raise ValueError(
+                    f"Recipient amounts sum ({recipient_sum}) exceeds total amount ({total_amount})"
+                )
         return v
 
 

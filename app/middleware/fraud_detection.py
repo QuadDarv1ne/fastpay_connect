@@ -202,7 +202,6 @@ class FraudDetector:
                 pipe = self._redis_client.pipeline()
                 pipe.zadd(key, {f"{now}:{amount}": now})
                 pipe.zremrangebyscore(key, 0, now - day_window)
-                # Sum all amounts
                 entries = pipe.zrangebyscore(key, 0, now)
                 pipe.expire(key, day_window + 60)
                 _, _, entries_list, _ = pipe.execute()
@@ -213,6 +212,16 @@ class FraudDetector:
             except Exception as e:
                 logger.warning(f"Fraud detection daily amount check Redis error: {e}")
 
+        # In-memory fallback when Redis is unavailable
+        cutoff = now - day_window
+        daily_key = f"daily_amount:{fingerprint}"
+        amounts = self._daily_amounts.get(daily_key, [])
+        amounts = [t for t in amounts if t[0] > cutoff]
+        total = sum(a[1] for a in amounts) + amount
+        if total > self.config.max_daily_amount_per_ip:
+            return f"Daily amount limit exceeded (in-memory): {total}"
+        amounts.append((now, amount))
+        self._daily_amounts[daily_key] = amounts
         return None
 
     def record_failed_attempt(self, fingerprint: str) -> None:

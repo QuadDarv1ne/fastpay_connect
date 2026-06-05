@@ -46,7 +46,12 @@ def _create_webhook_handler(gateway_name: str):
             return {"status": "error", "message": f"Unknown gateway: {gateway_name}"}
 
         try:
-            result = await handler(payload, signature, timestamp)
+            import inspect
+            nparams = len(inspect.signature(handler).parameters)
+            if nparams >= 3:
+                result = await handler(payload, signature, timestamp)
+            else:
+                result = await handler(payload, signature)
         except Exception as e:
             logger.error(f"Webhook error for {gateway_name}: {e}")
             return {"status": "error", "message": str(e)}

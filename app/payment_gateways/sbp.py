@@ -389,8 +389,8 @@ class SBPGateway(BasePaymentGateway):
             True если подпись валидна
         """
         if not self.secret_key:
-            logger.warning("SBP: secret key not configured, skipping signature verification")
-            return True
+            logger.error("SBP: secret key not configured, signature verification impossible — rejecting webhook")
+            return False
 
         # Проверяем timestamp (не старше 5 минут), если он указан
         if timestamp:
